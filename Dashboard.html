@@ -735,6 +735,18 @@
               <div class="kpi-value tabular">{{ data.apc.jumlahJurnalBerApc }}</div>
               <div class="kpi-sub">Jurnal yang sudah mendapat pemasukan APC.</div>
             </div>
+
+            <div class="card kpi">
+              <div class="kpi-label">Entri terbesar</div>
+              <div class="kpi-value tabular">{{ data.apc.entriTerbesar ? rupiah(data.apc.entriTerbesar.total) : '—' }}</div>
+              <div class="kpi-sub">{{ data.apc.entriTerbesar ? data.apc.entriTerbesar.namaJurnal : '—' }}</div>
+            </div>
+
+            <div class="card kpi">
+              <div class="kpi-label">Rata-rata per entri</div>
+              <div class="kpi-value tabular">{{ rupiah(data.apc.rataRataEntri) }}</div>
+              <div class="kpi-sub">Dari {{ data.apc.jumlahEntri }} entri laporan.</div>
+            </div>
           </div>
 
           <div class="card-note mb-8" style="font-weight:700">Alokasi pencairan (10% UPI, 2% DPPM)</div>
@@ -785,6 +797,77 @@
                 </table>
               </div>
             </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Riwayat Laporan APC</h2>
+                <p class="card-note">Baris mentah dari Log_APC, bisa disaring per bulan/kluster.</p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporRiwayatApc">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+                Ekspor
+              </button>
+            </div>
+
+            <div class="card-pad">
+              <div class="grid grid-2 mb-8">
+                <div>
+                  <label class="label" for="fApcBulan">Bulan</label>
+                  <select id="fApcBulan" v-model="filterBulanApc" class="select">
+                    <option value="">Semua bulan</option>
+                    <option v-for="ym in daftarBulanApc" :key="ym" :value="ym">{{ labelBulanApc(ym) }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label" for="fApcKluster">Kluster</label>
+                  <select id="fApcKluster" v-model="filterKlusterApc" class="select">
+                    <option value="">Semua kluster</option>
+                    <option v-for="k in daftarKluster" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="!riwayatApcTersaring.length" class="card-pad">
+              <div class="alert alert-info">Tidak ada laporan yang cocok dengan filter ini.</div>
+            </div>
+
+            <template v-else>
+              <div class="tabel-bungkus">
+                <table class="tabel">
+                  <thead>
+                    <tr>
+                      <th scope="col">Tanggal</th>
+                      <th scope="col">Jurnal</th>
+                      <th scope="col">Kluster</th>
+                      <th scope="col">Edisi</th>
+                      <th scope="col" class="td-num">Artikel</th>
+                      <th scope="col" class="td-num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(r, idx) in riwayatApcHalamanIni" :key="r.namaJurnal + r.timestamp + idx">
+                      <td class="teks-kecil teks-lembut">{{ r.timestamp }}</td>
+                      <td class="teks-tebal putus">{{ r.namaJurnal }}</td>
+                      <td class="teks-kecil">{{ r.kluster }}</td>
+                      <td class="teks-kecil putus">{{ r.edisi }}</td>
+                      <td class="td-num tabular">{{ r.jumlahArtikel }}</td>
+                      <td class="td-num tabular">{{ rupiah(r.total) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card-head" style="border-bottom:none;border-top:1px solid var(--line)">
+                <span class="teks-kecil teks-lembut">Halaman {{ halamanApc }} dari {{ totalHalamanApc }}</span>
+                <div class="flex-tengah">
+                  <button type="button" class="btn btn-sm" @click="gantiHalamanApc(-1)" :disabled="halamanApc <= 1">Sebelumnya</button>
+                  <button type="button" class="btn btn-sm" @click="gantiHalamanApc(1)" :disabled="halamanApc >= totalHalamanApc">Berikutnya</button>
+                </div>
+              </div>
+            </template>
           </div>
         </template>
 

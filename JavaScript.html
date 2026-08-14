@@ -78,6 +78,8 @@ Vue.createApp({
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
     konfirmasiPencairan:false, // baru: gate konfirmasi sebelum menulis ke Log_Pencairan_APC (append-only, tanpa edit/hapus)
     pesanPencairan:'',pesanPencairanJenis:'info',
+    // baru: filter & paginasi tabel "Riwayat Laporan APC"
+    filterBulanApc:'',filterKlusterApc:'',halamanApc:1,
     filterTerbitanStatus:'', // baru: filter status pada tab Progress Terbitan
     // baru: state tab Template Email (superadmin-only)
     daftarTemplateEmail:[],templateAktifKunci:'',draftTemplateEmail:{subjek:'',isi:''},
@@ -186,6 +188,24 @@ Vue.createApp({
       var dppm=Math.round(jumlah*PERSEN_ALOKASI_DPPM);
       return{upi:upi,dppm:dppm,terserap:jumlah-upi-dppm};
     },
+    // baru: daftar bulan, hasil saring, dan paginasi untuk tabel "Riwayat Laporan APC"
+    daftarBulanApc:function(){
+      if(!this.data||!this.data.apc||!this.data.apc.riwayat)return[];
+      var set={};
+      this.data.apc.riwayat.forEach(function(r){set[r.timestamp.substring(0,7)]=true;});
+      return Object.keys(set).sort().reverse();
+    },
+    riwayatApcTersaring:function(){
+      if(!this.data||!this.data.apc||!this.data.apc.riwayat)return[];
+      var b=this.filterBulanApc,k=this.filterKlusterApc;
+      return this.data.apc.riwayat.filter(function(r){
+        if(b&&r.timestamp.substring(0,7)!==b)return false;
+        if(k&&r.kluster!==k)return false;
+        return true;
+      });
+    },
+    totalHalamanApc:function(){return Math.max(1,Math.ceil(this.riwayatApcTersaring.length/10));},
+    riwayatApcHalamanIni:function(){var awal=(this.halamanApc-1)*10;return this.riwayatApcTersaring.slice(awal,awal+10);},
     // baru: true hanya kalau status yang dipilih di modal DOI adalah transisi BARU ke BERHASIL —
     // mencerminkan persis kondisi server (ubahStatusUsulanDoi di Code.gs) yang memicu email aktivasi.
     perluKonfirmasiBerhasilDoi:function(){
@@ -199,7 +219,9 @@ Vue.createApp({
     tab:function(v){var s=this;this.$nextTick(function(){if(v==='ringkasan')s.gambarGrafikBulanan();if(v==='apc')s.gambarGrafikApc();});},
     // baru: ganti jurnal/nominal setelah masuk tahap konfirmasi pencairan -> minta konfirmasi ulang
     'formPencairan.namaJurnal':function(){this.konfirmasiPencairan=false;},
-    'formPencairan.jumlahDiajukan':function(){this.konfirmasiPencairan=false;}
+    'formPencairan.jumlahDiajukan':function(){this.konfirmasiPencairan=false;},
+    // baru: filter tabel Riwayat Laporan APC -> balik ke halaman 1
+    filterBulanApc:function(){this.halamanApc=1;},filterKlusterApc:function(){this.halamanApc=1;}
     // dihapus: watcher 'formApc.total' (saran otomatis 50/50 honor/pengembangan) —
     // konsep itu digantikan sepenuhnya oleh mekanisme pencairan (lihat formPencairan).
   },
@@ -401,6 +423,15 @@ Vue.createApp({
     },
     eksporBulanan:function(){var s=this;this.unduhExcel(BULAN.map(function(b,i){return{Bulan:b,'Jumlah Jurnal':s.data.bulanan[i]};}),'Jadwal','DJPI-Jadwal');},
     eksporApc:function(){this.unduhExcel(this.data.apc.perKluster.map(function(k){return{Kluster:k.nama,'Jumlah Entri':k.entri,'Total Pemasukan':k.total};}),'APC','DJPI-APC');},
+    // baru: tabel Riwayat Laporan APC (paginasi, filter bulan/kluster)
+    gantiHalamanApc:function(d){this.halamanApc=Math.min(this.totalHalamanApc,Math.max(1,this.halamanApc+d));},
+    labelBulanApc:function(ym){
+      var b=BULAN[parseInt(ym.substring(5,7),10)-1]||ym.substring(5,7);
+      return b+' '+ym.substring(0,4);
+    },
+    eksporRiwayatApc:function(){this.unduhExcel(this.riwayatApcTersaring.map(function(r){return{
+      Tanggal:r.timestamp,Jurnal:r.namaJurnal,Kluster:r.kluster,Edisi:r.edisi,Artikel:r.jumlahArtikel,Total:r.total
+    };}),'Riwayat APC','DJPI-Riwayat-APC');},
     unduhExcel:function(rows,namaSheet,namaFile){try{var ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,namaSheet);XLSX.writeFile(wb,namaFile+'-'+new Date().toISOString().slice(0,10)+'.xlsx');}catch(e){this.tampilkanToast('Ekspor gagal: '+e.message);}},
     tampilkanToast:function(p){var s=this;this.toast=p;if(this.toastTimer)clearTimeout(this.toastTimer);this.toastTimer=setTimeout(function(){s.toast=null;},4000);},
 

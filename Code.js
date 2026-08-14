@@ -3636,7 +3636,7 @@ function rekapApc_(terlihat, profile) {
 
   var kosongDefault = {
     totalPemasukan: 0, jumlahEntri: 0, jumlahJurnalBerApc: 0,
-    perKluster: [], topJurnal: [], kosong: true,
+    perKluster: [], topJurnal: [], riwayat: [], entriTerbesar: null, rataRataEntri: 0, kosong: true,
     pesanKosong: 'Belum ada data pemasukan APC yang tercatat. Rekap akan muncul setelah pengelola jurnal mengisi laporan pertama.',
     pencairan: pencairan
   };
@@ -3648,7 +3648,7 @@ function rekapApc_(terlihat, profile) {
   terlihat.forEach(function (j) { klusterPer[norm_(j.namaJurnal)] = j.kluster; });
 
   var totalPemasukan = 0, jumlahEntri = 0;
-  var perKluster = {}, perJurnal = {};
+  var perKluster = {}, perJurnal = {}, riwayat = [], entriTerbesar = null;
 
   log.baris.forEach(function (b) {
     var kunci = norm_(b.namaJurnal);
@@ -3664,9 +3664,20 @@ function rekapApc_(terlihat, profile) {
     if (!perJurnal[b.namaJurnal]) perJurnal[b.namaJurnal] = { namaJurnal: b.namaJurnal, total: 0, artikel: 0 };
     perJurnal[b.namaJurnal].total += b.total;
     perJurnal[b.namaJurnal].artikel += b.jumlahArtikel;
+
+    // baru: riwayat laporan mentah (tab "Riwayat Laporan APC") + entri terbesar untuk KPI
+    riwayat.push({
+      timestamp: b.timestamp, namaJurnal: b.namaJurnal, kluster: kluster,
+      edisi: b.edisi, jumlahArtikel: b.jumlahArtikel, total: b.total
+    });
+    if (!entriTerbesar || b.total > entriTerbesar.total) {
+      entriTerbesar = { namaJurnal: b.namaJurnal, edisi: b.edisi, total: b.total };
+    }
   });
 
   if (!jumlahEntri) return kosongDefault;
+
+  riwayat.sort(function (a, b) { return b.timestamp.localeCompare(a.timestamp); }); // terbaru dulu
 
   return {
     totalPemasukan: totalPemasukan,
@@ -3676,6 +3687,9 @@ function rekapApc_(terlihat, profile) {
       .sort(function (a, b) { return b.total - a.total; }),
     topJurnal: Object.keys(perJurnal).map(function (k) { return perJurnal[k]; })
       .sort(function (a, b) { return b.total - a.total; }).slice(0, 10),
+    riwayat: riwayat, // baru: baris laporan mentah untuk tab Riwayat Laporan APC
+    entriTerbesar: entriTerbesar, // baru
+    rataRataEntri: Math.round(totalPemasukan / jumlahEntri), // baru
     kosong: false,
     pesanKosong: '',
     pencairan: pencairan // { totalDiajukan, totalUpi, totalDppm, totalTerserap, jumlahEntri }
