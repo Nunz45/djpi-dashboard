@@ -70,10 +70,13 @@ Vue.createApp({
     formApc:{edisi:'',jumlahArtikel:'',total:''},toast:null,toastTimer:null,grafik:{bulanan:null,apc:null},
     usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
     doiTerpilih:null,pesanModalDoi:'',mengirimUlangReceipt:{pengajuan:false,aktivasi:false}, // baru: state modal detail DOI
+    // baru: gate konfirmasi khusus transisi status DOI -> BERHASIL (memicu email otomatis)
+    doiTerpilihStatusAsli:'',konfirmasiSimpanDoi:false,
     // baru: state panel PIN tetap (login cepat & pengaturan di tab Akun Saya)
     pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
     // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
+    konfirmasiPencairan:false, // baru: gate konfirmasi sebelum menulis ke Log_Pencairan_APC (append-only, tanpa edit/hapus)
     pesanPencairan:'',pesanPencairanJenis:'info',
     filterTerbitanStatus:'' // baru: filter status pada tab Progress Terbitan
   };},
@@ -161,13 +164,21 @@ Vue.createApp({
       var upi=Math.round(jumlah*PERSEN_ALOKASI_UPI);
       var dppm=Math.round(jumlah*PERSEN_ALOKASI_DPPM);
       return{upi:upi,dppm:dppm,terserap:jumlah-upi-dppm};
+    },
+    // baru: true hanya kalau status yang dipilih di modal DOI adalah transisi BARU ke BERHASIL —
+    // mencerminkan persis kondisi server (ubahStatusUsulanDoi di Code.gs) yang memicu email aktivasi.
+    perluKonfirmasiBerhasilDoi:function(){
+      return !!(this.doiTerpilih && this.doiTerpilih.status==='BERHASIL' && this.doiTerpilihStatusAsli!=='BERHASIL');
     }
   },
   watch:{
     cari:function(){this.halaman=1;},filterKluster:function(){this.halaman=1;},filterSinta:function(){this.halaman=1;},
     filterTimeliness:function(){this.halaman=1;},filterMigrasi:function(){this.halaman=1;},filterScopus:function(){this.halaman=1;},
     filterKualitas:function(){this.halaman=1;},filterMasalah:function(){this.halaman=1;}, // baru
-    tab:function(v){var s=this;this.$nextTick(function(){if(v==='ringkasan')s.gambarGrafikBulanan();if(v==='apc')s.gambarGrafikApc();});}
+    tab:function(v){var s=this;this.$nextTick(function(){if(v==='ringkasan')s.gambarGrafikBulanan();if(v==='apc')s.gambarGrafikApc();});},
+    // baru: ganti jurnal/nominal setelah masuk tahap konfirmasi pencairan -> minta konfirmasi ulang
+    'formPencairan.namaJurnal':function(){this.konfirmasiPencairan=false;},
+    'formPencairan.jumlahDiajukan':function(){this.konfirmasiPencairan=false;}
     // dihapus: watcher 'formApc.total' (saran otomatis 50/50 honor/pengembangan) —
     // konsep itu digantikan sepenuhnya oleh mekanisme pencairan (lihat formPencairan).
   },
@@ -398,6 +409,8 @@ Vue.createApp({
       this.doiTerpilih=Object.assign({},d);
       this.pesanModalDoi='';
       this.mengirimUlangReceipt={pengajuan:false,aktivasi:false};
+      this.doiTerpilihStatusAsli=d.status; // baru: acuan gate konfirmasi transisi ke BERHASIL
+      this.konfirmasiSimpanDoi=false;
     },
 
     labelStatusDoi:function(s){ return LABEL_STATUS_DOI[s] || s; },
@@ -457,6 +470,8 @@ Vue.createApp({
           }
 
           s.doiTerpilih=hasil.item;
+          s.doiTerpilihStatusAsli=hasil.item.status; // baru: sinkronkan acuan supaya simpan ulang tanpa ubah status tidak minta konfirmasi lagi
+          s.konfirmasiSimpanDoi=false;
 
           if(typeof s.tampilkanToast==='function'){
             s.tampilkanToast('Status usulan DOI berhasil diperbarui.');
@@ -607,6 +622,7 @@ Vue.createApp({
           s.pesanPencairan=r.message;
           s.pesanPencairanJenis='ok';
           s.formPencairan={namaJurnal:'',jumlahDiajukan:null,catatan:''};
+          s.konfirmasiPencairan=false;
           s.muatDashboard(); // segarkan KPI Dana Terserap/UPI/DPPM
           if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
         })

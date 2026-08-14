@@ -816,12 +816,22 @@
               <input id="pcCatatan" v-model.trim="formPencairan.catatan" type="text" class="input">
             </div>
 
-            <button type="button" class="btn btn-primer"
-              :disabled="menyimpanPencairan || !formPencairan.namaJurnal || !formPencairan.jumlahDiajukan"
-              @click="kirimPencairan">
-              <span v-if="menyimpanPencairan" class="spinner" aria-hidden="true"></span>
-              {{ menyimpanPencairan ? 'Menyimpan…' : 'Catat pencairan' }}
-            </button>
+            <div v-if="konfirmasiPencairan" class="alert alert-info mb-8">
+              Konfirmasi: catat pencairan <strong>{{ rupiah(formPencairan.jumlahDiajukan) }}</strong> untuk
+              <strong>{{ formPencairan.namaJurnal }}</strong> — UPI {{ rupiah(previewAlokasi.upi) }} ·
+              DPPM {{ rupiah(previewAlokasi.dppm) }} · Dana terserap jurnal {{ rupiah(previewAlokasi.terserap) }}.
+              Data ini tidak dapat diedit/dihapus lewat dashboard setelah disimpan.
+            </div>
+
+            <div class="flex-tengah gap-8">
+              <button v-if="konfirmasiPencairan" type="button" class="btn" @click="konfirmasiPencairan = false">Batal</button>
+              <button type="button" class="btn btn-primer"
+                :disabled="menyimpanPencairan || !formPencairan.namaJurnal || !formPencairan.jumlahDiajukan"
+                @click="konfirmasiPencairan ? kirimPencairan() : konfirmasiPencairan = true">
+                <span v-if="menyimpanPencairan" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanPencairan ? 'Menyimpan…' : (konfirmasiPencairan ? 'Ya, catat pencairan' : 'Catat pencairan') }}
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1296,7 +1306,7 @@
 
         <div class="field">
           <label class="label" for="dStatusUbah">Status</label>
-          <select id="dStatusUbah" v-model="doiTerpilih.status" class="select">
+          <select id="dStatusUbah" v-model="doiTerpilih.status" class="select" @change="konfirmasiSimpanDoi = false">
             <option v-for="s in statusDoiOptions" :key="s" :value="s">{{ labelStatusDoi(s) }}</option>
           </select>
           <p v-if="doiTerpilih.status === 'SIAP_DIPROSES' && !issnJurnalSah(doiTerpilih.nama_jurnal)"
@@ -1311,17 +1321,19 @@
           <input id="dCatatanAdmin" v-model.trim="doiTerpilih.catatan_admin" type="text" class="input">
         </div>
 
-        <p v-if="doiTerpilih.status === 'BERHASIL' && doiTerpilih.receipt_aktivasi_status !== 'terkirim'"
-           class="hint">
+        <p v-if="perluKonfirmasiBerhasilDoi" class="hint">
           Menyimpan status ini akan mengirim email notifikasi DOI aktif ke pengelola secara otomatis.
         </p>
       </div>
 
       <div class="modal-foot">
         <button type="button" class="btn" @click="doiTerpilih = null">Tutup</button>
-        <button type="button" class="btn btn-primer" :disabled="menyimpanDoi" @click="simpanStatusDoi">
+        <button v-if="perluKonfirmasiBerhasilDoi && konfirmasiSimpanDoi" type="button" class="btn"
+          @click="konfirmasiSimpanDoi = false">Batal</button>
+        <button type="button" class="btn btn-primer" :disabled="menyimpanDoi"
+          @click="perluKonfirmasiBerhasilDoi && !konfirmasiSimpanDoi ? (konfirmasiSimpanDoi = true) : simpanStatusDoi()">
           <span v-if="menyimpanDoi" class="spinner" aria-hidden="true"></span>
-          {{ menyimpanDoi ? 'Menyimpan…' : 'Simpan status' }}
+          {{ menyimpanDoi ? 'Menyimpan…' : (perluKonfirmasiBerhasilDoi && konfirmasiSimpanDoi ? 'Ya, simpan & kirim email' : 'Simpan status') }}
         </button>
       </div>
     </div>
