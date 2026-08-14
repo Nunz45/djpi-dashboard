@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>DJPI Dashboard — Divisi Jurnal dan Publikasi Ilmiah UPI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <?!= include('Stylesheet'); ?>
+</head>
+
+<body>
+<div id="app" v-cloak class="app-shell">
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-mark">DJPI</div>
+
+      <div style="flex:1 1 220px">
+        <div class="brand-title">DJPI Dashboard</div>
+        <div class="brand-sub">Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia</div>
+      </div>
+
+      <template v-if="tahap === 'dashboard' && profile">
+        <span class="teks-kecil" style="opacity:.9">
+          {{ profile.email }}
+          <span v-if="profile.isSuperadmin"> · Superadmin</span>
+          <span v-else-if="profile.aksesKluster && profile.aksesKluster.length">
+            · {{ profile.aksesKluster.join(', ') }}
+          </span>
+        </span>
+
+        <button type="button" class="btn btn-sm" @click="segarkan" :disabled="memuatData">
+          <span v-if="memuatData" class="spinner spinner-gelap" aria-hidden="true"></span>
+          <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+          Segarkan
+        </button>
+
+        <button type="button" class="btn btn-sm" @click="keluar">
+          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+          Keluar
+        </button>
+      </template>
+
+      <a v-else class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
+        <i class="fa-solid fa-globe" aria-hidden="true"></i>
+        Halaman publik
+      </a>
+    </div>
+  </header>
+
+  <!-- Loading sesi -->
+  <main v-if="tahap === 'memuat'" class="page">
+    <div class="card card-pad" style="max-width:420px;margin:60px auto;text-align:center">
+      <div class="spinner spinner-gelap" style="margin:0 auto 12px" aria-hidden="true"></div>
+      <p class="teks-lembut" style="margin:0">Memeriksa sesi Anda…</p>
+    </div>
+  </main>
+
+  <!-- Login -->
+  <main v-else-if="['login','pin','pinTetap'].includes(tahap)" class="page">
+    <div class="card" style="max-width:420px;margin:48px auto">
+      <div class="card-pad">
+        <h1 style="font-size:20px;margin:0 0 5px">Masuk Dashboard Admin</h1>
+        <p class="card-note" style="margin-bottom:18px">
+          Akses dibatasi untuk admin yang terdaftar pada Daftar_Admin.
+        </p>
+
+        <div v-if="pesanGalat" class="alert alert-galat" role="alert">
+          {{ pesanGalat }}
+        </div>
+
+        <div v-if="pesanInfo" class="alert alert-info" role="status">
+          {{ pesanInfo }}
+        </div>
+
+        <form v-if="tahap === 'login'" @submit.prevent="kirimPermintaanPin" novalidate>
+          <div class="field">
+            <label class="label" for="inpEmail">Email admin</label>
+            <input id="inpEmail" v-model.trim="email" type="email" class="input"
+              placeholder="nama@upi.edu" autocomplete="email" required>
+            <p class="hint">PIN sekali pakai dikirim ke email dan berlaku lima menit.</p>
+          </div>
+
+          <button type="submit" class="btn btn-primer btn-blok" :disabled="sedangKirim">
+            <span v-if="sedangKirim" class="spinner" aria-hidden="true"></span>
+            {{ sedangKirim ? 'Mengirim…' : 'Kirim PIN' }}
+          </button>
+
+          <button type="button" class="btn btn-blok mt-8" @click="tahap = 'pinTetap'; pesanGalat = ''; pesanInfo = ''">
+            Sudah punya PIN tetap? Masuk langsung
+          </button>
+        </form>
+
+        <form v-else-if="tahap === 'pin'" @submit.prevent="kirimVerifikasiPin" novalidate>
+          <div class="field">
+            <label class="label" for="inpPin">PIN enam digit</label>
+            <input id="inpPin" v-model.trim="pin" type="text" inputmode="numeric"
+              maxlength="6" class="input input-pin" placeholder="000000"
+              autocomplete="one-time-code" required>
+          </div>
+
+          <button type="submit" class="btn btn-primer btn-blok" :disabled="sedangKirim">
+            <span v-if="sedangKirim" class="spinner" aria-hidden="true"></span>
+            {{ sedangKirim ? 'Memverifikasi…' : 'Masuk Dashboard' }}
+          </button>
+
+          <button type="button" class="btn btn-blok mt-8" @click="kembaliKeLogin">
+            Ganti email
+          </button>
+        </form>
+
+        <form v-else @submit.prevent="kirimLoginPinTetap" novalidate>
+          <div class="field">
+            <label class="label" for="inpEmailTetap">Email admin</label>
+            <input id="inpEmailTetap" v-model.trim="email" type="email" class="input"
+              placeholder="nama@upi.edu" autocomplete="email" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="inpPinTetap">PIN tetap enam digit</label>
+            <input id="inpPinTetap" v-model.trim="pinTetapInput" type="password" inputmode="numeric"
+              maxlength="6" class="input input-pin" placeholder="000000" required>
+            <p class="hint">Hanya berfungsi bila Anda sudah pernah mengatur PIN tetap lewat menu di dashboard.</p>
+          </div>
+
+          <button type="submit" class="btn btn-primer btn-blok" :disabled="sedangKirim">
+            <span v-if="sedangKirim" class="spinner" aria-hidden="true"></span>
+            {{ sedangKirim ? 'Memverifikasi…' : 'Masuk Dashboard' }}
+          </button>
+
+          <button type="button" class="btn btn-blok mt-8" @click="tahap = 'login'; pesanGalat = ''; pesanInfo = ''">
+            Pakai PIN email sebagai gantinya
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Dashboard -->
+  <main v-else class="page">
+    <div v-if="galatData" class="alert alert-galat" role="alert">
+      <strong>Gagal memuat data.</strong> {{ galatData }}
+      <button type="button" class="btn btn-sm mt-8" @click="segarkan">Coba lagi</button>
+    </div>
+
+    <div v-if="memuatData && !data" class="grid grid-kpi">
+      <div v-for="n in 4" :key="n" class="card kpi">
+        <div class="skeleton" style="height:12px;width:60%"></div>
+        <div class="skeleton mt-8" style="height:28px;width:42%"></div>
+      </div>
+    </div>
+
+    <template v-if="data">
+      <section class="mb-16">
+        <h1 style="font-size:25px;line-height:1.15;margin:0 0 5px">
+          Monitoring jurnal dan prioritas operasional
+        </h1>
+        <p class="card-note">
+          Data terakhir dimuat {{ data.generatedAt }} WIB. Gunakan kartu dan filter untuk membuka daftar jurnal terkait.
+        </p>
+      </section>
+
+      <nav class="tabs mb-16" aria-label="Bagian dashboard">
+        <button type="button" class="tab" :class="{ aktif: tab === 'ringkasan' }" @click="tab = 'ringkasan'">
+          Ringkasan
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'jurnal' }" @click="tab = 'jurnal'">
+          Daftar Jurnal ({{ data.journals.length }})
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'kualitas' }" @click="tab = 'kualitas'">
+          Kualitas Data<span v-if="dq && dq.bermasalah"> ({{ dq.bermasalah }})</span>
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'scopus' }" @click="tab = 'scopus'">
+          Pipeline Scopus
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'apc' }" @click="tab = 'apc'">
+          Pemasukan APC
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'doi' }"
+          @click="tab = 'doi'; !memuatDoi && !usulanDoi.length && muatUsulanDoi()">
+          Usulan DOI
+        </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'akun' }" @click="tab = 'akun'">
+          Akun Saya
+        </button>
+      </nav>
+
+      <!-- Ringkasan -->
+      <section v-show="tab === 'ringkasan'">
+        <div class="grid grid-kpi mb-16">
+          <div class="card kpi">
+            <div class="kpi-label">Jurnal aktif</div>
+            <div class="kpi-value tabular">{{ data.stats.total }}</div>
+            <div class="kpi-sub">Basis monitoring jurnal.</div>
+          </div>
+
+          <button type="button" class="card kpi kpi-klik" @click="bukaDaftar('terakreditasi')">
+            <div class="kpi-label">Terakreditasi SINTA</div>
+            <div class="kpi-value tabular kpi-accent">{{ data.stats.terakreditasi }}</div>
+            <div class="kpi-sub">{{ persen(data.stats.terakreditasi, data.stats.total) }}% dari total jurnal.</div>
+            <div class="kpi-cta">Buka daftar →</div>
+          </button>
+
+          <button type="button" class="card kpi kpi-klik" @click="bukaDaftar('belum')">
+            <div class="kpi-label">Belum akreditasi</div>
+            <div class="kpi-value tabular">{{ data.stats.belum }}</div>
+            <div class="kpi-sub">Prioritas pembinaan jurnal.</div>
+            <div class="kpi-cta">Buka daftar →</div>
+          </button>
+
+          <button type="button" class="card kpi kpi-klik" @click="bukaDaftar('scopus')">
+            <div class="kpi-label">Terindeks Scopus</div>
+            <div class="kpi-value tabular" style="color:#7A5B10">{{ data.stats.bereputasi }}</div>
+            <div class="kpi-sub">Jurnal bereputasi aktif.</div>
+            <div class="kpi-cta">Buka daftar →</div>
+          </button>
+        </div>
+
+        <div class="grid grid-2 mb-16">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Kepatuhan terbitan</h2>
+                <p class="card-note">Nilai kosong dibaca sebagai Belum Dinilai.</p>
+              </div>
+            </div>
+
+            <div class="card-pad flex-kolom gap-10">
+              <div v-for="(jumlah, kategori) in data.stats.timeliness" :key="kategori" class="flex-antara">
+                <span :class="kelasTimeliness(kategori)">{{ kategori }}</span>
+                <div class="flex-tengah" style="flex:1;justify-content:flex-end">
+                  <div class="bar-track" style="width:130px">
+                    <div class="bar-fill" :style="{ width: persen(jumlah, data.stats.total) + '%' }"></div>
+                  </div>
+                  <span class="tabular teks-tebal" style="min-width:34px;text-align:right">{{ jumlah }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Status migrasi OJS</h2>
+                <p class="card-note">Status berasal dari kolom STATUS OJS 3.5/STATUS OJS.</p>
+              </div>
+            </div>
+
+            <div class="card-pad flex-kolom gap-10">
+              <div class="flex-antara">
+                <span class="badge badge-ok">Sudah migrasi</span>
+                <span class="tabular teks-tebal">{{ data.stats.migrasi.sudah }}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" :style="{ width: persen(data.stats.migrasi.sudah, data.stats.total) + '%' }"></div>
+              </div>
+
+              <div class="flex-antara">
+                <span class="badge badge-warn">Belum migrasi</span>
+                <span class="tabular teks-tebal">{{ data.stats.migrasi.belum }}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" :style="{ width: persen(data.stats.migrasi.belum, data.stats.total) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-16">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Sebaran jadwal terbitan</h2>
+              <p class="card-note">Klik batang untuk membuka daftar jurnal yang memiliki jadwal terbit pada bulan tersebut.</p>
+            </div>
+            <button type="button" class="btn btn-sm" @click="eksporBulanan">
+              <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+              Ekspor
+            </button>
+          </div>
+
+          <div class="card-pad">
+            <div class="chart-box">
+              <canvas id="grafikBulanan"></canvas>
+            </div>
+
+            <div class="flex-tengah mt-8 wrap" style="gap:6px">
+              <span class="teks-kecil teks-lembut">Pilih bulan:</span>
+              <button v-for="(bulan, index) in namaBulan" :key="bulan" type="button"
+                class="chip" @click="bukaBulan(index)">
+                {{ bulan }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Rekap per kluster</h2>
+              <p class="card-note">BELUM DIKELOLA adalah kelompok data tanpa kluster.</p>
+            </div>
+          </div>
+
+          <div class="tabel-bungkus">
+            <table class="tabel">
+              <thead>
+                <tr>
+                  <th scope="col">Kluster</th>
+                  <th scope="col" class="td-num">Jurnal</th>
+                  <th scope="col" class="td-num">Terakreditasi</th>
+                  <th scope="col" class="td-num">Scopus</th>
+                  <th scope="col">Rasio akreditasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in data.clusters" :key="c.nama">
+                  <td class="teks-tebal">{{ c.nama }}</td>
+                  <td class="td-num tabular">{{ c.total }}</td>
+                  <td class="td-num tabular">{{ c.terakreditasi }}</td>
+                  <td class="td-num tabular">{{ c.bereputasi }}</td>
+                  <td>
+                    <div class="flex-tengah">
+                      <div class="bar-track" style="flex:1">
+                        <div class="bar-fill" :style="{ width: c.persen + '%' }"></div>
+                      </div>
+                      <span class="tabular teks-kecil" style="min-width:36px;text-align:right">{{ c.persen }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Kualitas data — seluruh angka dihitung di Code.gs, di sini hanya ditampilkan -->
+      <section v-show="tab === 'kualitas'">
+        <template v-if="dq">
+          <div class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Kesehatan data direktori</h2>
+                <p class="card-note">
+                  {{ dq.terkendali }} dari {{ dq.total }} jurnal terkendali ({{ dq.persenTerkendali }}%).
+                  Rata-rata kelengkapan {{ dq.totalInti }} field inti mencapai {{ dq.rataLengkap }}%.
+                </p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporKualitas">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+                Ekspor daftar perbaikan
+              </button>
+            </div>
+            <div class="card-pad">
+              <div class="bar-track" role="img"
+                :aria-label="'Kelengkapan data rata-rata ' + dq.rataLengkap + ' persen'">
+                <div class="bar-fill" :style="{ width: dq.rataLengkap + '%' }"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-kpi mb-16">
+            <button v-for="lv in levelDq" :key="lv.k" type="button"
+              class="card kpi kpi-klik" @click="bukaKualitas(lv.k)">
+              <div class="kpi-label">{{ lv.l }}</div>
+              <div class="kpi-value tabular">{{ dq[lv.k] }}</div>
+              <div class="kpi-sub">{{ lv.w }}</div>
+            </button>
+          </div>
+
+          <div class="grid grid-3 mb-16">
+            <div class="card kpi">
+              <div class="kpi-label">Perlu dilengkapi</div>
+              <div class="kpi-value tabular">{{ dq.perluDilengkapi }}</div>
+              <div class="kpi-sub">Sel kosong pada field yang dibutuhkan sistem.</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Perlu diperbaiki</div>
+              <div class="kpi-value tabular">{{ dq.perluDiperbaiki }}</div>
+              <div class="kpi-sub">Sel terisi tetapi nilainya tidak dapat dipakai sistem.</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Perlu ditindak</div>
+              <div class="kpi-value tabular">{{ dq.perluDitindak }}</div>
+              <div class="kpi-sub">Kondisi jurnal, bukan kesalahan pencatatan data.</div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Rincian per jenis masalah</h2>
+                <p class="card-note">Pilih satu baris untuk melihat jurnal yang mengalaminya.</p>
+              </div>
+            </div>
+
+            <div v-if="!dq.ringkas.length" class="card-pad">
+              <div class="alert alert-ok">Tidak ada masalah kualitas data pada cakupan kluster Anda.</div>
+            </div>
+
+            <div v-else class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Field</th>
+                    <th scope="col">Jenis</th>
+                    <th scope="col" class="td-num">Jurnal</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in dq.ringkas" :key="r.field + r.jenis">
+                    <td class="teks-tebal">{{ r.label }}</td>
+                    <td><span :class="kelasJenis(r.jenis)">{{ r.labelJenis }}</span></td>
+                    <td class="td-num tabular">{{ r.jumlah }}</td>
+                    <td class="td-num">
+                      <button type="button" class="btn btn-sm" @click="bukaMasalah(r.field, r.jenis)">
+                        Lihat jurnal
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Antrean perbaikan prioritas</h2>
+                <p class="card-note">Dua puluh jurnal paling mendesak menurut skor prioritas server.</p>
+              </div>
+            </div>
+
+            <div v-if="!antreanKualitas.length" class="card-pad">
+              <div class="alert alert-ok">Seluruh jurnal pada cakupan Anda berstatus terkendali.</div>
+            </div>
+
+            <div v-else class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Tingkat risiko</th>
+                    <th scope="col">Masalah utama</th>
+                    <th scope="col" class="td-num">Lengkap</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="j in antreanKualitas.slice(0, 20)" :key="j.namaJurnal" :class="kelasBaris(j)">
+                    <td>
+                      <div class="teks-tebal putus">{{ j.namaJurnal }}</div>
+                      <div class="teks-kecil teks-lembut">{{ j.kluster }}</div>
+                    </td>
+                    <td>
+                      <span :class="kelasDq(j.dq.level)">{{ j.dq.labelLevel }}</span>
+                      <div class="teks-kecil teks-lembut mt-8">{{ j.dq.jumlahMasalah }} masalah</div>
+                    </td>
+                    <td class="teks-kecil">
+                      <div v-for="m in j.dq.masalah.slice(0, 3)" :key="m.field + m.jenis">
+                        {{ m.label }} · {{ m.labelJenis }}
+                      </div>
+                      <div v-if="j.dq.masalah.length > 3" class="teks-lembut">
+                        dan {{ j.dq.masalah.length - 3 }} lainnya
+                      </div>
+                    </td>
+                    <td class="td-num tabular">{{ j.dq.lengkap }}/{{ j.dq.totalInti }}</td>
+                    <td class="td-num">
+                      <button type="button" class="btn btn-sm" @click="bukaJurnal(j)">Perbaiki</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <div v-else class="kosong">
+          <div class="kosong-judul">Rekap kualitas data belum tersedia</div>
+          <p class="kosong-teks">Muat ulang dashboard untuk mengambil rekap terbaru dari server.</p>
+        </div>
+      </section>
+
+      <!-- Daftar jurnal -->
+      <section id="panelJurnal" v-show="tab === 'jurnal'">
+        <div class="card mb-16">
+          <div class="card-pad">
+            <div class="grid grid-3 mb-8">
+              <div>
+                <label class="label" for="fCari">Cari jurnal</label>
+                <input id="fCari" v-model="cari" type="search" class="input" placeholder="Nama jurnal, ISSN, unit">
+              </div>
+
+              <div>
+                <label class="label" for="fKluster">Kluster</label>
+                <select id="fKluster" v-model="filterKluster" class="select">
+                  <option value="">Semua kluster</option>
+                  <option v-for="k in daftarKluster" :key="k" :value="k">{{ k }}</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fSinta">Akreditasi</label>
+                <select id="fSinta" v-model="filterSinta" class="select">
+                  <option value="">Semua peringkat</option>
+                  <option value="terakreditasi">Terakreditasi</option>
+                  <option value="belum">Belum akreditasi</option>
+                  <option value="1">SINTA 1</option>
+                  <option value="2">SINTA 2</option>
+                  <option value="3">SINTA 3</option>
+                  <option value="4">SINTA 4</option>
+                  <option value="5">SINTA 5</option>
+                  <option value="6">SINTA 6</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fTime">Kepatuhan terbitan</label>
+                <select id="fTime" v-model="filterTimeliness" class="select">
+                  <option value="">Semua status</option>
+                  <option value="Tepat Waktu">Tepat Waktu</option>
+                  <option value="Terlambat">Terlambat</option>
+                  <option value="Punya Hutang Terbitan">Punya Hutang Terbitan</option>
+                  <option value="Belum Dinilai">Belum Dinilai</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fScopus">Indeksasi Scopus</label>
+                <select id="fScopus" v-model="filterScopus" class="select">
+                  <option value="">Semua jurnal</option>
+                  <option value="ya">Terindeks Scopus</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fOjs">Migrasi OJS</label>
+                <select id="fOjs" v-model="filterMigrasi" class="select">
+                  <option value="">Semua status</option>
+                  <option value="sudah">Sudah migrasi</option>
+                  <option value="belum">Belum migrasi</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fKualitas">Kualitas data</label>
+                <select id="fKualitas" v-model="filterKualitas" class="select">
+                  <option value="">Semua tingkat</option>
+                  <option v-for="lv in levelDq" :key="lv.k" :value="lv.k">{{ lv.l }}</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label" for="fUrut">Urutkan</label>
+                <select id="fUrut" v-model="urutan" class="select">
+                  <option value="nama">Urutan sumber data</option>
+                  <option value="risiko">Paling mendesak lebih dulu</option>
+                  <option value="lengkap">Paling tidak lengkap lebih dulu</option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="filterMasalah" class="alert alert-info mb-8">
+              Menyaring jurnal dengan masalah: {{ labelFilterMasalah() }}
+              <button type="button" class="btn btn-sm" @click="filterMasalah = ''">Hapus penyaringan ini</button>
+            </div>
+
+            <div class="flex-antara">
+              <span class="teks-kecil teks-lembut">
+                Menampilkan {{ jurnalTersaring.length }} dari {{ data.journals.length }} jurnal
+              </span>
+
+              <div class="flex-tengah">
+                <button v-if="adaFilterAktif" type="button" class="btn btn-sm" @click="resetFilter">
+                  Reset filter
+                </button>
+                <button type="button" class="btn btn-sm" @click="eksporJurnal">
+                  <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+                  Ekspor Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="!jurnalTersaring.length" class="kosong">
+          <div class="kosong-judul">Tidak ada jurnal yang cocok</div>
+          <p class="kosong-teks">Coba kosongkan atau ubah filter yang sedang digunakan.</p>
+        </div>
+
+        <div v-else class="card">
+          <div class="tabel-bungkus">
+            <table class="tabel">
+              <thead>
+                <tr>
+                  <th scope="col">Jurnal</th>
+                  <th scope="col">Kluster</th>
+                  <th scope="col">Akreditasi</th>
+                  <th scope="col">Kepatuhan</th>
+                  <th scope="col">OJS</th>
+                  <th scope="col">Kualitas data</th>
+                  <th scope="col" class="td-num">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="j in jurnalHalamanIni" :key="j.namaJurnal" :class="kelasBaris(j)">
+                  <td>
+                    <div class="teks-tebal putus">{{ j.namaJurnal }}</div>
+                    <div class="teks-kecil teks-lembut">
+                      {{ j.issnValid ? j.issn : 'ISSN belum sah' }}
+                      <span v-if="!j.punyaEmail"> · email pengelola belum dapat dipakai</span>
+                    </div>
+                  </td>
+                  <td class="teks-kecil">{{ j.kluster }}</td>
+                  <td>
+                    <span :class="kelasBadge(j)">{{ j.statusAkreditasi }}</span>
+                    <div v-if="j.bereputasi" class="mt-8">
+                      <span class="badge badge-emas">{{ j.kuartil }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span :class="kelasTimeliness(j.kategoriTimeliness)">
+                      {{ j.kategoriTimeliness }}
+                    </span>
+                  </td>
+                  <td>
+                    <span :class="j.sudahMigrasi ? 'badge badge-ok' : 'badge badge-warn'">
+                      {{ j.sudahMigrasi ? 'Sudah' : 'Belum' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span v-if="j.dq" :class="kelasDq(j.dq.level)">{{ j.dq.labelLevel }}</span>
+                    <div v-if="j.dq && j.dq.jumlahMasalah" class="teks-kecil teks-lembut mt-8">
+                      {{ j.dq.jumlahMasalah }} masalah · {{ j.dq.lengkap }}/{{ j.dq.totalInti }} lengkap
+                    </div>
+                  </td>
+                  <td class="td-num">
+                    <button type="button" class="btn btn-sm" @click="bukaJurnal(j)">Detail</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card-head" style="border-bottom:none;border-top:1px solid var(--line)">
+            <span class="teks-kecil teks-lembut">Halaman {{ halaman }} dari {{ totalHalaman }}</span>
+            <div class="flex-tengah">
+              <button type="button" class="btn btn-sm" @click="gantiHalaman(-1)" :disabled="halaman <= 1">Sebelumnya</button>
+              <button type="button" class="btn btn-sm" @click="gantiHalaman(1)" :disabled="halaman >= totalHalaman">Berikutnya</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pipeline -->
+      <section v-show="tab === 'scopus'">
+        <div v-if="data.scopus.catatan" class="alert alert-info">{{ data.scopus.catatan }}</div>
+
+        <div class="grid grid-3">
+          <div v-for="tahap in [
+            { key: 'tahap1', judul: 'Tahap 1 · Kandidat / Inkubasi' },
+            { key: 'tahap2', judul: 'Tahap 2 · Pembinaan Aktif' },
+            { key: 'tahap3', judul: 'Tahap 3 · Submitted / CSAB' }
+          ]" :key="tahap.key" class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">{{ tahap.judul }}</h2>
+                <p class="card-note">{{ data.scopus[tahap.key].length }} jurnal.</p>
+              </div>
+            </div>
+
+            <div class="card-pad">
+              <div v-if="!data.scopus[tahap.key].length" class="kosong">
+                <div class="kosong-judul">Belum ada data</div>
+              </div>
+
+              <div v-else class="flex-kolom gap-10">
+                <article v-for="s in data.scopus[tahap.key]" :key="s.namaJurnal"
+                  style="border:1px solid var(--garis);border-radius:10px;padding:12px">
+                  <div class="teks-tebal putus">{{ s.namaJurnal }}</div>
+                  <div v-if="s.pic" class="teks-kecil teks-lembut">PIC: {{ s.pic }}</div>
+                  <div v-if="s.target" class="mt-8">
+                    <span class="badge badge-emas">Target: {{ s.target }}</span>
+                  </div>
+                  <p v-if="s.kendala" class="teks-kecil mt-8" style="margin-bottom:0">
+                    <span class="teks-lembut">Kendala:</span> {{ s.kendala }}
+                  </p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APC (REVISI — lihat catatan di bawah) -->
+      <section v-show="tab === 'apc'">
+        <div v-if="data.apc.kosong" class="kosong">
+          <div class="kosong-judul">Belum ada laporan APC</div>
+          <p class="kosong-teks">{{ data.apc.pesanKosong }}</p>
+        </div>
+
+        <template v-else>
+          <div class="grid grid-kpi mb-16">
+            <div class="card kpi">
+              <div class="kpi-label">Total pemasukan</div>
+              <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.totalPemasukan) }}</div>
+              <div class="kpi-sub">{{ data.apc.jumlahEntri }} entri laporan.</div>
+            </div>
+
+            <div class="card kpi">
+              <div class="kpi-label">Jurnal ber-APC</div>
+              <div class="kpi-value tabular">{{ data.apc.jumlahJurnalBerApc }}</div>
+              <div class="kpi-sub">Jurnal yang sudah mendapat pemasukan APC.</div>
+            </div>
+          </div>
+
+          <div class="card-note mb-8" style="font-weight:700">Alokasi pencairan (10% UPI, 2% DPPM)</div>
+          <div class="grid grid-3 mb-16">
+            <div class="card kpi">
+              <div class="kpi-label">Dana terserap jurnal</div>
+              <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.pencairan.totalTerserap) }}</div>
+              <div class="kpi-sub">88% dari total yang dicairkan.</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Pemasukan UPI</div>
+              <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalUpi) }}</div>
+              <div class="kpi-sub">10% dari total yang dicairkan.</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Kas DPPM</div>
+              <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalDppm) }}</div>
+              <div class="kpi-sub">2% dari total yang dicairkan.</div>
+            </div>
+          </div>
+
+          <div class="grid grid-2 mb-16">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">Pemasukan per kluster</h2>
+                  <p class="card-note">Sumber data: Log_APC (laporan pengelola).</p>
+                </div>
+                <button type="button" class="btn btn-sm" @click="eksporApc">Ekspor</button>
+              </div>
+              <div class="card-pad">
+                <div class="chart-box-sm"><canvas id="grafikApc"></canvas></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h2 class="card-title">Jurnal dengan pemasukan tertinggi</h2></div>
+              <div class="tabel-bungkus">
+                <table class="tabel">
+                  <thead><tr><th>Jurnal</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
+                  <tbody>
+                    <tr v-for="j in data.apc.topJurnal" :key="j.namaJurnal">
+                      <td>{{ j.namaJurnal }}</td>
+                      <td class="td-num tabular">{{ j.artikel }}</td>
+                      <td class="td-num tabular">{{ rupiah(j.total) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Form catat pencairan — selalu tampil, tidak bergantung ada/tidaknya laporan APC -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Catat Pengajuan Pencairan</h2>
+              <p class="card-note">10% otomatis ke UPI, 2% ke DPPM, sisanya tercatat sebagai dana terserap jurnal.</p>
+            </div>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="pesanPencairan" class="alert mb-8" :class="pesanPencairanJenis === 'galat' ? 'alert-galat' : 'alert-ok'">
+              {{ pesanPencairan }}
+            </div>
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label class="label" for="pcJurnal">Nama jurnal</label>
+                <select id="pcJurnal" v-model="formPencairan.namaJurnal" class="select" required>
+                  <option value="" disabled>Pilih jurnal…</option>
+                  <option v-for="j in data.journals" :key="j.namaJurnal" :value="j.namaJurnal">{{ j.namaJurnal }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="pcJumlah">Jumlah diajukan (Rp)</label>
+                <input id="pcJumlah" v-model.number="formPencairan.jumlahDiajukan" type="number" min="0" class="input">
+              </div>
+            </div>
+
+            <div v-if="formPencairan.jumlahDiajukan > 0" class="alert alert-info mb-8">
+              Pratinjau alokasi: UPI {{ rupiah(previewAlokasi.upi) }} · DPPM {{ rupiah(previewAlokasi.dppm) }} ·
+              Dana terserap jurnal {{ rupiah(previewAlokasi.terserap) }}
+            </div>
+
+            <div class="field">
+              <label class="label" for="pcCatatan">Catatan (opsional)</label>
+              <input id="pcCatatan" v-model.trim="formPencairan.catatan" type="text" class="input">
+            </div>
+
+            <button type="button" class="btn btn-primer"
+              :disabled="menyimpanPencairan || !formPencairan.namaJurnal || !formPencairan.jumlahDiajukan"
+              @click="kirimPencairan">
+              <span v-if="menyimpanPencairan" class="spinner" aria-hidden="true"></span>
+              {{ menyimpanPencairan ? 'Menyimpan…' : 'Catat pencairan' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Usulan DOI (REVISI — lihat catatan di bawah) -->
+      <section v-show="tab === 'doi'">
+        <div class="card mb-16">
+          <div class="card-head">
+            <div>
+              <span class="teks-kecil teks-lembut">PENERBITAN</span>
+              <h2 class="card-title">Usulan DOI</h2>
+              <p class="card-note">Tinjau usulan aktivasi DOI dari pengelola jurnal, verifikasi metadata, dan perbarui status.</p>
+            </div>
+            <button type="button" class="btn btn-sm" @click="muatUsulanDoi()" :disabled="memuatDoi">
+              <span v-if="memuatDoi" class="spinner spinner-gelap" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Muat ulang
+            </button>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="galatDoi" class="alert alert-galat mb-8" role="alert">
+              <strong>Gagal memuat usulan DOI.</strong> {{ galatDoi }}
+              <button type="button" class="btn btn-sm mt-8" @click="muatUsulanDoi()">Coba lagi</button>
+            </div>
+
+            <div class="grid grid-3 mb-8">
+              <div>
+                <label class="label" for="fDoiCari">Cari usulan</label>
+                <input id="fDoiCari" v-model="filterDoiCari" type="search" class="input"
+                  placeholder="Nama jurnal, judul artikel, penulis, pemohon">
+              </div>
+
+              <div>
+                <label class="label" for="fDoiStatus">Status</label>
+                <select id="fDoiStatus" v-model="filterDoiStatus" class="select">
+                  <option value="">Semua status</option>
+                  <option v-for="s in statusDoiOptions" :key="s" :value="s">{{ labelStatusDoi(s) }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="memuatDoi && !usulanDoi.length" class="card">
+          <div class="card-pad flex-kolom gap-10">
+            <div v-for="n in 3" :key="n" class="skeleton" style="height:44px;width:100%"></div>
+          </div>
+        </div>
+
+        <div v-else-if="!usulanDoi.length" class="kosong">
+          <div class="kosong-judul">Belum ada usulan DOI</div>
+          <p class="kosong-teks">Usulan akan muncul di sini setelah pengelola jurnal mengajukan aktivasi DOI lewat Dashboard Pengelola.</p>
+        </div>
+
+        <div v-else class="card">
+          <div class="card-head">
+            <span class="teks-kecil teks-lembut">
+              Menampilkan {{ usulanDoiTersaring.length }} dari {{ usulanDoi.length }} usulan
+            </span>
+          </div>
+
+          <div v-if="!usulanDoiTersaring.length" class="card-pad">
+            <div class="alert alert-info">Tidak ada usulan yang cocok dengan pencarian atau filter status.</div>
+          </div>
+
+          <div v-else class="tabel-bungkus">
+            <table class="tabel">
+              <thead>
+                <tr>
+                  <th scope="col">Jurnal</th>
+                  <th scope="col">Pemohon</th>
+                  <th scope="col">Jenis konten</th>
+                  <th scope="col" class="td-num">Jumlah DOI</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="td-num">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="d in usulanDoiTersaring" :key="d.id_usulan">
+                  <td>
+                    <div class="teks-tebal putus">{{ d.nama_jurnal }}</div>
+                    <div class="teks-kecil teks-lembut putus">{{ d.judul_artikel }}</div>
+                  </td>
+                  <td class="teks-kecil">
+                    {{ d.nama_pemohon || '—' }}
+                    <div v-if="d.jabatan_pemohon" class="teks-lembut">{{ d.jabatan_pemohon }}</div>
+                  </td>
+                  <td class="teks-kecil">
+                    {{ d.jenis_konten === 'edisi' ? 'Edisi/Volume' : 'Artikel' }}
+                    <div v-if="d.volume || d.nomor || d.tahun" class="teks-lembut">
+                      Vol {{ d.volume || '—' }} · No {{ d.nomor || '—' }} · {{ d.tahun || '—' }}
+                    </div>
+                  </td>
+                  <td class="td-num tabular">{{ d.jumlah_doi || '—' }}</td>
+                  <td>
+                    <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
+                  </td>
+                  <td class="td-num">
+                    <button type="button" class="btn btn-sm" @click="bukaDetailDoi(d)">Detail</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Akun Saya — panel PIN tetap -->
+      <section v-show="tab === 'akun'">
+        <div class="card mb-16">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">PIN Tetap untuk Login Cepat</h2>
+              <p class="card-note">
+                Opsional. Setelah diatur, Anda bisa masuk langsung dengan email + PIN ini,
+                tanpa menunggu email PIN sekali pakai.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="pesanPinTetap" class="alert mb-8" :class="pesanPinTetapJenis === 'galat' ? 'alert-galat' : 'alert-ok'">
+              {{ pesanPinTetap }}
+            </div>
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label class="label" for="pinTetapBaru">PIN tetap baru (6 digit)</label>
+                <input id="pinTetapBaru" v-model.trim="pinTetapBaru" type="password" inputmode="numeric"
+                  maxlength="6" class="input input-pin" placeholder="000000">
+              </div>
+              <div class="field">
+                <label class="label" for="pinTetapUlang">Ulangi PIN</label>
+                <input id="pinTetapUlang" v-model.trim="pinTetapUlang" type="password" inputmode="numeric"
+                  maxlength="6" class="input input-pin" placeholder="000000">
+              </div>
+            </div>
+
+            <div class="flex-tengah gap-8">
+              <button type="button" class="btn btn-primer" :disabled="menyimpanPinTetap" @click="simpanPinTetap">
+                <span v-if="menyimpanPinTetap" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanPinTetap ? 'Menyimpan…' : 'Simpan PIN Tetap' }}
+              </button>
+              <button type="button" class="btn" :disabled="menyimpanPinTetap" @click="nonaktifkanPinTetap">
+                Nonaktifkan PIN Tetap
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
+  </main>
+
+  <!-- Modal jadwal terbit -->
+  <div v-if="modalBulan" class="overlay" @click.self="tutupModalBulan">
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <div>
+          <h2 class="card-title" style="font-size:17px">Jadwal terbit · {{ modalBulan.bulan }}</h2>
+          <p class="card-note">{{ modalBulan.daftar.length }} jurnal dijadwalkan terbit.</p>
+        </div>
+        <button type="button" class="x-btn" @click="tutupModalBulan" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="memuatBulan" class="kosong">Memuat daftar jurnal…</div>
+
+        <template v-else>
+          <div class="flex-antara mb-8">
+            <label class="teks-kecil">
+              <input type="checkbox" :checked="semuaTerpilih" @change="pilihSemuaBulan($event.target.checked)">
+              Pilih semua yang dapat dikirimi
+            </label>
+            <span class="teks-kecil teks-lembut">{{ terpilihBulan.length }} dipilih</span>
+          </div>
+
+          <div class="tabel-bungkus">
+            <table class="tabel">
+              <thead><tr><th></th><th>Jurnal</th><th>Kluster</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr v-for="j in modalBulan.daftar" :key="j.namaJurnal">
+                  <td>
+                    <input type="checkbox" :value="j.namaJurnal" v-model="terpilihBulan"
+                      :disabled="!j.punyaEmail || j.sudahDiingatkan">
+                  </td>
+                  <td>
+                    <div class="teks-tebal">{{ j.namaJurnal }}</div>
+                    <div class="teks-kecil teks-lembut">{{ j.jadwalTerbitan }}</div>
+                  </td>
+                  <td>{{ j.kluster }}</td>
+                  <td>
+                    <span v-if="!j.punyaEmail" class="badge badge-bahaya">Tanpa email</span>
+                    <span v-else-if="j.sudahDiingatkan" class="badge badge-ok">Sudah diingatkan</span>
+                    <span v-else class="badge badge-emas">Siap kirim</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="hasilKirim" class="alert mt-8" :class="hasilKirim.gagal ? 'alert-galat' : 'alert-ok'">
+            {{ hasilKirim.terkirim }} terkirim, {{ hasilKirim.dilewati }} dilewati, {{ hasilKirim.gagal }} gagal.
+          </div>
+        </template>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn" @click="tutupModalBulan">Tutup</button>
+        <button v-if="konfirmasiKirim" type="button" class="btn" @click="konfirmasiKirim = false">Batal</button>
+        <button type="button" class="btn btn-primer" :disabled="!terpilihBulan.length || mengirim"
+          @click="konfirmasiKirim ? kirimPengingat() : konfirmasiKirim = true">
+          {{ mengirim ? 'Mengirim…' : (konfirmasiKirim ? 'Ya, kirim sekarang' : 'Kirim pengingat') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal detail jurnal -->
+  <div v-if="jurnalTerpilih" class="overlay" @click.self="tutupModal">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2 class="card-title" style="font-size:17px">{{ jurnalTerpilih.namaJurnal }}</h2>
+          <p class="card-note">{{ jurnalTerpilih.kluster }}</p>
+        </div>
+        <button type="button" class="x-btn" @click="tutupModal" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="pesanModal" class="alert"
+          :class="pesanModalJenis === 'galat' ? 'alert-galat' : (pesanModalJenis === 'ok' ? 'alert-ok' : 'alert-info')">
+          {{ pesanModal }}
+        </div>
+
+        <template v-if="!modeSunting && !panelApc">
+          <dl class="dl">
+            <dt>Unit pengelola</dt><dd>{{ jurnalTerpilih.unitPengelola || '—' }}</dd>
+            <dt>ISSN</dt>
+            <dd>
+              {{ jurnalTerpilih.issn || '—' }}
+              <span v-if="jurnalTerpilih.issn && !jurnalTerpilih.issnValid" class="badge badge-bahaya">format tidak sah</span>
+            </dd>
+            <dt>Akreditasi</dt><dd><span :class="kelasBadge(jurnalTerpilih)">{{ jurnalTerpilih.statusAkreditasi }}</span></dd>
+            <dt>Kepatuhan</dt><dd><span :class="kelasTimeliness(jurnalTerpilih.kategoriTimeliness)">{{ jurnalTerpilih.kategoriTimeliness }}</span></dd>
+            <dt>Status OJS</dt><dd>{{ jurnalTerpilih.statusOjs || '—' }}</dd>
+            <dt>Link OJS</dt>
+            <dd>
+              <a v-if="jurnalTerpilih.linkOjsValid" :href="jurnalTerpilih.linkOjs" target="_blank" rel="noopener">Buka OJS</a>
+              <template v-else>
+                {{ jurnalTerpilih.linkOjs || '—' }}
+                <span v-if="jurnalTerpilih.linkOjs" class="badge badge-bahaya">bukan URL sah</span>
+              </template>
+            </dd>
+            <dt>Tarif APC</dt><dd>{{ jurnalTerpilih.apc || 'Belum tercatat' }}</dd>
+            <dt>Jadwal terbit</dt>
+            <dd>
+              {{ jurnalTerpilih.jadwalTerbitan || '—' }}
+              <span v-if="jurnalTerpilih.statusJadwal === 'takTerbaca'" class="badge badge-warn">bulan tidak terbaca</span>
+            </dd>
+            <dt>Email pengelola</dt>
+            <dd>
+              {{ jurnalTerpilih.email || 'Belum tercatat' }}
+              <span v-if="jurnalTerpilih.email && !jurnalTerpilih.punyaEmail" class="badge badge-bahaya">format tidak sah</span>
+            </dd>
+          </dl>
+
+          <template v-if="jurnalTerpilih.dq">
+            <div class="card-head mt-16" style="padding-left:0;padding-right:0">
+              <div>
+                <h3 class="card-title" style="font-size:14px">Kualitas data</h3>
+                <p class="card-note">
+                  {{ jurnalTerpilih.dq.lengkap }} dari {{ jurnalTerpilih.dq.totalInti }} field inti sudah layak pakai
+                  ({{ jurnalTerpilih.dq.persenLengkap }}%).
+                </p>
+              </div>
+              <span :class="kelasDq(jurnalTerpilih.dq.level)">{{ jurnalTerpilih.dq.labelLevel }}</span>
+            </div>
+
+            <div class="bar-track mb-8">
+              <div class="bar-fill" :style="{ width: jurnalTerpilih.dq.persenLengkap + '%' }"></div>
+            </div>
+
+            <div v-if="!jurnalTerpilih.dq.masalah.length" class="alert alert-ok">
+              Tidak ada masalah kualitas data pada jurnal ini.
+            </div>
+
+            <ul v-else class="dq-daftar">
+              <li v-for="m in jurnalTerpilih.dq.masalah" :key="m.field + m.jenis" class="dq-item">
+                <div>
+                  <div class="flex-tengah gap-8">
+                    <span class="teks-tebal">{{ m.label }}</span>
+                    <span :class="kelasJenis(m.jenis)">{{ m.labelJenis }}</span>
+                  </div>
+                  <div class="teks-kecil teks-lembut">{{ m.pesan }}</div>
+                  <div v-if="m.nilai" class="teks-kecil">Nilai sekarang: <span class="putus">{{ m.nilai }}</span></div>
+                </div>
+                <button type="button" class="btn btn-sm" @click="perbaikiField(m.field)">Perbaiki</button>
+              </li>
+            </ul>
+          </template>
+        </template>
+
+        <form v-else-if="modeSunting" @submit.prevent="simpanSunting">
+          <div v-for="f in fieldSunting" :key="f.k" class="field">
+            <label class="label" :for="'sunting-' + f.k">{{ f.l }}</label>
+            <input :id="'sunting-' + f.k" v-model="draf[f.k]" type="text" class="input"
+              :class="{ 'input-galat': galatField[f.k] }" :aria-invalid="galatField[f.k] ? 'true' : 'false'">
+            <p v-if="galatField[f.k]" class="hint hint-galat">{{ galatField[f.k] }}</p>
+            <p v-else-if="petunjuk(f.k)" class="hint">{{ petunjuk(f.k) }}</p>
+          </div>
+        </form>
+
+        <form v-else @submit.prevent="kirimApc">
+          <div class="field"><label class="label">Edisi laporan</label><input v-model="formApc.edisi" class="input"></div>
+          <div class="field"><label class="label">Jumlah artikel berbayar</label><input v-model="formApc.jumlahArtikel" type="number" min="0" class="input"></div>
+          <div class="field"><label class="label">Total pemasukan APC</label><input v-model="formApc.total" type="number" min="0" class="input"></div>
+          <p class="hint">
+            Alokasi ke UPI, DPPM, dan dana terserap jurnal dicatat terpisah lewat
+            "Catat Pengajuan Pencairan" di tab Pemasukan APC.
+          </p>
+        </form>
+      </div>
+
+      <div class="modal-foot">
+        <template v-if="modeSunting">
+          <button type="button" class="btn" @click="batalSunting">Batal</button>
+          <button type="button" class="btn btn-primer" @click="simpanSunting" :disabled="menyimpan">Simpan</button>
+        </template>
+
+        <template v-else-if="panelApc">
+          <button type="button" class="btn" @click="panelApc = false">Batal</button>
+          <button type="button" class="btn btn-primer" @click="kirimApc" :disabled="menyimpan">Catat APC</button>
+        </template>
+
+        <template v-else>
+          <button type="button" class="btn" @click="tutupModal">Tutup</button>
+          <button type="button" class="btn btn-emas" @click="bukaFormApc">Catat APC</button>
+          <button type="button" class="btn btn-primer" @click="mulaiSunting">Sunting data</button>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal detail usulan DOI (REVISI) -->
+  <div v-if="doiTerpilih" class="overlay" @click.self="doiTerpilih = null">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2 class="card-title" style="font-size:17px">{{ doiTerpilih.nama_jurnal }}</h2>
+          <p class="card-note">{{ doiTerpilih.judul_artikel }}</p>
+        </div>
+        <button type="button" class="x-btn" @click="doiTerpilih = null" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="pesanModalDoi" class="alert alert-galat mb-8" role="alert">{{ pesanModalDoi }}</div>
+
+        <dl class="dl">
+          <dt>Pemohon</dt>
+          <dd>{{ doiTerpilih.nama_pemohon || '—' }} · {{ doiTerpilih.jabatan_pemohon || '—' }}</dd>
+          <dt>WhatsApp pemohon</dt><dd>{{ doiTerpilih.whatsapp_pemohon || '—' }}</dd>
+          <dt>Email pengelola</dt><dd>{{ doiTerpilih.email_pengelola || '—' }}</dd>
+          <dt>Jenis konten</dt><dd>{{ doiTerpilih.jenis_konten === 'edisi' ? 'Edisi/Volume Tertentu' : 'Artikel Jurnal Tertentu' }}</dd>
+          <dt>Volume / Nomor / Tahun</dt>
+          <dd>{{ doiTerpilih.volume || '—' }} / {{ doiTerpilih.nomor || '—' }} / {{ doiTerpilih.tahun || '—' }}</dd>
+          <dt>Jumlah DOI diminta</dt><dd>{{ doiTerpilih.jumlah_doi || '—' }}</dd>
+          <dt>Tanggal publikasi</dt><dd>{{ doiTerpilih.tanggal_publikasi || '—' }}</dd>
+          <dt>Penulis</dt><dd>{{ doiTerpilih.penulis || '—' }}</dd>
+
+          <dt>URL landing page</dt>
+          <dd>
+            <a v-if="urlDoiValid(doiTerpilih.url_landing_page)" :href="doiTerpilih.url_landing_page" target="_blank" rel="noopener">Buka tautan</a>
+            <template v-else>
+              {{ doiTerpilih.url_landing_page || '—' }}
+              <span v-if="doiTerpilih.url_landing_page" class="badge badge-bahaya">bukan URL sah</span>
+            </template>
+          </dd>
+
+          <dt>DOI diusulkan</dt><dd>{{ doiTerpilih.doi_diusulkan || 'Belum diisi' }}</dd>
+          <dt>Catatan pengelola</dt><dd>{{ doiTerpilih.catatan_pengelola || '—' }}</dd>
+
+          <dt>Diproses oleh</dt>
+          <dd>{{ doiTerpilih.diproses_oleh || '—' }} <span v-if="doiTerpilih.diproses_pada" class="teks-kecil teks-lembut">({{ doiTerpilih.diproses_pada }})</span></dd>
+
+          <dt>Tanda terima</dt>
+          <dd class="teks-kecil">
+            <div class="flex-tengah gap-8">
+              <span>Pengajuan: {{ doiTerpilih.receipt_pengajuan_status || '—' }}</span>
+              <button type="button" class="btn btn-sm" :disabled="mengirimUlangReceipt.pengajuan"
+                @click="kirimUlangReceipt('pengajuan')">
+                <span v-if="mengirimUlangReceipt.pengajuan" class="spinner" aria-hidden="true"></span>
+                {{ mengirimUlangReceipt.pengajuan ? 'Mengirim…' : 'Kirim ulang' }}
+              </button>
+            </div>
+            <div v-if="doiTerpilih.status === 'BERHASIL'" class="flex-tengah gap-8 mt-8">
+              <span>Aktivasi: {{ doiTerpilih.receipt_aktivasi_status || '—' }}</span>
+              <button type="button" class="btn btn-sm" :disabled="mengirimUlangReceipt.aktivasi"
+                @click="kirimUlangReceipt('aktivasi')">
+                <span v-if="mengirimUlangReceipt.aktivasi" class="spinner" aria-hidden="true"></span>
+                {{ mengirimUlangReceipt.aktivasi ? 'Mengirim…' : 'Kirim ulang' }}
+              </button>
+            </div>
+          </dd>
+        </dl>
+
+        <div class="field">
+          <label class="label" for="dStatusUbah">Status</label>
+          <select id="dStatusUbah" v-model="doiTerpilih.status" class="select">
+            <option v-for="s in statusDoiOptions" :key="s" :value="s">{{ labelStatusDoi(s) }}</option>
+          </select>
+          <p v-if="doiTerpilih.status === 'SIAP_DIPROSES' && !issnJurnalSah(doiTerpilih.nama_jurnal)"
+             class="hint hint-galat">
+            Peringatan: ISSN jurnal ini belum tercatat sah. Server akan menolak perubahan ke status ini
+            sampai ISSN diperbaiki lewat menu Sunting Data Jurnal.
+          </p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="dCatatanAdmin">Catatan admin</label>
+          <input id="dCatatanAdmin" v-model.trim="doiTerpilih.catatan_admin" type="text" class="input">
+        </div>
+
+        <p v-if="doiTerpilih.status === 'BERHASIL' && doiTerpilih.receipt_aktivasi_status !== 'terkirim'"
+           class="hint">
+          Menyimpan status ini akan mengirim email notifikasi DOI aktif ke pengelola secara otomatis.
+        </p>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn" @click="doiTerpilih = null">Tutup</button>
+        <button type="button" class="btn btn-primer" :disabled="menyimpanDoi" @click="simpanStatusDoi">
+          <span v-if="menyimpanDoi" class="spinner" aria-hidden="true"></span>
+          {{ menyimpanDoi ? 'Menyimpan…' : 'Simpan status' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="toast" role="status"
+    style="position:fixed;z-index:80;bottom:22px;left:50%;transform:translateX(-50%);padding:11px 16px;border-radius:9px;background:#242321;color:#fff;font-size:13px">
+    {{ toast }}
+  </div>
+
+  <footer class="footer">
+    Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
+  </footer>
+</div>
+
+<script>
+  var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
+
+  // ============================================================
+  // CATATAN PENTING — baca ini sebelum menempel file ini
+  // ============================================================
+  // Bagian bawah file ini (include('JavaScript')) memuat controller
+  // Vue (data, computed, methods) dari file terpisah JavaScript.html
+  // yang TIDAK PERNAH dibagikan dalam percakapan ini. Template HTML
+  // di atas SUDAH lengkap tergabung dengan SELURUH revisi sesi ini:
+  //   - Login PIN tetap (tahap 'pinTetap')
+  //   - Tab Usulan DOI baru (6 status resmi, tombol kirim ulang receipt)
+  //   - Panel Akun Saya (atur/hapus PIN tetap)
+  //   - Tab Pemasukan APC baru (KPI Jurnal Ber-APC, Dana Terserap/
+  //     UPI/DPPM, form Catat Pengajuan Pencairan)
+  //
+  // Logic JS yang menggerakkan semua ini masih berupa POTONGAN KODE
+  // di file-file terpisah berikut, dan WAJIB digabungkan manual ke
+  // JavaScript.html asli kamu (yang berisi controller lengkap seperti
+  // muatData, bukaJurnal, eksporJurnal, kelasBadge, rendering Chart.js,
+  // dkk. — belum pernah saya lihat):
+  //   - revisi-tab-usulan-doi-admin.html   (computed/methods tab DOI)
+  //   - revisi-login-pin-tetap-admin.html  (methods PIN tetap)
+  //   - revisi-tab-apc-admin.html          (data/computed/methods pencairan APC)
+  //
+  // State baru yang perlu ditambahkan ke data() pada JavaScript.html:
+  //   usulanDoi, memuatDoi, galatDoi, statusDoiOptions, filterDoiCari,
+  //   filterDoiStatus, doiTerpilih, pesanModalDoi, menyimpanDoi,
+  //   mengirimUlangReceipt: { pengajuan: false, aktivasi: false },
+  //   pinTetapInput, pinTetapBaru, pinTetapUlang, menyimpanPinTetap,
+  //   pesanPinTetap, pesanPinTetapJenis,
+  //   formPencairan: { namaJurnal: '', jumlahDiajukan: null, catatan: '' },
+  //   menyimpanPencairan, pesanPencairan, pesanPencairanJenis
+  //
+  // Kalau JavaScript.html itu diunggah, saya bisa gabungkan semuanya
+  // jadi satu file controller lengkap yang siap tempel.
+  // ============================================================
+</script>
+
+<?!= include('JavaScript'); ?>
+</body>
+</html>

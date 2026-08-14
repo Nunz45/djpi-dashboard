@@ -1,0 +1,669 @@
+<!-- JavaScript.html — token hanya di memori tab, tanpa localStorage/sessionStorage -->
+<script>
+function gs(namaFungsi){
+  var args=Array.prototype.slice.call(arguments,1);
+  return new Promise(function(resolve,reject){
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[namaFungsi].apply(null,args);
+  });
+}
+var BULAN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function rupiah(n){return 'Rp'+Math.round(Number(n)||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+// baru: urutan tingkat risiko dari Data Quality Engine (dihitung di Code.gs, di sini hanya untuk tampilan)
+var LEVEL_DQ=[
+  {k:'kritis',l:'Kritis',w:'Menghambat operasional: kontak, tautan OJS, atau hutang terbitan.'},
+  {k:'perluTindakan',l:'Perlu tindakan',w:'Perlu program pembinaan: akreditasi, migrasi, atau jadwal terbit.'},
+  {k:'perluVerifikasi',l:'Perlu verifikasi',w:'Data terisi tetapi format atau nilainya perlu dicek ulang.'},
+  {k:'terkendali',l:'Terkendali',w:'Data inti lengkap dan tidak ada isu mendesak.'}
+];
+// baru: label & kelas badge untuk status DOI_STATUS (harus sama persis dengan DOI_STATUS di Code.gs)
+var LABEL_STATUS_DOI={
+  MENUNGGU_VALIDASI:'Menunggu Validasi',
+  PERLU_REVISI:'Perlu Revisi',
+  SIAP_DIPROSES:'Siap Diproses',
+  SEDANG_DIPROSES:'Sedang Diproses',
+  BERHASIL:'Berhasil',
+  GAGAL:'Gagal'
+};
+var KELAS_STATUS_DOI={
+  MENUNGGU_VALIDASI:'badge badge-none',
+  PERLU_REVISI:'badge badge-bahaya',
+  SIAP_DIPROSES:'badge badge-emas',
+  SEDANG_DIPROSES:'badge badge-warn',
+  BERHASIL:'badge badge-ok',
+  GAGAL:'badge badge-bahaya'
+};
+// baru: persentase alokasi pencairan APC, HANYA untuk pratinjau di sisi tampilan —
+// nilai yang sebenarnya dihitung ulang di server (catatPencairanApc di Code.gs),
+// sehingga menaruh angka ini di klien tidak membuka celah manipulasi.
+var PERSEN_ALOKASI_UPI=0.10, PERSEN_ALOKASI_DPPM=0.02;
+
+Vue.createApp({
+  data:function(){return{
+    tahap:'memuat',email:'',pin:'',token:'',profile:null,sedangKirim:false,pesanGalat:'',pesanInfo:'',
+    memuatData:false,data:null,galatData:'',tab:'ringkasan',
+    cari:'',filterKluster:'',filterSinta:'',filterTimeliness:'',filterMigrasi:'',filterScopus:'',
+    filterKualitas:'',filterMasalah:'',urutan:'nama', // baru: filter & urutan berbasis kualitas data
+    halaman:1,perHalaman:25,namaBulan:BULAN,modalBulan:null,memuatBulan:false,terpilihBulan:[],konfirmasiKirim:false,mengirim:false,hasilKirim:null,
+    jurnalTerpilih:null,modeSunting:false,panelApc:false,draf:{},menyimpan:false,pesanModal:'',pesanModalJenis:'info',
+    galatField:{}, // baru: pesan validasi per field dari simpanPerubahanJurnal
+    tokenEdit:'',jurnalTokenEdit:'',panelPin:false,pinJurnal:'',mengirimPin:false,
+    // diubah: honor/pengembangan dihapus dari formApc — digantikan sepenuhnya oleh
+    // mekanisme pencairan (formPencairan di bawah), lihat brainstorming APC.
+    formApc:{edisi:'',jumlahArtikel:'',total:''},toast:null,toastTimer:null,grafik:{bulanan:null,apc:null},
+    usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
+    doiTerpilih:null,pesanModalDoi:'',mengirimUlangReceipt:{pengajuan:false,aktivasi:false}, // baru: state modal detail DOI
+    formUsulanDoi:{
+      nama_jurnal:'',
+      email_pengelola:'',
+      jenis_objek:'ARTIKEL',
+      volume:'',
+      nomor:'',
+      tahun:String(new Date().getFullYear()),
+      judul_artikel:'',
+      penulis:'',
+      url_landing_page:'',
+      doi_diusulkan:'',
+      catatan_pengelola:''
+    },
+    // baru: state panel PIN tetap (login cepat & pengaturan di tab Akun Saya)
+    pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
+    // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
+    formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
+    pesanPencairan:'',pesanPencairanJenis:'info'
+  };},
+  computed:{
+    fieldSunting:function(){return this.FIELD_ADMIN;},
+    daftarKluster:function(){return this.data?this.data.clusters.map(function(x){return x.nama;}):[];},
+    dq:function(){return this.data&&this.data.dataQuality?this.data.dataQuality:null;}, // baru
+    levelDq:function(){return LEVEL_DQ;}, // baru
+    jurnalTersaring:function(){
+      if(!this.data)return[];var q=this.cari.trim().toLowerCase(),s=this;
+      var hasil=this.data.journals.filter(function(j){
+        var teks=[j.namaJurnal,j.kluster,j.issn,j.unitPengelola].join(' ').toLowerCase();
+        if(q&&teks.indexOf(q)<0)return false;
+        if(s.filterKluster&&j.kluster!==s.filterKluster)return false;
+        if(s.filterSinta==='belum'&&j.terakreditasi)return false;
+        if(s.filterSinta==='terakreditasi'&&!j.terakreditasi)return false;
+        if(s.filterSinta&&!['belum','terakreditasi'].includes(s.filterSinta)&&String(j.peringkatSinta)!==s.filterSinta)return false;
+        if(s.filterTimeliness&&j.kategoriTimeliness!==s.filterTimeliness)return false;
+        if(s.filterMigrasi==='sudah'&&!j.sudahMigrasi)return false;
+        if(s.filterMigrasi==='belum'&&j.sudahMigrasi)return false;
+        if(s.filterScopus==='ya'&&!j.bereputasi)return false;
+        if(s.filterScopus==='tanpa-email'&&j.punyaEmail)return false;
+        // baru: saring berdasarkan tingkat risiko kualitas data
+        if(s.filterKualitas&&(!j.dq||j.dq.level!==s.filterKualitas))return false;
+        // baru: saring berdasarkan satu jenis masalah spesifik, format "field|jenis"
+        if(s.filterMasalah){
+          if(!j.dq||!j.dq.masalah)return false;
+          var pisah=s.filterMasalah.split('|'),ada=j.dq.masalah.some(function(m){return m.field===pisah[0]&&m.jenis===pisah[1];});
+          if(!ada)return false;
+        }
+        return true;
+      });
+      // baru: urutan dapat diganti ke prioritas perbaikan data
+      if(this.urutan==='risiko')hasil=hasil.slice().sort(function(a,b){
+        var sa=a.dq?a.dq.skor:0,sb=b.dq?b.dq.skor:0;
+        return sb-sa||a.namaJurnal.localeCompare(b.namaJurnal);
+      });
+      else if(this.urutan==='lengkap')hasil=hasil.slice().sort(function(a,b){
+        var pa=a.dq?a.dq.persenLengkap:100,pb=b.dq?b.dq.persenLengkap:100;
+        return pa-pb||a.namaJurnal.localeCompare(b.namaJurnal);
+      });
+      return hasil;
+    },
+    totalHalaman:function(){return Math.max(1,Math.ceil(this.jurnalTersaring.length/this.perHalaman));},
+    jurnalHalamanIni:function(){var awal=(this.halaman-1)*this.perHalaman;return this.jurnalTersaring.slice(awal,awal+this.perHalaman);},
+    adaFilterAktif:function(){return!!(this.cari||this.filterKluster||this.filterSinta||this.filterTimeliness||this.filterMigrasi||this.filterScopus||this.filterKualitas||this.filterMasalah);},
+    // baru: sepuluh jurnal paling mendesak menurut skor server
+    antreanKualitas:function(){
+      if(!this.data)return[];
+      return this.data.journals.filter(function(j){return j.dq&&j.dq.level!=='terkendali';})
+        .slice().sort(function(a,b){return b.dq.skor-a.dq.skor||a.namaJurnal.localeCompare(b.namaJurnal);});
+    },
+    prioritas:function(){
+      var a=this.data?this.data.journals:[];return{
+        hutang:a.filter(function(j){return j.kategoriTimeliness==='Punya Hutang Terbitan';}).length,
+        tanpaEmail:a.filter(function(j){return !j.punyaEmail;}).length,
+        belumMigrasi:a.filter(function(j){return !j.sudahMigrasi;}).length
+      };
+    },
+    semuaTerpilih:function(){return this.modalBulan&&this.terpilihBulan.length===this.modalBulan.daftar.filter(function(j){return j.punyaEmail&&!j.sudahDiingatkan;}).length;},
+    tahapScopus:function(){return[{key:'tahap1',label:'Tahap 1 · Kandidat / Inkubasi'},{key:'tahap2',label:'Tahap 2 · Pembinaan aktif'},{key:'tahap3',label:'Tahap 3 · Submitted / CSAB'}];},
+    // baru: daftar usulan DOI setelah disaring pencarian & status, dipakai tabel di tab Usulan DOI
+    usulanDoiTersaring:function(){
+      var q=this.filterDoiCari.trim().toLowerCase(),st=this.filterDoiStatus;
+      return this.usulanDoi.filter(function(d){
+        if(st&&d.status!==st)return false;
+        if(!q)return true;
+        var teks=[d.nama_jurnal,d.judul_artikel,d.penulis,d.nama_pemohon].join(' ').toLowerCase();
+        return teks.indexOf(q)!==-1;
+      });
+    },
+    // baru: pratinjau alokasi pencairan APC (10% UPI, 2% DPPM, sisanya dana terserap
+    // jurnal). Murni tampilan — perhitungan resmi & final tetap dilakukan server.
+    previewAlokasi:function(){
+      var jumlah=Number(this.formPencairan.jumlahDiajukan)||0;
+      var upi=Math.round(jumlah*PERSEN_ALOKASI_UPI);
+      var dppm=Math.round(jumlah*PERSEN_ALOKASI_DPPM);
+      return{upi:upi,dppm:dppm,terserap:jumlah-upi-dppm};
+    }
+  },
+  watch:{
+    cari:function(){this.halaman=1;},filterKluster:function(){this.halaman=1;},filterSinta:function(){this.halaman=1;},
+    filterTimeliness:function(){this.halaman=1;},filterMigrasi:function(){this.halaman=1;},filterScopus:function(){this.halaman=1;},
+    filterKualitas:function(){this.halaman=1;},filterMasalah:function(){this.halaman=1;}, // baru
+    tab:function(v){var s=this;this.$nextTick(function(){if(v==='ringkasan')s.gambarGrafikBulanan();if(v==='apc')s.gambarGrafikApc();});}
+    // dihapus: watcher 'formApc.total' (saran otomatis 50/50 honor/pengembangan) —
+    // konsep itu digantikan sepenuhnya oleh mekanisme pencairan (lihat formPencairan).
+  },
+  created:function(){
+    this.FIELD_PENGELOLA=[
+      {k:'linkOjs',l:'Link OJS'},{k:'issn',l:'ISSN'},{k:'linkGaruda',l:'Link Garuda'},{k:'linkDoaj',l:'Link DOAJ'},
+      {k:'apc',l:'Tarif APC'},{k:'linkApc',l:'Tautan informasi APC'},{k:'namaPengelola',l:'Nama pengelola'},
+      {k:'email',l:'Email pengelola'},{k:'issue',l:'Frekuensi terbit'},{k:'jadwalTerbitan',l:'Jadwal terbitan'},
+      {k:'artikelPerIssue',l:'Artikel per issue'},{k:'artikelPerTahun',l:'Artikel per tahun'}
+    ];
+    this.FIELD_ADMIN=this.FIELD_PENGELOLA.concat([
+      {k:'kluster',l:'Kluster'},{k:'unitPengelola',l:'Unit pengelola'},{k:'statusOjs',l:'Status OJS'},
+      {k:'catatanMigrasi',l:'Catatan migrasi'},{k:'statusAkreditasi',l:'Status akreditasi'},
+      {k:'masaBerlakuSk',l:'Masa berlaku SK'},{k:'tanggalExpired',l:'Tanggal expired'},
+      {k:'timeliness',l:'Timeliness'},{k:'performa',l:'Performa'},{k:'kuartil',l:'Kuartil Scopus'}
+    ]);
+    // baru: petunjuk pengisian per field, ditampilkan di form sunting agar data rusak tidak masuk lagi
+    this.PETUNJUK_FIELD={
+      linkOjs:'Alamat lengkap, contoh https://ejournal.upi.edu/index.php/namajurnal',
+      linkGaruda:'Alamat lengkap dimulai http:// atau https://',
+      linkDoaj:'Alamat lengkap dimulai http:// atau https://',
+      linkApc:'Alamat lengkap dimulai http:// atau https://',
+      email:'Satu alamat saja, contoh redaksi@upi.edu',
+      issn:'Delapan karakter, contoh 2085-1243',
+      artikelPerIssue:'Angka bulat saja',
+      artikelPerTahun:'Angka bulat saja',
+      kuartil:'Contoh SCOPUS Q2. Kosongkan bila belum terindeks Scopus',
+      statusAkreditasi:'SINTA 1 sampai SINTA 6, atau Belum Akreditasi',
+      jadwalTerbitan:'Sebut nama bulannya, contoh April dan Oktober'
+    };
+  },
+  mounted:function(){
+    if(typeof google==='undefined'||!google.script||!google.script.run){this.tahap='login';this.pesanGalat='Buka melalui URL web app Apps Script yang berakhiran /exec.';return;}
+    if(typeof TOKEN_AWAL==='string'&&TOKEN_AWAL){this.token=TOKEN_AWAL;this.muatDashboard(true);}else this.tahap='login';
+  },
+  methods:{
+    kirimPermintaanPin:function(){
+      var s=this,e=this.email.trim();this.pesanGalat='';this.pesanInfo='';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){this.pesanGalat='Format email tidak valid.';return;}
+      this.sedangKirim=true;gs('requestAdminPin',e).then(function(r){s.sedangKirim=false;if(r&&r.ok){s.tahap='pin';s.pesanInfo=r.message;}else s.pesanGalat=(r&&r.message)||'Permintaan gagal.';}).catch(function(e){s.sedangKirim=false;s.pesanGalat='Gagal menghubungi server: '+e;});
+    },
+    kirimVerifikasiPin:function(){
+      var s=this;if(!/^\d{6}$/.test(this.pin.trim())){this.pesanGalat='PIN harus enam digit.';return;}
+      this.sedangKirim=true;gs('verifyAdminPin',this.email.trim(),this.pin.trim()).then(function(r){s.sedangKirim=false;if(r&&r.ok){s.token=r.token;s.profile=r.profile;s.pin='';s.muatDashboard(false);}else s.pesanGalat=(r&&r.message)||'Verifikasi gagal.';}).catch(function(e){s.sedangKirim=false;s.pesanGalat='Gagal menghubungi server: '+e;});
+    },
+    // baru: login lewat PIN tetap (jalur alternatif dari PIN email OTP)
+    kirimLoginPinTetap:function(){
+      var s=this,e=this.email.trim();this.pesanGalat='';this.pesanInfo='';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){this.pesanGalat='Format email tidak valid.';return;}
+      if(!/^\d{6}$/.test(this.pinTetapInput.trim())){this.pesanGalat='PIN tetap harus enam digit.';return;}
+      this.sedangKirim=true;
+      gs('verifyAdminPinTetap',e,this.pinTetapInput.trim()).then(function(r){
+        s.sedangKirim=false;
+        if(r&&r.ok){s.token=r.token;s.profile=r.profile;s.pinTetapInput='';s.muatDashboard(false);}
+        else s.pesanGalat=(r&&r.message)||'Verifikasi gagal.';
+      }).catch(function(e){s.sedangKirim=false;s.pesanGalat='Gagal menghubungi server: '+e;});
+    },
+    kembaliKeLogin:function(){this.tahap='login';this.pin='';this.pesanGalat='';this.pesanInfo='';},
+    keluar:function(){var t=this.token;this.hancurkanGrafik();this.token='';this.profile=null;this.data=null;this.tahap='login';if(t)gs('logout',t).catch(function(){});},
+    sesiBerakhir:function(){this.hancurkanGrafik();this.token='';this.profile=null;this.data=null;this.tahap='login';this.pesanInfo='Sesi berakhir. Silakan masuk kembali.';},
+    muatDashboard:function(){
+      var s=this;this.memuatData=true;this.galatData='';gs('getDashboardDataForAdmin',this.token).then(function(r){
+        s.memuatData=false;if(!r||!r.ok){if(r&&r.code==='SESSION_EXPIRED'){s.sesiBerakhir();return;}s.galatData=(r&&r.message)||'Gagal memuat data.';s.tahap='dashboard';return;}
+        s.data=r;s.profile=r.profile;s.tahap='dashboard';s.$nextTick(function(){s.gambarGrafikBulanan();});
+      }).catch(function(e){s.memuatData=false;s.galatData='Gagal menghubungi server: '+e;s.tahap='dashboard';});
+    },
+    segarkan:function(){this.muatDashboard();},
+    hancurkanGrafik:function(){var s=this;Object.keys(this.grafik).forEach(function(k){if(s.grafik[k]){s.grafik[k].destroy();s.grafik[k]=null;}});},
+    gambarGrafikBulanan:function(){
+      var el=document.getElementById('grafikBulanan'),s=this;if(!el||!this.data)return;if(this.grafik.bulanan)this.grafik.bulanan.destroy();
+      this.grafik.bulanan=new Chart(el,{type:'bar',data:{labels:BULAN,datasets:[{data:this.data.bulanan,backgroundColor:'#8b0000',hoverBackgroundColor:'#650000',borderRadius:5,maxBarThickness:34}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},onClick:function(e,x){if(x.length)s.bukaBulan(x[0].index);},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0},grid:{color:'#efede9'}}}}});
+    },
+    gambarGrafikApc:function(){
+      var el=document.getElementById('grafikApc'),s=this;if(!el||!this.data||this.data.apc.kosong)return;if(this.grafik.apc)this.grafik.apc.destroy();
+      var b=this.data.apc.perKluster.slice(0,10);this.grafik.apc=new Chart(el,{type:'bar',data:{labels:b.map(function(x){return x.nama;}),datasets:[{data:b.map(function(x){return x.total;}),backgroundColor:'#8b0000',borderRadius:5,maxBarThickness:25}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return rupiah(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return rupiah(v);}},grid:{color:'#efede9'}},y:{grid:{display:false}}}}});
+    },
+    resetFilter:function(){this.cari='';this.filterKluster='';this.filterSinta='';this.filterTimeliness='';this.filterMigrasi='';this.filterScopus='';this.filterKualitas='';this.filterMasalah='';this.halaman=1;},
+    bukaDaftar:function(jenis){
+      this.resetFilter();
+      if(jenis==='scopus')this.filterScopus='ya';
+      else if(jenis==='tanpa-email')this.filterScopus='tanpa-email';
+      else if(jenis==='migrasi-belum')this.filterMigrasi='belum';
+      else if(jenis.indexOf('timeliness:')===0)this.filterTimeliness=jenis.substring(11);
+      else this.filterSinta=jenis;
+      this.tab='jurnal';this.$nextTick(function(){var e=document.getElementById('panelJurnal');if(e)e.scrollIntoView({behavior:'smooth',block:'start'});});
+    },
+    // baru: dari kartu tingkat risiko ke daftar jurnal, diurutkan menurut prioritas server
+    bukaKualitas:function(level){
+      this.resetFilter();this.filterKualitas=level;this.urutan='risiko';this.tab='jurnal';
+      this.$nextTick(function(){var e=document.getElementById('panelJurnal');if(e)e.scrollIntoView({behavior:'smooth',block:'start'});});
+    },
+    // baru: dari satu baris jenis masalah ke daftar jurnal yang mengalaminya
+    bukaMasalah:function(field,jenis){
+      this.resetFilter();this.filterMasalah=field+'|'+jenis;this.urutan='risiko';this.tab='jurnal';
+      this.$nextTick(function(){var e=document.getElementById('panelJurnal');if(e)e.scrollIntoView({behavior:'smooth',block:'start'});});
+    },
+    labelFilterMasalah:function(){
+      if(!this.filterMasalah||!this.dq)return'';
+      var p=this.filterMasalah.split('|'),t=this.dq.ringkas.filter(function(r){return r.field===p[0]&&r.jenis===p[1];})[0];
+      return t?t.label+' · '+t.labelJenis:this.filterMasalah;
+    },
+    kelasBadge:function(j){return j.terakreditasi?'badge badge-s'+j.peringkatSinta:'badge badge-none';},
+    kelasTimeliness:function(x){if(x==='Tepat Waktu')return'badge badge-ok';if(x==='Terlambat')return'badge badge-warn';if(x==='Punya Hutang Terbitan')return'badge badge-bahaya';return'badge badge-none';},
+    // baru: badge tingkat risiko kualitas data
+    kelasDq:function(level){
+      if(level==='kritis')return'badge badge-bahaya';
+      if(level==='perluTindakan')return'badge badge-warn';
+      if(level==='perluVerifikasi')return'badge badge-emas';
+      return'badge badge-ok';
+    },
+    // baru: badge jenis masalah per field
+    kelasJenis:function(jenis){
+      if(jenis==='rusak')return'badge badge-bahaya';
+      if(jenis==='kondisi')return'badge badge-warn';
+      return'badge badge-none';
+    },
+    // diubah: warna baris kini mengikuti level risiko yang dihitung server
+    kelasBaris:function(j){
+      var l=j.dq?j.dq.level:'terkendali';
+      if(l==='kritis')return'row-alert row-alert-danger';
+      if(l==='perluTindakan')return'row-alert row-alert-warning';
+      return'row-alert';
+    },
+    persen:function(a,b){return b?Math.round((Number(a)||0)/b*100):0;},rupiah:rupiah,
+    gantiHalaman:function(d){this.halaman=Math.min(this.totalHalaman,Math.max(1,this.halaman+d));},
+    bukaJurnal:function(j){this.jurnalTerpilih=j;this.modeSunting=false;this.panelApc=false;this.pesanModal='';this.galatField={};},
+    tutupModal:function(){this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
+    mulaiSunting:function(){var s=this;this.draf={};this.galatField={};this.fieldSunting.forEach(function(f){s.draf[f.k]=s.jurnalTerpilih[f.k]||'';});this.modeSunting=true;},
+    batalSunting:function(){this.modeSunting=false;this.draf={};this.galatField={};},
+    petunjuk:function(k){return this.PETUNJUK_FIELD[k]||'';},
+    // baru: buka form sunting langsung dengan fokus pada field bermasalah
+    perbaikiField:function(k){
+      var s=this;if(!this.modeSunting)this.mulaiSunting();
+      this.$nextTick(function(){var e=document.getElementById('sunting-'+k);if(e){e.focus();e.scrollIntoView({behavior:'smooth',block:'center'});}});
+    },
+    simpanSunting:function(){
+      var s=this,ubah={};this.galatField={};
+      this.fieldSunting.forEach(function(f){if(String(s.draf[f.k]||'')!==String(s.jurnalTerpilih[f.k]||''))ubah[f.k]=s.draf[f.k];});
+      if(!Object.keys(ubah).length){this.pesanModal='Tidak ada perubahan.';this.pesanModalJenis='info';return;}
+      this.menyimpan=true;gs('simpanPerubahanJurnal',this.token,this.jurnalTerpilih.namaJurnal,ubah).then(function(r){
+        s.menyimpan=false;
+        if(r&&r.ok){s.tampilkanToast(r.message);s.tutupModal();s.muatDashboard();return;}
+        // baru: tampilkan pesan validasi tepat di field yang salah
+        if(r&&r.galatValidasi&&r.galatValidasi.length){
+          var peta={};r.galatValidasi.forEach(function(g){peta[g.field]=g.pesan;});
+          s.galatField=peta;
+          s.pesanModal='Perubahan belum disimpan. Perbaiki '+r.galatValidasi.length+' isian yang ditandai di bawah.';
+          s.pesanModalJenis='galat';return;
+        }
+        s.pesanModal=(r&&r.message)||'Gagal menyimpan.';s.pesanModalJenis='galat';
+      }).catch(function(e){s.menyimpan=false;s.pesanModal='Gagal menghubungi server: '+e;s.pesanModalJenis='galat';});
+    },
+    // diubah: honor/pengembangan dihapus dari default form — lihat catatan formApc di data()
+    bukaFormApc:function(){this.panelApc=true;this.formApc={edisi:'',jumlahArtikel:'',total:''};},
+    kirimApc:function(){
+      var s=this;if(!this.formApc.edisi.trim()){this.pesanModal='Edisi wajib diisi.';this.pesanModalJenis='galat';return;}
+      this.menyimpan=true;
+      // diubah: honor/pengembangan tidak lagi dikirim — server (logApcEntry) tidak
+      // membacanya lagi. Alokasi kini dicatat terpisah lewat kirimPencairan().
+      var p={namaJurnal:this.jurnalTerpilih.namaJurnal,edisi:this.formApc.edisi,jumlahArtikel:this.formApc.jumlahArtikel,total:this.formApc.total};
+      gs('logApcEntry',this.token,p).then(function(r){s.menyimpan=false;if(r&&r.ok){s.tampilkanToast(r.message);s.tutupModal();s.muatDashboard();}else{s.pesanModal=(r&&r.message)||'Gagal mencatat.';s.pesanModalJenis='galat';}}).catch(function(e){s.menyimpan=false;s.pesanModal='Gagal menghubungi server: '+e;s.pesanModalJenis='galat';});
+    },
+    bukaBulan:function(i){var s=this;this.modalBulan={bulan:BULAN[i],bulanIndex:i,daftar:[]};this.memuatBulan=true;this.terpilihBulan=[];this.hasilKirim=null;gs('getJurnalPerBulan',this.token,i).then(function(r){s.memuatBulan=false;if(r&&r.ok)s.modalBulan=r;else{s.tampilkanToast((r&&r.message)||'Gagal memuat bulan.');s.tutupModalBulan();}}).catch(function(e){s.memuatBulan=false;s.tampilkanToast('Gagal menghubungi server: '+e);s.tutupModalBulan();});},
+    tutupModalBulan:function(){this.modalBulan=null;this.terpilihBulan=[];this.konfirmasiKirim=false;this.hasilKirim=null;},
+    pilihSemuaBulan:function(on){this.terpilihBulan=on?this.modalBulan.daftar.filter(function(j){return j.punyaEmail&&!j.sudahDiingatkan;}).map(function(j){return j.namaJurnal;}):[];},
+    kirimPengingat:function(){var s=this;this.mengirim=true;gs('kirimPengingatTerbitan',this.token,this.modalBulan.bulanIndex,this.terpilihBulan.slice()).then(function(r){s.mengirim=false;s.konfirmasiKirim=false;if(r&&r.ok){s.hasilKirim=r;s.terpilihBulan=[];s.tampilkanToast(r.terkirim+' pengingat terkirim.');}else s.tampilkanToast((r&&r.message)||'Pengiriman gagal.');}).catch(function(e){s.mengirim=false;s.tampilkanToast('Gagal menghubungi server: '+e);});},
+    // diubah: ekspor daftar jurnal kini menyertakan kolom kualitas data
+    eksporJurnal:function(){this.unduhExcel(this.jurnalTersaring.map(function(j){return{
+      'Nama Jurnal':j.namaJurnal,Kluster:j.kluster,Akreditasi:j.statusAkreditasi,Kepatuhan:j.kategoriTimeliness,
+      'Sudah Migrasi':j.sudahMigrasi?'Ya':'Tidak',Email:j.email,'Email Valid':j.punyaEmail?'Ya':'Tidak',
+      'Tingkat Risiko':j.dq?j.dq.labelLevel:'','Jumlah Masalah':j.dq?j.dq.jumlahMasalah:0,
+      'Kelengkapan (%)':j.dq?j.dq.persenLengkap:'',
+      'Ringkasan Masalah':j.dq?j.dq.masalah.map(function(m){return m.label+' ('+m.labelJenis+')';}).join('; '):''
+    };}),'Jurnal','DJPI-Daftar-Jurnal');},
+    // baru: ekspor daftar perbaikan, satu baris per masalah, siap dibagikan ke pengelola
+    eksporKualitas:function(){
+      var rows=[];
+      (this.data?this.data.journals:[]).forEach(function(j){
+        if(!j.dq||!j.dq.masalah.length)return;
+        j.dq.masalah.forEach(function(m){rows.push({
+          'Nama Jurnal':j.namaJurnal,Kluster:j.kluster,'Unit Pengelola':j.unitPengelola,
+          'Tingkat Risiko':j.dq.labelLevel,Field:m.label,Jenis:m.labelJenis,
+          'Nilai Sekarang':m.nilai,Penjelasan:m.pesan
+        });});
+      });
+      if(!rows.length){this.tampilkanToast('Tidak ada masalah kualitas data untuk diekspor.');return;}
+      this.unduhExcel(rows,'Kualitas','DJPI-Kualitas-Data');
+    },
+    eksporBulanan:function(){var s=this;this.unduhExcel(BULAN.map(function(b,i){return{Bulan:b,'Jumlah Jurnal':s.data.bulanan[i]};}),'Jadwal','DJPI-Jadwal');},
+    eksporApc:function(){this.unduhExcel(this.data.apc.perKluster.map(function(k){return{Kluster:k.nama,'Jumlah Entri':k.entri,'Total Pemasukan':k.total};}),'APC','DJPI-APC');},
+    unduhExcel:function(rows,namaSheet,namaFile){try{var ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,namaSheet);XLSX.writeFile(wb,namaFile+'-'+new Date().toISOString().slice(0,10)+'.xlsx');}catch(e){this.tampilkanToast('Ekspor gagal: '+e.message);}},
+    tampilkanToast:function(p){var s=this;this.toast=p;if(this.toastTimer)clearTimeout(this.toastTimer);this.toastTimer=setTimeout(function(){s.toast=null;},4000);},
+
+    // ===== Usulan DOI =====
+    muatUsulanDoi:function(){
+      var s=this;
+      s.memuatDoi=true;
+      s.galatDoi='';
+
+      gs('getUsulanDoi', s.token)
+        .then(function(hasil){
+          if(!hasil || !hasil.ok){
+            if(hasil && hasil.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error(
+              (hasil && hasil.message) || 'Gagal memuat data usulan DOI.'
+            );
+          }
+
+          s.usulanDoi=Array.isArray(hasil.items) ? hasil.items : [];
+          s.statusDoiOptions=Array.isArray(hasil.statusOptions)
+            ? hasil.statusOptions
+            : [];
+        })
+        .catch(function(err){
+          s.galatDoi=err && err.message
+            ? err.message
+            : 'Terjadi kesalahan saat memuat usulan DOI.';
+          console.error('getUsulanDoi gagal:',err);
+        })
+        .finally(function(){
+          s.memuatDoi=false;
+        });
+    },
+
+    // Catatan: simpanUsulanDoi() di Code.gs WAJIB token 'edit_' (pengelola jurnal),
+    // bukan token 'session_' admin yang dipakai Dashboard ini. Fungsi ini dibiarkan
+    // ada supaya tidak menghapus fitur diam-diam, tetapi secara desain form
+    // pengajuan usulan DOI semestinya berjalan di Dashboard Pengelola, bukan di
+    // sini — panggilan dari sini akan selalu ditolak server dengan SESSION_EXPIRED
+    // karena jenis token yang tidak cocok.
+    simpanUsulanDoi:function(){
+      var s=this;
+      s.menyimpanDoi=true;
+      s.galatDoi='';
+
+      var payload={
+        nama_jurnal:s.formUsulanDoi.nama_jurnal,
+        email_pengelola:s.formUsulanDoi.email_pengelola,
+        jenis_objek:s.formUsulanDoi.jenis_objek,
+        volume:s.formUsulanDoi.volume,
+        nomor:s.formUsulanDoi.nomor,
+        tahun:s.formUsulanDoi.tahun,
+        judul_artikel:s.formUsulanDoi.judul_artikel,
+        penulis:s.formUsulanDoi.penulis,
+        url_landing_page:s.formUsulanDoi.url_landing_page,
+        doi_diusulkan:s.formUsulanDoi.doi_diusulkan,
+        catatan_pengelola:s.formUsulanDoi.catatan_pengelola
+      };
+
+      gs('simpanUsulanDoi', s.token, payload)
+        .then(function(hasil){
+          if(!hasil || !hasil.ok){
+            throw new Error(
+              (hasil && hasil.message) || 'Usulan DOI gagal disimpan.'
+            );
+          }
+
+          s.usulanDoi.unshift(hasil.item);
+
+          s.formUsulanDoi={
+            nama_jurnal:'',
+            email_pengelola:'',
+            jenis_objek:'ARTIKEL',
+            volume:'',
+            nomor:'',
+            tahun:String(new Date().getFullYear()),
+            judul_artikel:'',
+            penulis:'',
+            url_landing_page:'',
+            doi_diusulkan:'',
+            catatan_pengelola:''
+          };
+
+          if(typeof s.tampilkanToast==='function'){
+            s.tampilkanToast('Usulan DOI berhasil disimpan.');
+          }
+        })
+        .catch(function(err){
+          s.galatDoi=err && err.message
+            ? err.message
+            : 'Terjadi kesalahan saat menyimpan usulan DOI.';
+          console.error('simpanUsulanDoi gagal:',err);
+        })
+        .finally(function(){
+          s.menyimpanDoi=false;
+        });
+    },
+
+    // baru: buka modal detail usulan DOI. Salin objek supaya perubahan status/catatan
+    // di form tidak langsung mengubah baris tabel sebelum benar-benar disimpan.
+    bukaDetailDoi:function(d){
+      this.doiTerpilih=Object.assign({},d);
+      this.pesanModalDoi='';
+      this.mengirimUlangReceipt={pengajuan:false,aktivasi:false};
+    },
+
+    labelStatusDoi:function(s){ return LABEL_STATUS_DOI[s] || s; },
+    kelasStatusDoi:function(s){ return KELAS_STATUS_DOI[s] || 'badge badge-none'; },
+
+    // baru: dipakai untuk menampilkan peringatan bila admin mencoba pindah ke
+    // SIAP_DIPROSES padahal ISSN jurnal belum sah — server juga menolaknya,
+    // ini hanya peringatan dini di sisi tampilan.
+    issnJurnalSah:function(namaJurnal){
+      if(!this.data || !this.data.journals) return false;
+      var j=this.data.journals.find(function(x){return x.namaJurnal===namaJurnal;});
+      return !!(j && j.issnValid);
+    },
+
+    urlDoiValid:function(url){
+      if(!url || typeof url!=='string') return false;
+      var nilai=url.trim();
+      if(!nilai) return false;
+      try{
+        var u=new URL(nilai);
+        return u.protocol==='https:' || u.protocol==='http:';
+      }catch(e){ return false; }
+    },
+
+    // baru: simpan perubahan status/catatan admin untuk usulan DOI yang sedang dibuka
+    simpanStatusDoi:function(){
+      var s=this;
+      if(!this.doiTerpilih) return;
+      this.menyimpanDoi=true;
+      this.pesanModalDoi='';
+
+      var payload={
+        id_usulan:this.doiTerpilih.id_usulan,
+        status:this.doiTerpilih.status,
+        catatan_admin:this.doiTerpilih.catatan_admin||''
+      };
+
+      gs('ubahStatusUsulanDoi', s.token, payload)
+        .then(function(hasil){
+          if(!hasil || !hasil.ok){
+            if(hasil && hasil.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error(
+              (hasil && hasil.message) || 'Status usulan DOI gagal diperbarui.'
+            );
+          }
+
+          var indeks=s.usulanDoi.findIndex(function(item){
+            return item.id_usulan===hasil.item.id_usulan;
+          });
+
+          if(indeks!==-1){
+            s.usulanDoi.splice(indeks,1,hasil.item);
+          }
+
+          s.doiTerpilih=hasil.item;
+
+          if(typeof s.tampilkanToast==='function'){
+            s.tampilkanToast('Status usulan DOI berhasil diperbarui.');
+          }
+        })
+        .catch(function(err){
+          s.pesanModalDoi=err && err.message
+            ? err.message
+            : 'Terjadi kesalahan saat memperbarui status DOI.';
+          console.error('ubahStatusUsulanDoi gagal:',err);
+        })
+        .finally(function(){
+          s.menyimpanDoi=false;
+        });
+    },
+
+    // baru: kirim ulang tanda terima (pengajuan/aktivasi) dari modal detail usulan DOI
+    kirimUlangReceipt:function(jenis){
+      var s=this;
+      if(!this.doiTerpilih) return;
+      this.mengirimUlangReceipt[jenis]=true;
+      this.pesanModalDoi='';
+
+      var payload={ id_usulan:this.doiTerpilih.id_usulan, jenis:jenis };
+
+      gs('kirimUlangReceiptDoi', s.token, payload)
+        .then(function(hasil){
+          if(!hasil || !hasil.ok){
+            if(hasil && hasil.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error(
+              (hasil && hasil.message) || 'Tanda terima gagal dikirim ulang.'
+            );
+          }
+
+          var indeks=s.usulanDoi.findIndex(function(item){
+            return item.id_usulan===hasil.item.id_usulan;
+          });
+          if(indeks!==-1){
+            s.usulanDoi.splice(indeks,1,hasil.item);
+          }
+          s.doiTerpilih=hasil.item;
+
+          if(typeof s.tampilkanToast==='function'){
+            s.tampilkanToast('Tanda terima berhasil dikirim ulang.');
+          }
+        })
+        .catch(function(err){
+          s.pesanModalDoi=err && err.message
+            ? err.message
+            : 'Terjadi kesalahan saat mengirim ulang tanda terima.';
+          console.error('kirimUlangReceiptDoi gagal:',err);
+        })
+        .finally(function(){
+          s.mengirimUlangReceipt[jenis]=false;
+        });
+    },
+
+    // ===== PIN Tetap Admin (tab Akun Saya) =====
+    simpanPinTetap:function(){
+      var s=this;
+      this.pesanPinTetap='';
+      if(!/^\d{6}$/.test(this.pinTetapBaru.trim())){
+        this.pesanPinTetap='PIN tetap harus enam digit angka.';
+        this.pesanPinTetapJenis='galat';
+        return;
+      }
+      if(this.pinTetapBaru.trim()!==this.pinTetapUlang.trim()){
+        this.pesanPinTetap='Kedua PIN tidak sama. Ulangi pengisian.';
+        this.pesanPinTetapJenis='galat';
+        return;
+      }
+
+      this.menyimpanPinTetap=true;
+      gs('aturPinTetapAdmin', s.token, this.pinTetapBaru.trim())
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'PIN tetap gagal disimpan.');
+          }
+          s.pesanPinTetap=r.message;
+          s.pesanPinTetapJenis='ok';
+          s.pinTetapBaru='';
+          s.pinTetapUlang='';
+        })
+        .catch(function(err){
+          s.pesanPinTetap=err && err.message ? err.message : 'Gagal menyimpan PIN tetap.';
+          s.pesanPinTetapJenis='galat';
+        })
+        .finally(function(){
+          s.menyimpanPinTetap=false;
+        });
+    },
+
+    nonaktifkanPinTetap:function(){
+      var s=this;
+      this.pesanPinTetap='';
+      this.menyimpanPinTetap=true;
+      gs('hapusPinTetapAdmin', s.token)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'PIN tetap gagal dinonaktifkan.');
+          }
+          s.pesanPinTetap=r.message;
+          s.pesanPinTetapJenis='ok';
+          s.pinTetapBaru='';
+          s.pinTetapUlang='';
+        })
+        .catch(function(err){
+          s.pesanPinTetap=err && err.message ? err.message : 'Gagal menonaktifkan PIN tetap.';
+          s.pesanPinTetapJenis='galat';
+        })
+        .finally(function(){
+          s.menyimpanPinTetap=false;
+        });
+    },
+
+    // ===== Pencairan APC (tab Pemasukan APC, admin-only) =====
+    // baru: mencatat pengajuan pencairan. Alokasi 10% UPI / 2% DPPM dihitung ULANG
+    // di server (catatPencairanApc di Code.gs) — previewAlokasi di sini murni
+    // tampilan, bukan sumber kebenaran.
+    kirimPencairan:function(){
+      var s=this;
+      this.pesanPencairan='';
+
+      if(!this.formPencairan.namaJurnal){
+        this.pesanPencairan='Pilih jurnal terlebih dahulu.';
+        this.pesanPencairanJenis='galat';
+        return;
+      }
+      if(!this.formPencairan.jumlahDiajukan || Number(this.formPencairan.jumlahDiajukan)<=0){
+        this.pesanPencairan='Jumlah diajukan harus lebih dari nol.';
+        this.pesanPencairanJenis='galat';
+        return;
+      }
+
+      this.menyimpanPencairan=true;
+      gs('catatPencairanApc', s.token, {
+        namaJurnal:this.formPencairan.namaJurnal,
+        jumlahDiajukan:this.formPencairan.jumlahDiajukan,
+        catatan:this.formPencairan.catatan
+      })
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Pencairan gagal dicatat.');
+          }
+          s.pesanPencairan=r.message;
+          s.pesanPencairanJenis='ok';
+          s.formPencairan={namaJurnal:'',jumlahDiajukan:null,catatan:''};
+          s.muatDashboard(); // segarkan KPI Dana Terserap/UPI/DPPM
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
+        })
+        .catch(function(err){
+          s.pesanPencairan=err && err.message ? err.message : 'Gagal mencatat pencairan.';
+          s.pesanPencairanJenis='galat';
+        })
+        .finally(function(){
+          s.menyimpanPencairan=false;
+        });
+    }
+  },
+  beforeUnmount:function(){this.hancurkanGrafik();}
+}).mount('#app');
+</script>

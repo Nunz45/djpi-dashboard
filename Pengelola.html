@@ -1,0 +1,915 @@
+<!--
+  ============================================================
+  Pengelola.html — Dashboard Pengelola Jurnal, DJPI UPI
+  ============================================================
+  Dipakai lewat doGet(e) dengan cabang baru:
+
+    var page = ...
+    var isPengelola = (page === 'pengelola');
+    var berkas = isPengelola ? 'Pengelola' : (isDashboard ? 'Dashboard' : 'Landing');
+
+  Login memakai requestJournalPin/verifyJournalPin (bukan admin PIN),
+  token bertipe 'edit_' dan terikat ke SATU nama jurnal — beda total
+  dari alur admin (token 'session_').
+
+  Modul yang AKTIF di draf ini (backend sudah lengkap):
+    1. Sunting Data Jurnal  -> getJournalDetailForEditor, simpanPerubahanJurnal
+    2. Lapor APC            -> logApcEntry
+
+  Modul yang masih placeholder "Segera Hadir" (backend belum siap):
+    3. Ajukan Aktivasi DOI
+    4. Lapor Progress Terbitan
+    5. Persiapan Akreditasi SINTA
+
+  CATATAN GAP: belum ada fungsi backend untuk pengelola melihat riwayat
+  laporan APC miliknya sendiri (rekapApc_ yang ada sekarang khusus sisi
+  admin, terfilter per kluster). Panel Lapor APC di draf ini karena itu
+  hanya berupa form submit, tanpa tabel riwayat. Kalau riwayat dibutuhkan,
+  perlu fungsi baru semacam getRiwayatApcUntukPengelola(token).
+  ============================================================
+-->
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>Dashboard Pengelola Jurnal — DJPI UPI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
+
+  <!-- Memakai Stylesheet yang sama dengan Dashboard.html, supaya var(--...) dan
+       kelas (.card, .field, .btn, .badge, dst.) konsisten lintas dua portal. -->
+  <?!= include('Stylesheet'); ?>
+</head>
+
+<body>
+<div id="app" v-cloak class="app-shell">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-mark">DJPI</div>
+      <div style="flex:1 1 220px">
+        <div class="brand-title">Dashboard Pengelola Jurnal</div>
+        <div class="brand-sub">{{ namaJurnalAktif || 'Divisi Jurnal dan Publikasi Ilmiah · UPI' }}</div>
+      </div>
+
+      <template v-if="tahap === 'menu'">
+        <button type="button" class="btn btn-sm" @click="keluar">
+          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+          Keluar
+        </button>
+      </template>
+
+      <a v-else class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
+        <i class="fa-solid fa-globe" aria-hidden="true"></i>
+        Halaman publik
+      </a>
+    </div>
+  </header>
+
+  <!-- ===================== LOGIN ===================== -->
+  <main v-if="['login','pin','pilihJurnal'].includes(tahap)" class="page">
+    <div class="card" style="max-width:460px;margin:48px auto">
+      <div class="card-pad">
+        <h1 style="font-size:20px;margin:0 0 5px">Masuk sebagai Pengelola Jurnal</h1>
+        <p class="card-note" style="margin-bottom:18px">
+          Gunakan email pengelola yang terdaftar pada direktori jurnal DJPI.
+        </p>
+
+        <div v-if="pesanGalat" class="alert alert-galat" role="alert">{{ pesanGalat }}</div>
+        <div v-if="pesanInfo" class="alert alert-info" role="status">{{ pesanInfo }}</div>
+
+        <!-- Langkah 1: email -->
+        <form v-if="tahap === 'login'" @submit.prevent="kirimPermintaanPin" novalidate>
+          <div class="field">
+            <label class="label" for="inpEmailPengelola">Email pengelola</label>
+            <input id="inpEmailPengelola" v-model.trim="emailInput" type="email" class="input"
+              placeholder="nama@upi.edu" autocomplete="email" required>
+            <p class="hint">PIN sekali pakai dikirim ke email ini dan berlaku lima menit.</p>
+          </div>
+
+          <button type="submit" class="btn btn-primer btn-blok" :disabled="sedangKirim">
+            <span v-if="sedangKirim" class="spinner" aria-hidden="true"></span>
+            {{ sedangKirim ? 'Mengirim…' : 'Kirim PIN' }}
+          </button>
+        </form>
+
+        <!-- Langkah 2: PIN -->
+        <form v-else-if="tahap === 'pin'" @submit.prevent="kirimVerifikasiPin" novalidate>
+          <div class="field">
+            <label class="label" for="inpPin">PIN enam digit</label>
+            <input id="inpPin" v-model.trim="pin" type="text" inputmode="numeric"
+              maxlength="6" class="input input-pin" placeholder="000000"
+              autocomplete="one-time-code" required>
+          </div>
+
+          <button type="submit" class="btn btn-primer btn-blok" :disabled="sedangKirim">
+            <span v-if="sedangKirim" class="spinner" aria-hidden="true"></span>
+            {{ sedangKirim ? 'Memverifikasi…' : 'Masuk' }}
+          </button>
+
+          <button type="button" class="btn btn-blok mt-8" @click="tahap = 'login'; pesanGalat = ''; pesanInfo = ''">
+            Ganti email
+          </button>
+        </form>
+
+        <!-- Langkah 3: pilih jurnal (hanya bila satu email mengelola >1 jurnal) -->
+        <template v-else>
+          <p class="card-note" style="margin-bottom:12px">
+            Email Anda terdaftar sebagai pengelola untuk {{ daftarJurnalPilihan.length }} jurnal.
+            Pilih jurnal yang ingin dikelola sekarang.
+          </p>
+
+          <div class="flex-kolom gap-10">
+            <button v-for="j in daftarJurnalPilihan" :key="j.namaJurnal" type="button"
+              class="btn btn-blok" style="justify-content:flex-start;text-align:left;height:auto;padding:12px"
+              :disabled="sedangKirim" @click="pilihJurnal(j.namaJurnal)">
+              <span>
+                <span class="teks-tebal">{{ j.namaJurnal }}</span>
+                <span class="teks-kecil teks-lembut" style="display:block">
+                  {{ j.kluster }} · {{ j.statusAkreditasi }}
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-blok mt-16" @click="tahap = 'login'; pesanGalat = ''; pesanInfo = ''">
+            Ganti email
+          </button>
+        </template>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== MENU + PANEL ===================== -->
+  <main v-else-if="tahap === 'menu'" class="page">
+
+    <nav class="tabs mb-16" aria-label="Menu pengelola">
+      <button type="button" class="tab" :class="{ aktif: menuAktif === 'sunting' }" @click="bukaMenu('sunting')">
+        Sunting Data Jurnal
+      </button>
+      <button type="button" class="tab" :class="{ aktif: menuAktif === 'apc' }" @click="bukaMenu('apc')">
+        Lapor APC
+      </button>
+      <button type="button" class="tab" :class="{ aktif: menuAktif === 'doi' }" @click="bukaMenu('doi')">
+        Ajukan Aktivasi DOI
+      </button>
+      <button type="button" class="tab tab-nonaktif" disabled title="Segera hadir">
+        Lapor Progress Terbitan
+      </button>
+      <button type="button" class="tab tab-nonaktif" disabled title="Segera hadir">
+        Persiapan Akreditasi SINTA
+      </button>
+    </nav>
+
+    <div v-if="galatPanel" class="alert alert-galat mb-16" role="alert">{{ galatPanel }}</div>
+    <div v-if="toastPanel" class="alert alert-ok mb-16" role="status">{{ toastPanel }}</div>
+
+    <!-- -------- Panel: Sunting Data Jurnal -------- -->
+    <section v-if="menuAktif === 'sunting'">
+      <div v-if="memuatSunting" class="card card-pad">
+        <div class="spinner spinner-gelap" aria-hidden="true"></div> Memuat data jurnal…
+      </div>
+
+      <template v-else-if="detailSunting">
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Data yang dapat Anda sunting</h2>
+                <p class="card-note">Perubahan tersimpan langsung ke direktori jurnal setelah disimpan.</p>
+              </div>
+            </div>
+
+            <form class="card-pad" @submit.prevent="simpanSuntingJurnal">
+              <div v-for="f in fieldSuntingPengelola" :key="f.k" class="field">
+                <label class="label" :for="'s-' + f.k">{{ f.l }}</label>
+                <input :id="'s-' + f.k" v-model="draftSunting[f.k]" type="text" class="input"
+                  :class="{ 'input-galat': galatFieldSunting[f.k] }">
+                <p v-if="galatFieldSunting[f.k]" class="hint hint-galat">{{ galatFieldSunting[f.k] }}</p>
+              </div>
+
+              <button type="submit" class="btn btn-primer" :disabled="menyimpanSunting">
+                <span v-if="menyimpanSunting" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanSunting ? 'Menyimpan…' : 'Simpan perubahan' }}
+              </button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Kualitas data Anda</h2>
+                <p class="card-note">
+                  {{ dqSunting.lengkap }} dari {{ dqSunting.totalInti }} field inti sudah layak pakai.
+                </p>
+              </div>
+              <span :class="kelasDq(dqSunting.level)">{{ dqSunting.labelLevel }}</span>
+            </div>
+
+            <div class="card-pad">
+              <div v-if="!dqSunting.masalah.length" class="alert alert-ok">
+                Tidak ada masalah kualitas data pada field yang dapat Anda sunting.
+              </div>
+              <ul v-else class="dq-daftar">
+                <li v-for="m in dqSunting.masalah" :key="m.field + m.jenis" class="dq-item">
+                  <div>
+                    <div class="flex-tengah gap-8">
+                      <span class="teks-tebal">{{ m.label }}</span>
+                      <span :class="kelasJenis(m.jenis)">{{ m.labelJenis }}</span>
+                    </div>
+                    <div class="teks-kecil teks-lembut">{{ m.pesan }}</div>
+                  </div>
+                  <button type="button" class="btn btn-sm" @click="fokusField(m.field)">Perbaiki</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <!-- -------- Panel: Ajukan Aktivasi DOI -------- -->
+    <section v-if="menuAktif === 'doi'">
+      <!-- Riwayat usulan milik jurnal ini -->
+      <div class="card mb-16">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Riwayat usulan Anda</h2>
+            <p class="card-note">Status diperbarui oleh admin DJPI setelah usulan ditinjau.</p>
+          </div>
+          <button type="button" class="btn btn-sm" @click="muatRiwayatDoi" :disabled="memuatDoi">
+            <span v-if="memuatDoi" class="spinner spinner-gelap" aria-hidden="true"></span>
+            <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+            Muat ulang
+          </button>
+        </div>
+
+        <div v-if="!riwayatDoi.length" class="card-pad">
+          <div class="alert alert-info">Belum ada usulan aktivasi DOI dari jurnal ini.</div>
+        </div>
+
+        <div v-else class="tabel-bungkus">
+          <table class="tabel">
+            <thead>
+              <tr>
+                <th scope="col">Judul / Edisi</th>
+                <th scope="col">Jenis</th>
+                <th scope="col" class="td-num">Jumlah DOI</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in riwayatDoi" :key="d.id_usulan">
+                <td>
+                  <div class="teks-tebal putus">{{ d.judul_artikel }}</div>
+                  <div class="teks-kecil teks-lembut">{{ d.id_usulan }}</div>
+                </td>
+                <td class="teks-kecil">{{ d.jenis_konten === 'edisi' ? 'Edisi/Volume' : 'Artikel' }}</td>
+                <td class="td-num tabular">{{ d.jumlah_doi || '—' }}</td>
+                <td>
+                  <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
+                  <div v-if="d.catatan_admin" class="teks-kecil teks-lembut mt-8">{{ d.catatan_admin }}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Wizard pengajuan -->
+      <div v-if="!formDoiTampil" class="card card-pad">
+        <button type="button" class="btn btn-primer" @click="mulaiFormDoi">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          Ajukan Aktivasi DOI
+        </button>
+      </div>
+
+      <div v-else class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Ajukan Aktivasi DOI</h2>
+            <p class="card-note">Langkah {{ langkahDoi }} dari 4 · {{ labelLangkahDoi[langkahDoi - 1] }}</p>
+          </div>
+          <button type="button" class="btn btn-sm" @click="formDoiTampil = false">Batal</button>
+        </div>
+
+        <div class="card-pad">
+          <div class="bar-track mb-16">
+            <div class="bar-fill" :style="{ width: (langkahDoi / 4 * 100) + '%' }"></div>
+          </div>
+
+          <!-- Langkah 1: jenis konten -->
+          <template v-if="langkahDoi === 1">
+            <p class="card-note mb-8">Pilih salah satu. Pertanyaan berikutnya menyesuaikan pilihan ini.</p>
+
+            <label class="pilihan-besar" :class="{ terpilih: formDoi.jenis_konten === 'edisi' }">
+              <input type="radio" value="edisi" v-model="formDoi.jenis_konten">
+              <span>
+                <span class="teks-tebal">Edisi/Volume Tertentu</span>
+                <span class="teks-kecil teks-lembut" style="display:block">
+                  Aktivasi DOI untuk seluruh artikel dalam satu edisi terbit.
+                </span>
+              </span>
+            </label>
+
+            <label class="pilihan-besar" :class="{ terpilih: formDoi.jenis_konten === 'artikel' }">
+              <input type="radio" value="artikel" v-model="formDoi.jenis_konten">
+              <span>
+                <span class="teks-tebal">Artikel Jurnal Tertentu</span>
+                <span class="teks-kecil teks-lembut" style="display:block">
+                  Aktivasi DOI untuk satu artikel spesifik.
+                </span>
+              </span>
+            </label>
+          </template>
+
+          <!-- Langkah 2: identitas pemohon -->
+          <template v-else-if="langkahDoi === 2">
+            <div class="alert alert-info mb-8">
+              Mengajukan untuk: <strong>{{ namaJurnalAktif }}</strong> · {{ emailInput }}
+            </div>
+
+            <div class="field">
+              <label class="label" for="dNamaPemohon">Nama lengkap pemohon <span class="wajib">*</span></label>
+              <input id="dNamaPemohon" v-model.trim="formDoi.nama_pemohon" type="text" class="input" required>
+            </div>
+
+            <div class="field">
+              <label class="label" for="dWaPemohon">Nomor WhatsApp pemohon <span class="wajib">*</span></label>
+              <input id="dWaPemohon" v-model.trim="formDoi.whatsapp_pemohon" type="tel" inputmode="numeric"
+                class="input" placeholder="08xxxxxxxxxx" @blur="rapikanWhatsApp"
+                :class="{ 'input-galat': formDoi.whatsapp_pemohon && !whatsappValid }">
+              <p v-if="formDoi.whatsapp_pemohon && !whatsappValid" class="hint hint-galat">
+                Gunakan format 08xxxxxxxxxx atau +62xxxxxxxxxx.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="dJabatan">Jabatan/posisi pemohon <span class="wajib">*</span></label>
+              <input id="dJabatan" v-model.trim="formDoi.jabatan_pemohon" type="text" class="input" required>
+            </div>
+          </template>
+
+          <!-- Langkah 3: detail konten -->
+          <template v-else-if="langkahDoi === 3">
+            <div class="grid grid-3">
+              <div class="field">
+                <label class="label" for="dVolume">Volume <span class="wajib">*</span></label>
+                <input id="dVolume" v-model.trim="formDoi.volume" type="text" inputmode="numeric" class="input">
+              </div>
+              <div class="field">
+                <label class="label" for="dNomor">Nomor <span class="wajib">*</span></label>
+                <input id="dNomor" v-model.trim="formDoi.nomor" type="text" inputmode="numeric" class="input">
+              </div>
+              <div class="field">
+                <label class="label" for="dTahun">Tahun <span class="wajib">*</span></label>
+                <input id="dTahun" v-model.trim="formDoi.tahun" type="text" inputmode="numeric" maxlength="4" class="input">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="dTglPublikasi">Tanggal publikasi <span class="wajib">*</span></label>
+              <input id="dTglPublikasi" v-model="formDoi.tanggal_publikasi" type="date" class="input" required>
+            </div>
+
+            <div class="field">
+              <label class="label" for="dJudul">
+                {{ formDoi.jenis_konten === 'edisi' ? 'Nama edisi' : 'Judul artikel' }} <span class="wajib">*</span>
+              </label>
+              <textarea id="dJudul" v-model.trim="formDoi.judul_artikel" class="input" rows="2"
+                :placeholder="formDoi.jenis_konten === 'edisi' ? 'Vol 13, No 2 (2025): Edisi Agustus' : 'Judul lengkap artikel'"></textarea>
+            </div>
+
+            <div v-if="formDoi.jenis_konten === 'artikel'" class="field">
+              <label class="label" for="dPenulis">Nama penulis <span class="wajib">*</span></label>
+              <textarea id="dPenulis" v-model.trim="formDoi.penulis" class="input" rows="2"
+                placeholder="Pisahkan dengan koma bila lebih dari satu"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="label" for="dUrl">
+                URL {{ formDoi.jenis_konten === 'edisi' ? 'edisi' : 'permanen artikel' }} <span class="wajib">*</span>
+              </label>
+              <input id="dUrl" v-model.trim="formDoi.url_landing_page" type="url" class="input"
+                placeholder="https://ejournal.upi.edu/...">
+            </div>
+
+            <div class="field">
+              <label class="label" for="dJumlahDoi">Jumlah DOI dibutuhkan <span class="wajib">*</span></label>
+              <input id="dJumlahDoi" v-model.number="formDoi.jumlah_doi" type="number" inputmode="numeric"
+                min="1" class="input">
+            </div>
+
+            <div class="field">
+              <label class="label" for="dCatatan">Catatan tambahan</label>
+              <input id="dCatatan" v-model.trim="formDoi.catatan_pengelola" type="text" class="input">
+            </div>
+          </template>
+
+          <!-- Langkah 4: periksa dan setujui -->
+          <template v-else>
+            <dl class="dl mb-16">
+              <dt>Jurnal</dt><dd>{{ namaJurnalAktif }}</dd>
+              <dt>Jenis konten</dt>
+              <dd>{{ formDoi.jenis_konten === 'edisi' ? 'Edisi/Volume Tertentu' : 'Artikel Jurnal Tertentu' }}</dd>
+              <dt>Pemohon</dt><dd>{{ formDoi.nama_pemohon }} · {{ formDoi.jabatan_pemohon }}</dd>
+              <dt>Volume / Nomor / Tahun</dt>
+              <dd>{{ formDoi.volume }} / {{ formDoi.nomor }} / {{ formDoi.tahun }}</dd>
+              <dt>Judul / Edisi</dt><dd>{{ formDoi.judul_artikel }}</dd>
+              <dt>Jumlah DOI</dt><dd>{{ formDoi.jumlah_doi }}</dd>
+            </dl>
+
+            <label class="pilihan-besar" :class="{ terpilih: formDoi.persetujuan }">
+              <input type="checkbox" v-model="formDoi.persetujuan">
+              <span class="teks-kecil">
+                Saya menyatakan bahwa semua informasi yang diberikan adalah benar dan lengkap
+                dan memahami tanggung jawab metadata.
+              </span>
+            </label>
+          </template>
+
+          <div class="flex-tengah gap-8 mt-16">
+            <button v-if="langkahDoi > 1" type="button" class="btn" @click="langkahDoi--">Kembali</button>
+
+            <button v-if="langkahDoi < 4" type="button" class="btn btn-primer"
+              :disabled="!langkahDoiValid[langkahDoi - 1]" @click="langkahDoi++">
+              Lanjut
+            </button>
+
+            <button v-else type="button" class="btn btn-primer"
+              :disabled="!langkahDoiValid[3] || menyimpanDoi" @click="kirimUsulanDoi">
+              <span v-if="menyimpanDoi" class="spinner" aria-hidden="true"></span>
+              {{ menyimpanDoi ? 'Mengirim…' : 'Kirim usulan' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------- Panel: Lapor APC -------- -->
+    <section v-if="menuAktif === 'apc'">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Lapor pemasukan APC</h2>
+            <p class="card-note">Laporkan pemasukan Article Processing Charge untuk satu edisi.</p>
+          </div>
+        </div>
+
+        <form class="card-pad" @submit.prevent="kirimLaporanApc">
+          <div class="field">
+            <label class="label" for="aEdisi">Edisi laporan</label>
+            <input id="aEdisi" v-model.trim="formApc.edisi" type="text" class="input" required>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="field">
+              <label class="label" for="aJumlah">Jumlah artikel berbayar</label>
+              <input id="aJumlah" v-model.number="formApc.jumlahArtikel" type="number" min="0" class="input">
+            </div>
+            <div class="field">
+              <label class="label" for="aTotal">Total pemasukan APC</label>
+              <input id="aTotal" v-model.number="formApc.total" type="number" min="0" class="input">
+            </div>
+          </div>
+
+          <p class="hint">
+            Alokasi ke UPI, DPPM, dan dana terserap jurnal dicatat terpisah oleh admin DJPI
+            saat pengajuan pencairan diproses.
+          </p>
+
+          <button type="submit" class="btn btn-primer" :disabled="mengirimApc">
+            <span v-if="mengirimApc" class="spinner" aria-hidden="true"></span>
+            {{ mengirimApc ? 'Mengirim…' : 'Catat laporan' }}
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
+  </footer>
+</div>
+
+<script>
+var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
+
+const { createApp } = Vue;
+
+createApp({
+  data() {
+    return {
+      // --- alur login (berbasis email, bukan nama jurnal) ---
+      tahap: 'login',            // login | pin | pilihJurnal | menu
+      emailInput: '',
+      pin: '',
+      tokenPilih: '',            // token 'pilih_' sementara, bila email punya >1 jurnal
+      daftarJurnalPilihan: [],
+      sedangKirim: false,
+      pesanGalat: '',
+      pesanInfo: '',
+
+      // --- panel Ajukan Aktivasi DOI ---
+      formDoiTampil: false,
+      langkahDoi: 1,
+      labelLangkahDoi: ['Jenis konten', 'Identitas pemohon', 'Detail konten', 'Periksa & setujui'],
+      formDoi: {},
+      riwayatDoi: [],
+      memuatDoi: false,
+      menyimpanDoi: false,
+
+      // --- sesi ---
+      token: '',
+      namaJurnalAktif: '',
+
+      // --- menu ---
+      menuAktif: 'sunting',
+      galatPanel: '',
+      toastPanel: '',
+
+      // --- panel Sunting Data Jurnal ---
+      memuatSunting: false,
+      detailSunting: null,
+      draftSunting: {},
+      galatFieldSunting: {},
+      menyimpanSunting: false,
+      dqSunting: { level: 'terkendali', labelLevel: 'Terkendali', lengkap: 0, totalInti: 0, masalah: [] },
+      fieldSuntingPengelola: [
+        { k: 'linkOjs', l: 'Link OJS' },
+        { k: 'issn', l: 'ISSN' },
+        { k: 'linkGaruda', l: 'Link Garuda' },
+        { k: 'linkDoaj', l: 'Link DOAJ' },
+        { k: 'apc', l: 'Informasi APC' },
+        { k: 'linkApc', l: 'Tautan informasi APC' },
+        { k: 'namaPengelola', l: 'Nama pengelola' },
+        { k: 'email', l: 'Email pengelola' },
+        { k: 'jadwalTerbitan', l: 'Jadwal terbitan' },
+        { k: 'issue', l: 'Issue berjalan' },
+        { k: 'artikelPerIssue', l: 'Jumlah artikel per issue' },
+        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun' }
+      ],
+
+      // --- panel Lapor APC ---
+      formApc: { edisi: '', jumlahArtikel: 0, total: 0 },
+      mengirimApc: false
+    };
+  },
+
+  mounted() {
+    // Jalur pemulihan sesi: token dititipkan lewat ?t= (pola sama seperti
+    // sesi darurat admin), atau dari localStorage bila pengelola sebelumnya
+    // sudah login di perangkat yang sama.
+    var tersimpan = '';
+    try { tersimpan = localStorage.getItem('djpi_pengelola_token') || ''; } catch (e) {}
+    var token = TOKEN_AWAL || tersimpan;
+    var nama = '', mail = '';
+    try {
+      nama = localStorage.getItem('djpi_pengelola_jurnal') || '';
+      mail = localStorage.getItem('djpi_pengelola_email') || '';
+    } catch (e) {}
+
+    if (token && nama) {
+      this.token = token;
+      this.namaJurnalAktif = nama;
+      this.emailInput = mail;
+      this.masukKeMenu();
+    }
+  },
+
+  computed: {
+    whatsappValid() {
+      var v = (this.formDoi.whatsapp_pemohon || '').replace(/[\s-]/g, '');
+      return /^(0|\+62)8\d{8,11}$/.test(v);
+    },
+
+    // Validitas per langkah wizard, dipakai untuk mengunci tombol "Lanjut".
+    langkahDoiValid() {
+      var f = this.formDoi || {};
+      return [
+        !!f.jenis_konten,
+        !!(f.nama_pemohon && this.whatsappValid && f.jabatan_pemohon),
+        !!(f.volume && f.nomor && f.tahun && f.tanggal_publikasi && f.judul_artikel &&
+           f.url_landing_page && f.jumlah_doi &&
+           (f.jenis_konten === 'edisi' || f.penulis)),
+        !!f.persetujuan
+      ];
+    }
+  },
+
+  methods: {
+    // ================= LOGIN (berbasis email) =================
+    kirimPermintaanPin() {
+      if (!this.emailInput) return;
+      this.sedangKirim = true;
+      this.pesanGalat = ''; this.pesanInfo = '';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.sedangKirim = false;
+          if (res.ok) { this.pesanInfo = res.message; this.tahap = 'pin'; }
+          else { this.pesanGalat = res.message; }
+        })
+        .withFailureHandler((err) => { this.sedangKirim = false; this.pesanGalat = 'Terjadi kesalahan: ' + err.message; })
+        .requestPengelolaPin(this.emailInput);
+    },
+
+    kirimVerifikasiPin() {
+      if (!this.pin) return;
+      this.sedangKirim = true;
+      this.pesanGalat = '';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.sedangKirim = false;
+          if (!res.ok) { this.pesanGalat = res.message; return; }
+
+          // Satu email bisa mengelola beberapa jurnal — server menentukan
+          // apakah perlu langkah pemilihan atau langsung beri token edit_.
+          if (res.perluPilih) {
+            this.tokenPilih = res.token;
+            this.daftarJurnalPilihan = res.daftarJurnal;
+            this.tahap = 'pilihJurnal';
+            this.pesanInfo = '';
+            return;
+          }
+
+          this.simpanSesi(res.token, res.namaJurnal);
+        })
+        .withFailureHandler((err) => { this.sedangKirim = false; this.pesanGalat = 'Terjadi kesalahan: ' + err.message; })
+        .verifyPengelolaPin(this.emailInput, this.pin);
+    },
+
+    pilihJurnal(namaJurnal) {
+      this.sedangKirim = true;
+      this.pesanGalat = '';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.sedangKirim = false;
+          if (!res.ok) { this.pesanGalat = res.message; return; }
+          this.simpanSesi(res.token, res.namaJurnal);
+        })
+        .withFailureHandler((err) => { this.sedangKirim = false; this.pesanGalat = 'Terjadi kesalahan: ' + err.message; })
+        .pilihJurnalPengelola(this.tokenPilih, namaJurnal);
+    },
+
+    simpanSesi(token, namaJurnal) {
+      this.token = token;
+      this.namaJurnalAktif = namaJurnal;
+      try {
+        localStorage.setItem('djpi_pengelola_token', token);
+        localStorage.setItem('djpi_pengelola_jurnal', namaJurnal);
+        localStorage.setItem('djpi_pengelola_email', this.emailInput);
+      } catch (e) {}
+      this.masukKeMenu();
+    },
+
+    keluar() {
+      try {
+        localStorage.removeItem('djpi_pengelola_token');
+        localStorage.removeItem('djpi_pengelola_jurnal');
+        localStorage.removeItem('djpi_pengelola_email');
+      } catch (e) {}
+      this.token = ''; this.namaJurnalAktif = '';
+      this.tahap = 'login'; this.emailInput = ''; this.pin = '';
+      this.tokenPilih = ''; this.daftarJurnalPilihan = [];
+    },
+
+    masukKeMenu() {
+      this.tahap = 'menu';
+      this.bukaMenu('sunting');
+    },
+
+    // ================= NAVIGASI MENU =================
+    bukaMenu(kunci) {
+      this.menuAktif = kunci;
+      this.galatPanel = ''; this.toastPanel = '';
+      if (kunci === 'sunting' && !this.detailSunting) this.muatDataSunting();
+      if (kunci === 'doi' && !this.riwayatDoi.length) this.muatRiwayatDoi();
+    },
+
+    // ================= PANEL: AJUKAN AKTIVASI DOI =================
+    bentukAwalFormDoi() {
+      return {
+        jenis_konten: '',
+        nama_pemohon: '', whatsapp_pemohon: '', jabatan_pemohon: '',
+        volume: '', nomor: '', tahun: '',
+        tanggal_publikasi: '', judul_artikel: '', penulis: '',
+        url_landing_page: '', jumlah_doi: 1,
+        catatan_pengelola: '', persetujuan: false
+      };
+    },
+
+    mulaiFormDoi() {
+      this.formDoi = this.bentukAwalFormDoi();
+      this.langkahDoi = 1;
+      this.formDoiTampil = true;
+      this.galatPanel = '';
+    },
+
+    rapikanWhatsApp() {
+      var v = (this.formDoi.whatsapp_pemohon || '').replace(/[\s-]/g, '');
+      if (/^62\d/.test(v)) v = '+' + v;
+      this.formDoi.whatsapp_pemohon = v;
+    },
+
+    muatRiwayatDoi() {
+      this.memuatDoi = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.memuatDoi = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.riwayatDoi = res.items;
+        })
+        .withFailureHandler((err) => { this.memuatDoi = false; this.galatPanel = 'Gagal memuat riwayat: ' + err.message; })
+        .getUsulanDoiUntukPengelola(this.token);
+    },
+
+    kirimUsulanDoi() {
+      this.menyimpanDoi = true;
+      this.galatPanel = '';
+
+      var f = this.formDoi;
+      var payload = {
+        jenis_objek: f.jenis_konten === 'edisi' ? 'EDISI' : 'ARTIKEL',
+        jenis_konten: f.jenis_konten,
+        volume: f.volume, nomor: f.nomor, tahun: f.tahun,
+        tanggal_publikasi: f.tanggal_publikasi,
+        judul_artikel: f.judul_artikel,
+        penulis: f.penulis,
+        url_landing_page: f.url_landing_page,
+        jumlah_doi: f.jumlah_doi,
+        nama_pemohon: f.nama_pemohon,
+        whatsapp_pemohon: f.whatsapp_pemohon,
+        jabatan_pemohon: f.jabatan_pemohon,
+        catatan_pengelola: f.catatan_pengelola,
+        persetujuan: f.persetujuan
+        // nama_jurnal & email_pengelola TIDAK dikirim — server mengambilnya
+        // dari token edit_, supaya tidak bisa dipalsukan dari sisi klien.
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.menyimpanDoi = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.toastPanel = res.message;
+          this.formDoiTampil = false;
+          this.formDoi = this.bentukAwalFormDoi();
+          this.muatRiwayatDoi();
+        })
+        .withFailureHandler((err) => { this.menyimpanDoi = false; this.galatPanel = 'Gagal mengirim: ' + err.message; })
+        .simpanUsulanDoi(this.token, payload);
+    },
+
+    labelStatusDoi(status) {
+      var peta = {
+        MENUNGGU_VALIDASI: 'Menunggu Validasi', PERLU_REVISI: 'Perlu Revisi',
+        SIAP_DIPROSES: 'Siap Diproses', SEDANG_DIPROSES: 'Sedang Diproses',
+        BERHASIL: 'Berhasil', GAGAL: 'Gagal'
+      };
+      return peta[status] || status || '—';
+    },
+
+    kelasStatusDoi(status) {
+      var peta = {
+        MENUNGGU_VALIDASI: 'badge badge-warn', PERLU_REVISI: 'badge badge-bahaya',
+        SIAP_DIPROSES: 'badge badge-emas', SEDANG_DIPROSES: 'badge badge-emas',
+        BERHASIL: 'badge badge-ok', GAGAL: 'badge badge-bahaya'
+      };
+      return peta[status] || 'badge';
+    },
+
+    // ================= PANEL: SUNTING DATA JURNAL =================
+    muatDataSunting() {
+      this.memuatSunting = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.memuatSunting = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.detailSunting = res.detail;
+          this.draftSunting = Object.assign({}, res.detail);
+          this.dqSunting = res.dq;
+        })
+        .withFailureHandler((err) => { this.memuatSunting = false; this.galatPanel = 'Gagal memuat: ' + err.message; })
+        .getJournalDetailForEditor(this.token, this.namaJurnalAktif);
+    },
+
+    simpanSuntingJurnal() {
+      this.menyimpanSunting = true;
+      this.galatFieldSunting = {};
+
+      var changes = {};
+      this.fieldSuntingPengelola.forEach((f) => {
+        if (this.draftSunting[f.k] !== this.detailSunting[f.k]) changes[f.k] = this.draftSunting[f.k];
+      });
+
+      if (!Object.keys(changes).length) {
+        this.menyimpanSunting = false;
+        this.toastPanel = 'Tidak ada perubahan untuk disimpan.';
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.menyimpanSunting = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            if (res.galatValidasi) {
+              res.galatValidasi.forEach((g) => { this.galatFieldSunting[g.field] = g.pesan; });
+              this.galatPanel = res.message;
+            } else {
+              this.galatPanel = res.message;
+            }
+            return;
+          }
+          this.toastPanel = res.message;
+          this.detailSunting = null; // paksa reload supaya dq & data terbaru sinkron
+          this.muatDataSunting();
+        })
+        .withFailureHandler((err) => { this.menyimpanSunting = false; this.galatPanel = 'Gagal menyimpan: ' + err.message; })
+        .simpanPerubahanJurnal(this.token, this.namaJurnalAktif, changes);
+    },
+
+    fokusField(field) {
+      this.$nextTick(() => {
+        var el = document.getElementById('s-' + field);
+        if (el) el.focus();
+      });
+    },
+
+    kelasDq(level) {
+      var peta = {
+        kritis: 'badge badge-bahaya', perluTindakan: 'badge badge-emas',
+        perluVerifikasi: 'badge badge-warn', terkendali: 'badge badge-ok'
+      };
+      return peta[level] || 'badge';
+    },
+    kelasJenis(jenis) {
+      var peta = { kosong: 'badge badge-warn', rusak: 'badge badge-bahaya', kondisi: 'badge badge-emas' };
+      return peta[jenis] || 'badge';
+    },
+
+    // ================= PANEL: LAPOR APC =================
+    kirimLaporanApc() {
+      this.mengirimApc = true;
+      this.galatPanel = '';
+
+      var entry = {
+        namaJurnal: this.namaJurnalAktif,
+        edisi: this.formApc.edisi,
+        jumlahArtikel: this.formApc.jumlahArtikel,
+        total: this.formApc.total
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.mengirimApc = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.toastPanel = res.message;
+          this.formApc = { edisi: '', jumlahArtikel: 0, total: 0 };
+        })
+        .withFailureHandler((err) => { this.mengirimApc = false; this.galatPanel = 'Gagal mengirim: ' + err.message; })
+        .logApcEntry(this.token, entry);
+    }
+  }
+}).mount('#app');
+</script>
+
+<!-- CSS tambahan khusus tab nonaktif, tidak ada di Stylesheet.html lama -->
+<style>
+.tab-nonaktif { opacity: .45; cursor: not-allowed; }
+
+.wajib { color: var(--bahaya, #b3261e); }
+
+.pilihan-besar {
+  display: flex; gap: 12px; align-items: flex-start;
+  border: 1px solid var(--garis); border-radius: 10px;
+  padding: 12px; margin-bottom: 10px; cursor: pointer;
+}
+.pilihan-besar.terpilih { border-color: var(--aksen, #8b0000); background: rgba(139, 0, 0, .05); }
+.pilihan-besar input { margin-top: 3px; flex-shrink: 0; }
+</style>
+
+</body>
+</html>
