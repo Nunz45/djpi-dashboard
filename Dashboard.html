@@ -1212,9 +1212,9 @@
         </form>
 
         <form v-else @submit.prevent="kirimApc">
-          <div class="field"><label class="label">Edisi laporan</label><input v-model="formApc.edisi" class="input"></div>
-          <div class="field"><label class="label">Jumlah artikel berbayar</label><input v-model="formApc.jumlahArtikel" type="number" min="0" class="input"></div>
-          <div class="field"><label class="label">Total pemasukan APC</label><input v-model="formApc.total" type="number" min="0" class="input"></div>
+          <div class="field"><label class="label" for="aEdisi">Edisi laporan</label><input id="aEdisi" v-model="formApc.edisi" class="input"></div>
+          <div class="field"><label class="label" for="aJumlah">Jumlah artikel berbayar</label><input id="aJumlah" v-model="formApc.jumlahArtikel" type="number" min="0" class="input"></div>
+          <div class="field"><label class="label" for="aTotal">Total pemasukan APC</label><input id="aTotal" v-model="formApc.total" type="number" min="0" class="input"></div>
           <p class="hint">
             Alokasi ke UPI, DPPM, dan dana terserap jurnal dicatat terpisah lewat
             "Catat Pengajuan Pencairan" di tab Pemasukan APC.

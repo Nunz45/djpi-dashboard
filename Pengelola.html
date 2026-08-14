@@ -183,13 +183,17 @@
             <div class="card-head">
               <div>
                 <h2 class="card-title">Data yang dapat Anda sunting</h2>
-                <p class="card-note">Perubahan tersimpan langsung ke direktori jurnal setelah disimpan.</p>
+                <p class="card-note">
+                  Perubahan tersimpan langsung ke direktori jurnal setelah disimpan.
+                  Field bertanda <span class="wajib">*</span> boleh dikosongkan, tapi kalau diisi
+                  harus mengikuti format tertentu (diperiksa saat disimpan).
+                </p>
               </div>
             </div>
 
             <form class="card-pad" @submit.prevent="simpanSuntingJurnal">
               <div v-for="f in fieldSuntingPengelola" :key="f.k" class="field">
-                <label class="label" :for="'s-' + f.k">{{ f.l }}</label>
+                <label class="label" :for="'s-' + f.k">{{ f.l }}<span v-if="f.wajib" class="wajib"> *</span></label>
                 <input :id="'s-' + f.k" v-model="draftSunting[f.k]" type="text" class="input"
                   :class="{ 'input-galat': galatFieldSunting[f.k] }">
                 <p v-if="galatFieldSunting[f.k]" class="hint hint-galat">{{ galatFieldSunting[f.k] }}</p>
@@ -621,19 +625,23 @@ createApp({
       galatFieldSunting: {},
       menyimpanSunting: false,
       dqSunting: { level: 'terkendali', labelLevel: 'Terkendali', lengkap: 0, totalInti: 0, masalah: [] },
+      // wajib:true -> field punya aturan FORMAT spesifik di periksaNilaiField_ (Code.js) kalau diisi
+      // (URL/email/ISSN/angka). Bukan berarti tidak boleh dikosongkan -- server selalu mengizinkan
+      // nilai kosong (lihat catatan di atas form). 4 field tanpa wajib cuma kena pengecekan
+      // placeholder generik, bukan aturan format spesifik.
       fieldSuntingPengelola: [
-        { k: 'linkOjs', l: 'Link OJS' },
-        { k: 'issn', l: 'ISSN' },
-        { k: 'linkGaruda', l: 'Link Garuda' },
-        { k: 'linkDoaj', l: 'Link DOAJ' },
+        { k: 'linkOjs', l: 'Link OJS', wajib: true },
+        { k: 'issn', l: 'ISSN', wajib: true },
+        { k: 'linkGaruda', l: 'Link Garuda', wajib: true },
+        { k: 'linkDoaj', l: 'Link DOAJ', wajib: true },
         { k: 'apc', l: 'Informasi APC' },
-        { k: 'linkApc', l: 'Tautan informasi APC' },
+        { k: 'linkApc', l: 'Tautan informasi APC', wajib: true },
         { k: 'namaPengelola', l: 'Nama pengelola' },
-        { k: 'email', l: 'Email pengelola' },
+        { k: 'email', l: 'Email pengelola', wajib: true },
         { k: 'jadwalTerbitan', l: 'Jadwal terbitan' },
         { k: 'issue', l: 'Issue berjalan' },
-        { k: 'artikelPerIssue', l: 'Jumlah artikel per issue' },
-        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun' }
+        { k: 'artikelPerIssue', l: 'Jumlah artikel per issue', wajib: true },
+        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun', wajib: true }
       ],
 
       // --- panel Lapor APC ---
@@ -873,7 +881,7 @@ createApp({
 
     kelasStatusDoi(status) {
       var peta = {
-        MENUNGGU_VALIDASI: 'badge badge-warn', PERLU_REVISI: 'badge badge-bahaya',
+        MENUNGGU_VALIDASI: 'badge badge-none', PERLU_REVISI: 'badge badge-bahaya',
         SIAP_DIPROSES: 'badge badge-emas', SEDANG_DIPROSES: 'badge badge-emas',
         BERHASIL: 'badge badge-ok', GAGAL: 'badge badge-bahaya'
       };
