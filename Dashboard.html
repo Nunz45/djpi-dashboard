@@ -838,7 +838,7 @@
 
       <!-- Progress Terbitan -->
       <section v-show="tab === 'terbitan'">
-        <div class="grid grid-kpi mb-16">
+        <div class="grid grid-3 mb-16">
           <div v-for="s in statusTerbitanList" :key="s" class="card kpi">
             <div class="kpi-label">{{ labelStatusTerbitan(s) }}</div>
             <div class="kpi-value tabular">{{ (data.terbitan && data.terbitan.kpi[s]) || 0 }}</div>
@@ -867,7 +867,7 @@
           </div>
 
           <div v-if="!data.terbitan || !data.terbitan.items.length" class="card-pad">
-            <div class="alert alert-info">Belum ada laporan progres terbitan.</div>
+            <div class="alert alert-info">Belum ada laporan progres terbitan. Laporan akan muncul di sini setelah pengelola jurnal melapor progres lewat Dashboard Pengelola.</div>
           </div>
 
           <div v-else-if="!terbitanTersaring.length" class="card-pad">
@@ -1054,7 +1054,7 @@
 
   <!-- Modal jadwal terbit -->
   <div v-if="modalBulan" class="overlay" @click.self="tutupModalBulan">
-    <div class="modal modal-lg">
+    <div class="modal modal-lg" role="dialog" aria-modal="true">
       <div class="modal-head">
         <div>
           <h2 class="card-title" style="font-size:17px">Jadwal terbit · {{ modalBulan.bulan }}</h2>
@@ -1077,7 +1077,7 @@
 
           <div class="tabel-bungkus">
             <table class="tabel">
-              <thead><tr><th></th><th>Jurnal</th><th>Kluster</th><th>Status</th></tr></thead>
+              <thead><tr><th aria-label="Pilih jurnal untuk dikirimi pengingat"></th><th>Jurnal</th><th>Kluster</th><th>Status</th></tr></thead>
               <tbody>
                 <tr v-for="j in modalBulan.daftar" :key="j.namaJurnal">
                   <td>
@@ -1118,7 +1118,7 @@
 
   <!-- Modal detail jurnal -->
   <div v-if="jurnalTerpilih" class="overlay" @click.self="tutupModal">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <div class="modal-head">
         <div>
           <h2 class="card-title" style="font-size:17px">{{ jurnalTerpilih.namaJurnal }}</h2>
@@ -1244,7 +1244,7 @@
 
   <!-- Modal detail usulan DOI (REVISI) -->
   <div v-if="doiTerpilih" class="overlay" @click.self="doiTerpilih = null">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <div class="modal-head">
         <div>
           <h2 class="card-title" style="font-size:17px">{{ doiTerpilih.nama_jurnal }}</h2>

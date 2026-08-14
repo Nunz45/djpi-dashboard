@@ -211,6 +211,7 @@ Vue.createApp({
     };
   },
   mounted:function(){
+    document.addEventListener('keydown',this.tutupModalEsc); // baru: tutup modal aktif dengan Esc
     if(typeof google==='undefined'||!google.script||!google.script.run){this.tahap='login';this.pesanGalat='Buka melalui URL web app Apps Script yang berakhiran /exec.';return;}
     if(typeof TOKEN_AWAL==='string'&&TOKEN_AWAL){this.token=TOKEN_AWAL;this.muatDashboard(true);}else this.tahap='login';
   },
@@ -306,6 +307,13 @@ Vue.createApp({
     gantiHalaman:function(d){this.halaman=Math.min(this.totalHalaman,Math.max(1,this.halaman+d));},
     bukaJurnal:function(j){this.jurnalTerpilih=j;this.modeSunting=false;this.panelApc=false;this.pesanModal='';this.galatField={};},
     tutupModal:function(){this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
+    // baru: tutup modal yang sedang terbuka saat tombol Esc ditekan (jadwal terbit > detail jurnal > detail DOI)
+    tutupModalEsc:function(e){
+      if(e.key!=='Escape')return;
+      if(this.modalBulan){this.tutupModalBulan();return;}
+      if(this.jurnalTerpilih){this.tutupModal();return;}
+      if(this.doiTerpilih){this.doiTerpilih=null;}
+    },
     mulaiSunting:function(){var s=this;this.draf={};this.galatField={};this.fieldSunting.forEach(function(f){s.draf[f.k]=s.jurnalTerpilih[f.k]||'';});this.modeSunting=true;},
     batalSunting:function(){this.modeSunting=false;this.draf={};this.galatField={};},
     petunjuk:function(k){return this.PETUNJUK_FIELD[k]||'';},
@@ -635,6 +643,6 @@ Vue.createApp({
         });
     }
   },
-  beforeUnmount:function(){this.hancurkanGrafik();}
+  beforeUnmount:function(){this.hancurkanGrafik();document.removeEventListener('keydown',this.tutupModalEsc);}
 }).mount('#app');
 </script>

@@ -230,7 +230,7 @@
                     </div>
                     <div class="teks-kecil teks-lembut">{{ m.pesan }}</div>
                   </div>
-                  <button type="button" class="btn btn-sm" @click="fokusField(m.field)">Perbaiki</button>
+                  <button type="button" class="btn" @click="fokusField(m.field)">Perbaiki</button>
                 </li>
               </ul>
             </div>
@@ -248,7 +248,7 @@
             <h2 class="card-title">Riwayat usulan Anda</h2>
             <p class="card-note">Status diperbarui oleh admin DJPI setelah usulan ditinjau.</p>
           </div>
-          <button type="button" class="btn btn-sm" @click="muatRiwayatDoi" :disabled="memuatDoi">
+          <button type="button" class="btn" @click="muatRiwayatDoi" :disabled="memuatDoi">
             <span v-if="memuatDoi" class="spinner spinner-gelap" aria-hidden="true"></span>
             <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
             Muat ulang
@@ -505,7 +505,7 @@
             <h2 class="card-title">Riwayat laporan progres Anda</h2>
             <p class="card-note">Setiap laporan tercatat sebagai baris baru; laporan lama tidak dapat diubah.</p>
           </div>
-          <button type="button" class="btn btn-sm" @click="muatRiwayatTerbitan" :disabled="memuatTerbitan">
+          <button type="button" class="btn" @click="muatRiwayatTerbitan" :disabled="memuatTerbitan">
             <span v-if="memuatTerbitan" class="spinner spinner-gelap" aria-hidden="true"></span>
             <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
             Muat ulang

@@ -2253,7 +2253,12 @@
     },
 
     mounted: function () {
+      document.addEventListener('keydown', this.tutupEsc); // baru: tutup modal detail jurnal dengan Esc
       this.muat();
+    },
+
+    beforeUnmount: function () {
+      document.removeEventListener('keydown', this.tutupEsc);
     },
 
     methods: {
@@ -2400,6 +2405,11 @@
 
       tutup: function () {
         this.terpilih = null;
+      },
+
+      // baru: tutup modal detail jurnal saat tombol Esc ditekan
+      tutupEsc: function (e) {
+        if (e.key === 'Escape' && this.terpilih) this.tutup();
       },
 
       formatAngka: function (n) {
