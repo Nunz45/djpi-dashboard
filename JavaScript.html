@@ -36,6 +36,24 @@ var KELAS_STATUS_DOI={
 // nilai yang sebenarnya dihitung ulang di server (catatPencairanApc di Code.gs),
 // sehingga menaruh angka ini di klien tidak membuka celah manipulasi.
 var PERSEN_ALOKASI_UPI=0.10, PERSEN_ALOKASI_DPPM=0.02;
+// baru: urutan tetap & label/kelas badge untuk TERBITAN_STATUS (harus sama persis dengan TERBITAN_STATUS di Code.gs)
+var TERBITAN_STATUS_LIST=['INITIAL_SCREENING','DESK_REVIEW','PEER_REVIEW','DECISION','COPYEDIT','PUBLISH'];
+var LABEL_TERBITAN_STATUS={
+  INITIAL_SCREENING:'Screening Awal',
+  DESK_REVIEW:'Desk Review',
+  PEER_REVIEW:'Peer Review',
+  DECISION:'Keputusan Editor',
+  COPYEDIT:'Copyediting',
+  PUBLISH:'Terbit'
+};
+var KELAS_TERBITAN_STATUS={
+  INITIAL_SCREENING:'badge badge-none',
+  DESK_REVIEW:'badge badge-warn',
+  PEER_REVIEW:'badge badge-emas',
+  DECISION:'badge badge-emas',
+  COPYEDIT:'badge badge-warn',
+  PUBLISH:'badge badge-ok'
+};
 
 Vue.createApp({
   data:function(){return{
@@ -56,13 +74,23 @@ Vue.createApp({
     pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
     // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
-    pesanPencairan:'',pesanPencairanJenis:'info'
+    pesanPencairan:'',pesanPencairanJenis:'info',
+    filterTerbitanStatus:'' // baru: filter status pada tab Progress Terbitan
   };},
   computed:{
     fieldSunting:function(){return this.FIELD_ADMIN;},
     daftarKluster:function(){return this.data?this.data.clusters.map(function(x){return x.nama;}):[];},
     dq:function(){return this.data&&this.data.dataQuality?this.data.dataQuality:null;}, // baru
     levelDq:function(){return LEVEL_DQ;}, // baru
+    // baru: daftar status tetap & laporan terbitan tersaring untuk tab Progress Terbitan
+    statusTerbitanList:function(){return TERBITAN_STATUS_LIST;},
+    terbitanTersaring:function(){
+      if(!this.data||!this.data.terbitan)return[];
+      var items=this.data.terbitan.items||[];
+      if(!this.filterTerbitanStatus)return items;
+      var s=this.filterTerbitanStatus;
+      return items.filter(function(t){return t.status===s;});
+    },
     jurnalTersaring:function(){
       if(!this.data)return[];var q=this.cari.trim().toLowerCase(),s=this;
       var hasil=this.data.journals.filter(function(j){
@@ -374,6 +402,10 @@ Vue.createApp({
 
     labelStatusDoi:function(s){ return LABEL_STATUS_DOI[s] || s; },
     kelasStatusDoi:function(s){ return KELAS_STATUS_DOI[s] || 'badge badge-none'; },
+
+    // baru: label & kelas badge untuk tab Progress Terbitan
+    labelStatusTerbitan:function(s){ return LABEL_TERBITAN_STATUS[s] || s; },
+    kelasStatusTerbitan:function(s){ return KELAS_TERBITAN_STATUS[s] || 'badge badge-none'; },
 
     // baru: dipakai untuk menampilkan peringatan bila admin mencoba pindah ke
     // SIAP_DIPROSES padahal ISSN jurnal belum sah — server juga menolaknya,

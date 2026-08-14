@@ -52,6 +52,8 @@ var CACHE = {
   EDIT_TTL: 3600,
   PENCAIRAN_LOG: 'pencairan_apc_log_v1',
   PENCAIRAN_LOG_TTL: 600,
+  TERBITAN_LOG: 'terbitan_log_v1',
+  TERBITAN_LOG_TTL: 600, // cache terpisah untuk log progress terbitan
   MAX_VALUE_BYTES: 90000
 };
 
@@ -1555,6 +1557,7 @@ function getDashboardDataForAdmin(token) {
       clusters: rekapKluster_(terlihat),
       scopus: pipelineScopus_(terlihat, profile),
       apc: rekapApc_(terlihat, profile),
+      terbitan: rekapProgressTerbitan_(terlihat, profile), // rekap progres terbitan untuk tab Progress Terbitan
       dataQuality: rekapKualitas_(terlihat), // rekap kualitas data untuk tab Kualitas Data
       journals: terlihat,
       generatedAt: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')
@@ -3699,4 +3702,194 @@ function rekapApc_(terlihat, profile) {
     pesanKosong: '',
     pencairan: pencairan // { totalDiajukan, totalUpi, totalDppm, totalTerserap, jumlahEntri }
   };
+}
+
+/* ==========================================================================
+   20. MODUL LAPOR PROGRESS TERBITAN (Log_Terbitan)
+   --------------------------------------------------------------------------
+   Pengelola melaporkan tahap naskah per EDISI (bukan per artikel), append-
+   only sama seperti Log_APC — satu submit = satu baris baru, baris lama
+   tidak pernah disunting. Riwayat status sebelumnya tetap tersimpan sebagai
+   jejak progres.
+
+   Data ini BERDAMPINGAN dengan kolom TIMELINESS di Sheet1, BUKAN pengganti.
+   Admin tetap yang menentukan nilai TIMELINESS resmi secara manual — modul
+   ini tidak pernah menulis balik ke Sheet1.
+   ========================================================================== */
+
+var TERBITAN_STATUS = [
+  'INITIAL_SCREENING',
+  'DESK_REVIEW',
+  'PEER_REVIEW',
+  'DECISION',
+  'COPYEDIT',
+  'PUBLISH'
+];
+
+function bacaLogTerbitan_() {
+  var cache = CacheService.getScriptCache();
+  var tersimpan = cache.get(CACHE.TERBITAN_LOG);
+  if (tersimpan) {
+    try { return JSON.parse(tersimpan); } catch (err) { /* cache rusak, baca ulang */ }
+  }
+
+  var sh = sheetOpsional_(SHEET.LOG_TERBITAN);
+  if (!sh) return { baris: [] };
+  var nilai = sh.getDataRange().getValues();
+  if (nilai.length < 2) return { baris: [] };
+
+  var header = nilai[0].map(norm_);
+  function kolom(nama) { return header.indexOf(norm_(nama)); }
+
+  var idx = {
+    timestamp: kolom('Timestamp'),
+    email: kolom('Email Pengelola'),
+    nama: kolom('Nama Jurnal'),
+    edisi: kolom('Edisi Terbitan'),
+    status: kolom('Status Naskah'),
+    catatan: kolom('Catatan / Kendala')
+  };
+
+  var baris = [];
+  for (var r = 1; r < nilai.length; r++) {
+    var nama = idx.nama === -1 ? '' : str_(nilai[r][idx.nama]);
+    if (!nama) continue;
+    baris.push({
+      timestamp: idx.timestamp === -1 ? '' : str_(nilai[r][idx.timestamp]),
+      email: idx.email === -1 ? '' : str_(nilai[r][idx.email]),
+      namaJurnal: nama,
+      edisi: idx.edisi === -1 ? '' : str_(nilai[r][idx.edisi]),
+      status: idx.status === -1 ? '' : str_(nilai[r][idx.status]),
+      catatan: idx.catatan === -1 ? '' : str_(nilai[r][idx.catatan])
+    });
+  }
+
+  var hasil = { baris: baris };
+  try {
+    var json = JSON.stringify(hasil);
+    if (json.length < CACHE.MAX_VALUE_BYTES) cache.put(CACHE.TERBITAN_LOG, json, CACHE.TERBITAN_LOG_TTL);
+  } catch (err) {}
+
+  return hasil;
+}
+
+function bersihkanCacheTerbitan_() {
+  CacheService.getScriptCache().remove(CACHE.TERBITAN_LOG);
+}
+
+/**
+ * Pengelola melaporkan progres naskah untuk satu edisi. WAJIB token 'edit_'
+ * — admin tidak melapor progres, hanya memonitor lewat rekapProgressTerbitan_.
+ * Timestamp, Email Pengelola, dan Nama Jurnal diisi dari token, TIDAK PERNAH
+ * dari payload klien, sama seperti logApcEntry.
+ * Endpoint: gs('logProgressTerbitan', token, entry).
+ */
+function logProgressTerbitan(token, entry) {
+  var muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+
+  if (!entry || typeof entry !== 'object') return { ok: false, message: 'Data laporan kosong.' };
+
+  var edisi = str_(entry.edisi);
+  var status = String(entry.status || '').trim().toUpperCase();
+  var catatan = str_(entry.catatan || '');
+
+  if (!edisi) return { ok: false, message: 'Edisi terbitan wajib diisi.' };
+  if (TERBITAN_STATUS.indexOf(status) === -1) return { ok: false, message: 'Status naskah tidak valid.' };
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+
+  try {
+    var sh = sheetWajib_(SHEET.LOG_TERBITAN);
+    sh.appendRow([
+      Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'),
+      aman_(muatan.email), aman_(muatan.namaJurnal), aman_(edisi), status, aman_(catatan)
+    ]);
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(muatan.email, muatan.namaJurnal, 'LAPOR_PROGRESS_TERBITAN',
+      JSON.stringify({ edisi: edisi, status: status }));
+    bersihkanCacheTerbitan_();
+
+    return { ok: true, message: 'Progres terbitan berhasil dicatat.' };
+  } catch (err) {
+    return { ok: false, message: 'Gagal mencatat: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Riwayat laporan progres milik SATU jurnal saja, untuk Dashboard Pengelola.
+ * Endpoint: gs('getProgressTerbitanUntukPengelola', token).
+ */
+function getProgressTerbitanUntukPengelola(token) {
+  var muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+
+  try {
+    var log = bacaLogTerbitan_();
+    var target = norm_(muatan.namaJurnal);
+    var items = log.baris
+      .filter(function (b) { return norm_(b.namaJurnal) === target; })
+      .slice()
+      .reverse(); // terbaru lebih dulu
+
+    return { ok: true, items: items, statusOptions: TERBITAN_STATUS };
+  } catch (err) {
+    return { ok: false, message: 'Gagal memuat riwayat: ' + err.message };
+  }
+}
+
+/**
+ * Rekap progres terbitan untuk Dashboard Admin, terfilter akses kluster
+ * (superadmin melihat semua), dipanggil dari getDashboardDataForAdmin().
+ *
+ * kpi dihitung dari status TERKINI tiap edisi (kunci: nama jurnal + edisi),
+ * bukan dari seluruh baris riwayat — supaya satu edisi yang sudah maju ke
+ * tahap berikutnya tidak ikut dihitung dobel di tahap lamanya. bacaLogTerbitan_
+ * mengembalikan baris dalam urutan kronologis lama->baru, sehingga penulisan
+ * terakhir ke terbaruPerEdisi untuk kunci yang sama pasti yang paling baru.
+ */
+function rekapProgressTerbitan_(terlihat, profile) {
+  var kosong = { items: [], kpi: {}, statusOptions: TERBITAN_STATUS };
+  TERBITAN_STATUS.forEach(function (s) { kosong.kpi[s] = 0; });
+
+  var log = bacaLogTerbitan_();
+  if (!log.baris.length) return kosong;
+
+  var klusterPer = {};
+  terlihat.forEach(function (j) { klusterPer[norm_(j.namaJurnal)] = j.kluster; });
+
+  var items = [];
+  var terbaruPerEdisi = {}; // kunci: "namaJurnalNorm|edisiNorm" -> status baris terakhir
+
+  log.baris.forEach(function (b) {
+    var kunciJurnal = norm_(b.namaJurnal);
+    if (!profile.isSuperadmin && klusterPer[kunciJurnal] === undefined) return; // di luar akses kluster
+
+    items.push({
+      namaJurnal: b.namaJurnal,
+      kluster: klusterPer[kunciJurnal] || '',
+      edisi: b.edisi,
+      status: b.status,
+      catatan: b.catatan,
+      timestamp: b.timestamp
+    });
+
+    var kunciEdisi = kunciJurnal + '|' + norm_(b.edisi);
+    terbaruPerEdisi[kunciEdisi] = b.status;
+  });
+
+  var kpi = {};
+  TERBITAN_STATUS.forEach(function (s) { kpi[s] = 0; });
+  Object.keys(terbaruPerEdisi).forEach(function (k) {
+    var s = terbaruPerEdisi[k];
+    if (kpi[s] !== undefined) kpi[s]++;
+  });
+
+  items.reverse(); // tampilkan yang terbaru lebih dulu
+
+  return { items: items, kpi: kpi, statusOptions: TERBITAN_STATUS };
 }

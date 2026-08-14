@@ -186,6 +186,9 @@
         <button type="button" class="tab" :class="{ aktif: tab === 'apc' }" @click="tab = 'apc'">
           Pemasukan APC
         </button>
+        <button type="button" class="tab" :class="{ aktif: tab === 'terbitan' }" @click="tab = 'terbitan'">
+          Progress Terbitan
+        </button>
         <button type="button" class="tab" :class="{ aktif: tab === 'doi' }"
           @click="tab = 'doi'; !memuatDoi && !usulanDoi.length && muatUsulanDoi()">
           Usulan DOI
@@ -819,6 +822,72 @@
               <span v-if="menyimpanPencairan" class="spinner" aria-hidden="true"></span>
               {{ menyimpanPencairan ? 'Menyimpan…' : 'Catat pencairan' }}
             </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Progress Terbitan -->
+      <section v-show="tab === 'terbitan'">
+        <div class="grid grid-kpi mb-16">
+          <div v-for="s in statusTerbitanList" :key="s" class="card kpi">
+            <div class="kpi-label">{{ labelStatusTerbitan(s) }}</div>
+            <div class="kpi-value tabular">{{ (data.terbitan && data.terbitan.kpi[s]) || 0 }}</div>
+            <div class="kpi-sub">Edisi pada tahap ini.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Laporan progres terbitan</h2>
+              <p class="card-note">Sumber data: Log_Terbitan (laporan pengelola per edisi).</p>
+            </div>
+          </div>
+
+          <div class="card-pad">
+            <div class="grid grid-2 mb-8">
+              <div>
+                <label class="label" for="fTerbitanStatus">Status</label>
+                <select id="fTerbitanStatus" v-model="filterTerbitanStatus" class="select">
+                  <option value="">Semua status</option>
+                  <option v-for="s in statusTerbitanList" :key="s" :value="s">{{ labelStatusTerbitan(s) }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!data.terbitan || !data.terbitan.items.length" class="card-pad">
+            <div class="alert alert-info">Belum ada laporan progres terbitan.</div>
+          </div>
+
+          <div v-else-if="!terbitanTersaring.length" class="card-pad">
+            <div class="alert alert-info">Tidak ada laporan yang cocok dengan filter status ini.</div>
+          </div>
+
+          <div v-else class="tabel-bungkus">
+            <table class="tabel">
+              <thead>
+                <tr>
+                  <th scope="col">Jurnal</th>
+                  <th scope="col">Edisi</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Tanggal</th>
+                  <th scope="col">Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="t in terbitanTersaring" :key="t.namaJurnal + t.edisi + t.timestamp">
+                  <td>
+                    <div class="teks-tebal putus">{{ t.namaJurnal }}</div>
+                    <div class="teks-kecil teks-lembut">{{ t.kluster }}</div>
+                  </td>
+                  <td class="teks-kecil putus">{{ t.edisi }}</td>
+                  <td><span :class="kelasStatusTerbitan(t.status)">{{ labelStatusTerbitan(t.status) }}</span></td>
+                  <td class="teks-kecil teks-lembut">{{ t.timestamp }}</td>
+                  <td class="teks-kecil putus">{{ t.catatan || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

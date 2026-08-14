@@ -13,12 +13,12 @@
   dari alur admin (token 'session_').
 
   Modul yang AKTIF di draf ini (backend sudah lengkap):
-    1. Sunting Data Jurnal  -> getJournalDetailForEditor, simpanPerubahanJurnal
-    2. Lapor APC            -> logApcEntry
+    1. Sunting Data Jurnal      -> getJournalDetailForEditor, simpanPerubahanJurnal
+    2. Lapor APC                -> logApcEntry
+    3. Ajukan Aktivasi DOI      -> getUsulanDoiUntukPengelola, simpanUsulanDoi
+    4. Lapor Progress Terbitan  -> getProgressTerbitanUntukPengelola, logProgressTerbitan
 
   Modul yang masih placeholder "Segera Hadir" (backend belum siap):
-    3. Ajukan Aktivasi DOI
-    4. Lapor Progress Terbitan
     5. Persiapan Akreditasi SINTA
 
   CATATAN GAP: belum ada fungsi backend untuk pengelola melihat riwayat
@@ -160,7 +160,7 @@
       <button type="button" class="tab" :class="{ aktif: menuAktif === 'doi' }" @click="bukaMenu('doi')">
         Ajukan Aktivasi DOI
       </button>
-      <button type="button" class="tab tab-nonaktif" disabled title="Segera hadir">
+      <button type="button" class="tab" :class="{ aktif: menuAktif === 'terbitan' }" @click="bukaMenu('terbitan')">
         Lapor Progress Terbitan
       </button>
       <button type="button" class="tab tab-nonaktif" disabled title="Segera hadir">
@@ -493,6 +493,84 @@
       </div>
     </section>
 
+    <!-- -------- Panel: Lapor Progress Terbitan -------- -->
+    <section v-if="menuAktif === 'terbitan'">
+      <div class="card mb-16">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Riwayat laporan progres Anda</h2>
+            <p class="card-note">Setiap laporan tercatat sebagai baris baru; laporan lama tidak dapat diubah.</p>
+          </div>
+          <button type="button" class="btn btn-sm" @click="muatRiwayatTerbitan" :disabled="memuatTerbitan">
+            <span v-if="memuatTerbitan" class="spinner spinner-gelap" aria-hidden="true"></span>
+            <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+            Muat ulang
+          </button>
+        </div>
+
+        <div v-if="!riwayatTerbitan.length" class="card-pad">
+          <div class="alert alert-info">Belum ada laporan progres terbitan dari jurnal ini.</div>
+        </div>
+
+        <div v-else class="tabel-bungkus">
+          <table class="tabel">
+            <thead>
+              <tr>
+                <th scope="col">Edisi</th>
+                <th scope="col">Status</th>
+                <th scope="col">Catatan</th>
+                <th scope="col">Tanggal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="t in riwayatTerbitan" :key="t.timestamp + t.edisi + t.status">
+                <td class="teks-tebal putus">{{ t.edisi }}</td>
+                <td><span :class="kelasStatusTerbitan(t.status)">{{ labelStatusTerbitan(t.status) }}</span></td>
+                <td class="teks-kecil putus">{{ t.catatan || '—' }}</td>
+                <td class="teks-kecil teks-lembut">{{ t.timestamp }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Lapor progres terbitan</h2>
+            <p class="card-note">Laporkan tahap naskah saat ini untuk satu edisi.</p>
+          </div>
+        </div>
+
+        <form class="card-pad" @submit.prevent="kirimProgressTerbitan">
+          <div class="field">
+            <label class="label" for="tEdisi">Edisi Terbitan <span class="wajib">*</span></label>
+            <input id="tEdisi" v-model.trim="formTerbitan.edisi" type="text" class="input"
+              placeholder="Contoh: Vol 13, No 2 (2025)" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="tStatus">Status Naskah <span class="wajib">*</span></label>
+            <select id="tStatus" v-model="formTerbitan.status" class="select" required>
+              <option value="" disabled>Pilih status…</option>
+              <option v-for="s in statusTerbitanOptions" :key="s" :value="s">{{ labelStatusTerbitan(s) }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="tCatatan">Catatan / Kendala (opsional)</label>
+            <textarea id="tCatatan" v-model.trim="formTerbitan.catatan" class="input" rows="3"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primer"
+            :disabled="mengirimTerbitan || !formTerbitan.edisi || !formTerbitan.status">
+            <span v-if="mengirimTerbitan" class="spinner" aria-hidden="true"></span>
+            {{ mengirimTerbitan ? 'Mengirim…' : 'Catat laporan' }}
+          </button>
+        </form>
+      </div>
+    </section>
+
   </main>
 
   <footer class="footer">
@@ -560,7 +638,14 @@ createApp({
 
       // --- panel Lapor APC ---
       formApc: { edisi: '', jumlahArtikel: 0, total: 0 },
-      mengirimApc: false
+      mengirimApc: false,
+
+      // --- panel Lapor Progress Terbitan ---
+      riwayatTerbitan: [],
+      memuatTerbitan: false,
+      statusTerbitanOptions: ['INITIAL_SCREENING', 'DESK_REVIEW', 'PEER_REVIEW', 'DECISION', 'COPYEDIT', 'PUBLISH'],
+      formTerbitan: { edisi: '', status: '', catatan: '' },
+      mengirimTerbitan: false
     };
   },
 
@@ -695,6 +780,7 @@ createApp({
       this.galatPanel = ''; this.toastPanel = '';
       if (kunci === 'sunting' && !this.detailSunting) this.muatDataSunting();
       if (kunci === 'doi' && !this.riwayatDoi.length) this.muatRiwayatDoi();
+      if (kunci === 'terbitan' && !this.riwayatTerbitan.length) this.muatRiwayatTerbitan();
     },
 
     // ================= PANEL: AJUKAN AKTIVASI DOI =================
@@ -891,6 +977,65 @@ createApp({
         })
         .withFailureHandler((err) => { this.mengirimApc = false; this.galatPanel = 'Gagal mengirim: ' + err.message; })
         .logApcEntry(this.token, entry);
+    },
+
+    // ================= PANEL: LAPOR PROGRESS TERBITAN =================
+    muatRiwayatTerbitan() {
+      this.memuatTerbitan = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.memuatTerbitan = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.riwayatTerbitan = res.items;
+        })
+        .withFailureHandler((err) => { this.memuatTerbitan = false; this.galatPanel = 'Gagal memuat riwayat: ' + err.message; })
+        .getProgressTerbitanUntukPengelola(this.token);
+    },
+
+    kirimProgressTerbitan() {
+      this.mengirimTerbitan = true;
+      this.galatPanel = '';
+
+      var entry = {
+        edisi: this.formTerbitan.edisi,
+        status: this.formTerbitan.status,
+        catatan: this.formTerbitan.catatan
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.mengirimTerbitan = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.toastPanel = res.message;
+          this.formTerbitan = { edisi: '', status: '', catatan: '' };
+          this.muatRiwayatTerbitan();
+        })
+        .withFailureHandler((err) => { this.mengirimTerbitan = false; this.galatPanel = 'Gagal mengirim: ' + err.message; })
+        .logProgressTerbitan(this.token, entry);
+    },
+
+    labelStatusTerbitan(status) {
+      var peta = {
+        INITIAL_SCREENING: 'Screening Awal', DESK_REVIEW: 'Desk Review',
+        PEER_REVIEW: 'Peer Review', DECISION: 'Keputusan Editor',
+        COPYEDIT: 'Copyediting', PUBLISH: 'Terbit'
+      };
+      return peta[status] || status || '—';
+    },
+
+    kelasStatusTerbitan(status) {
+      var peta = {
+        INITIAL_SCREENING: 'badge badge-none', DESK_REVIEW: 'badge badge-warn',
+        PEER_REVIEW: 'badge badge-emas', DECISION: 'badge badge-emas',
+        COPYEDIT: 'badge badge-warn', PUBLISH: 'badge badge-ok'
+      };
+      return peta[status] || 'badge';
     }
   }
 }).mount('#app');
