@@ -35,7 +35,8 @@ var SHEET = {
   SITASI_RINGKASAN: 'Sitasi_Ringkasan',       // snapshot ringkasan Crossref/OpenAlex
   SITASI_TREN: 'Sitasi_Tren',                 // sitasi per tahun
   JURNAL_UNGGULAN: 'Jurnal_Unggulan',         // ranking jurnal berdasarkan sitasi
-  ARTIKEL_BERPENGARUH: 'Artikel_Berpengaruh'  // artikel dengan sitasi tertinggi
+  ARTIKEL_BERPENGARUH: 'Artikel_Berpengaruh', // artikel dengan sitasi tertinggi
+  TEMPLATE_EMAIL: 'Template_Email'            // subjek & isi email otomatis ke pengelola, bisa diedit admin
 };
 
 var CACHE = {
@@ -54,6 +55,8 @@ var CACHE = {
   PENCAIRAN_LOG_TTL: 600,
   TERBITAN_LOG: 'terbitan_log_v1',
   TERBITAN_LOG_TTL: 600, // cache terpisah untuk log progress terbitan
+  TEMPLATE_EMAIL: 'template_email_v1',
+  TEMPLATE_EMAIL_TTL: 3600, // jarang berubah, di-invalidate manual tiap kali admin menyimpan
   MAX_VALUE_BYTES: 90000
 };
 
@@ -1466,9 +1469,8 @@ function requestJournalPin(namaJurnal) {
     var pin = pinAcak_();
     CacheService.getScriptCache().put(kunciPendek_('pin_jurnal_', j.namaJurnal), hash_(pin), CACHE.PIN_TTL);
     resetPinGuard_(kunciPendek_('pin_jurnal_', j.namaJurnal)); // PIN baru menghapus hitungan salah lama
-    GmailApp.sendEmail(j.email, 'PIN Verifikasi Pengelola — ' + j.namaJurnal,
-      'PIN Anda: ' + pin + '\n\nPIN berlaku 5 menit untuk menyunting data jurnal "' + j.namaJurnal + '".\n' +
-      'Abaikan email ini bila Anda tidak meminta akses.\n\n— Divisi Jurnal dan Publikasi Ilmiah UPI');
+    var emailPinJurnal = renderTemplateEmail_('pin_jurnal', { pin: pin, namaJurnal: j.namaJurnal });
+    GmailApp.sendEmail(j.email, emailPinJurnal.subjek, emailPinJurnal.isi);
 
     var samar = j.email.replace(/^(.).*(@.*)$/, function (m, a, b) { return a + '****' + b; });
     return { ok: true, punyaEmail: true, message: 'PIN telah dikirim ke ' + samar + '.' };
@@ -2126,22 +2128,13 @@ function kirimPengingatTerbitan(token, bulanIndex, namaJurnalList) {
       continue;
     }
 
-    var isi =
-      'Yth. Pengelola ' + j.namaJurnal + ',\n\n' +
-      'Berdasarkan data Divisi Jurnal dan Publikasi Ilmiah UPI, jurnal Anda ' +
-      'dijadwalkan terbit pada bulan ' + namaBulan + '.\n\n' +
-      'Jadwal terbitan terdaftar : ' + (j.jadwalTerbitan || '-') + '\n' +
-      'Unit pengelola            : ' + (j.unitPengelola || '-') + '\n' +
-      'Kluster                   : ' + (j.kluster || '-') + '\n\n' +
-      'Mohon pastikan proses penerbitan berjalan sesuai jadwal. Bila terdapat ' +
-      'kendala, silakan hubungi Divisi Jurnal dan Publikasi Ilmiah UPI agar ' +
-      'dapat dibantu.\n\n' +
-      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
-      '— Divisi Jurnal dan Publikasi Ilmiah\n' +
-      'Universitas Pendidikan Indonesia';
+    var emailPengingat = renderTemplateEmail_('pengingat', {
+      namaJurnal: j.namaJurnal, bulan: namaBulan,
+      jadwalTerbitan: j.jadwalTerbitan || '-', unitPengelola: j.unitPengelola || '-', kluster: j.kluster || '-'
+    });
 
     try {
-      GmailApp.sendEmail(j.email, 'Pengingat Jadwal Terbitan ' + namaBulan + ' — ' + j.namaJurnal, isi);
+      GmailApp.sendEmail(j.email, emailPengingat.subjek, emailPengingat.isi);
       props.setProperty(kunci, stempel);
       sisaKuota--;
       terkirim++;
@@ -2699,19 +2692,13 @@ function validasiPayloadDoi_(payload) {
 
 function kirimReceiptPengajuanDoi_(email, namaJurnal, record) {
   try {
-    var isi =
-      'Yth. Pengelola ' + namaJurnal + ',\n\n' +
-      'Usulan aktivasi DOI Anda telah kami terima dengan rincian berikut:\n\n' +
-      'ID Usulan       : ' + record.id_usulan + '\n' +
-      'Jenis konten    : ' + (record.jenis_konten === 'edisi' ? 'Edisi/Volume Tertentu' : 'Artikel Jurnal Tertentu') + '\n' +
-      'Judul/Edisi     : ' + record.judul_artikel + '\n' +
-      'Jumlah DOI      : ' + record.jumlah_doi + '\n' +
-      'Status saat ini : Menunggu Validasi\n\n' +
-      'Kami akan menginformasikan perkembangan usulan ini melalui email berikutnya.\n\n' +
-      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
-      '— Divisi Jurnal dan Publikasi Ilmiah\nUniversitas Pendidikan Indonesia';
+    var emailDoiPengajuan = renderTemplateEmail_('doi_pengajuan', {
+      namaJurnal: namaJurnal, idUsulan: record.id_usulan,
+      jenisKonten: record.jenis_konten === 'edisi' ? 'Edisi/Volume Tertentu' : 'Artikel Jurnal Tertentu',
+      judulArtikel: record.judul_artikel, jumlahDoi: record.jumlah_doi
+    });
 
-    GmailApp.sendEmail(email, 'Tanda Terima Usulan Aktivasi DOI — ' + namaJurnal, isi);
+    GmailApp.sendEmail(email, emailDoiPengajuan.subjek, emailDoiPengajuan.isi);
     return true;
   } catch (err) {
     console.error('kirimReceiptPengajuanDoi_ gagal: ' + err.message);
@@ -2721,17 +2708,12 @@ function kirimReceiptPengajuanDoi_(email, namaJurnal, record) {
 
 function kirimReceiptAktivasiDoi_(email, namaJurnal, item) {
   try {
-    var isi =
-      'Yth. Pengelola ' + namaJurnal + ',\n\n' +
-      'DOI untuk usulan berikut telah berhasil diaktifkan:\n\n' +
-      'ID Usulan       : ' + item.id_usulan + '\n' +
-      'Judul/Edisi     : ' + item.judul_artikel + '\n' +
-      'DOI aktif       : ' + (item.doi_diusulkan || '(lihat detail di dashboard)') + '\n\n' +
-      'Terima kasih atas kerja sama Anda.\n\n' +
-      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
-      '— Divisi Jurnal dan Publikasi Ilmiah\nUniversitas Pendidikan Indonesia';
+    var emailDoiAktif = renderTemplateEmail_('doi_aktif', {
+      namaJurnal: namaJurnal, idUsulan: item.id_usulan, judulArtikel: item.judul_artikel,
+      doiDiusulkan: item.doi_diusulkan || '(lihat detail di dashboard)'
+    });
 
-    GmailApp.sendEmail(email, 'DOI Aktif — ' + namaJurnal, isi);
+    GmailApp.sendEmail(email, emailDoiAktif.subjek, emailDoiAktif.isi);
     return true;
   } catch (err) {
     console.error('kirimReceiptAktivasiDoi_ gagal: ' + err.message);
@@ -3326,15 +3308,11 @@ function requestPengelolaPin(email) {
     resetPinGuard_(kunci);
 
     var daftarNama = cocok.map(function (j) { return '  - ' + j.namaJurnal; }).join('\n');
-    var isi =
-      'PIN Anda: ' + pin + '\n\n' +
-      'PIN berlaku 5 menit untuk masuk ke Dashboard Pengelola Jurnal.\n\n' +
-      'Email ini terdaftar sebagai pengelola untuk ' + cocok.length + ' jurnal:\n' +
-      daftarNama + '\n\n' +
-      'Abaikan email ini bila Anda tidak meminta akses.\n\n' +
-      '— Divisi Jurnal dan Publikasi Ilmiah UPI';
+    var emailPinPengelola = renderTemplateEmail_('pin_pengelola', {
+      pin: pin, jumlahJurnal: cocok.length, daftarJurnal: daftarNama
+    });
 
-    GmailApp.sendEmail(bersih, 'PIN Masuk Dashboard Pengelola Jurnal', isi);
+    GmailApp.sendEmail(bersih, emailPinPengelola.subjek, emailPinPengelola.isi);
     console.log('requestPengelolaPin: PIN terkirim ke ' + bersih + ' (' + cocok.length + ' jurnal)');
 
     return jawabanSeragam;
@@ -3892,4 +3870,275 @@ function rekapProgressTerbitan_(terlihat, profile) {
   items.reverse(); // tampilkan yang terbaru lebih dulu
 
   return { items: items, kpi: kpi, statusOptions: TERBITAN_STATUS };
+}
+
+/* ==========================================================================
+   21. MODUL TEMPLATE EMAIL KE PENGELOLA
+   --------------------------------------------------------------------------
+   Subjek & isi 5 email otomatis yang dikirim ke pengelola jurnal, disimpan
+   di sheet Template_Email supaya admin bisa mengubahnya tanpa menyentuh
+   kode. HANYA kolom Subjek & Isi yang disimpan di sheet dan bisa diedit —
+   nama tampilan, catatan pemicu, dan daftar variabel WAJIB tetap di
+   TEMPLATE_EMAIL_DEFAULT (kode), supaya admin tidak bisa tidak sengaja
+   melumpuhkan validasi variabel wajib lewat Sheets langsung.
+
+   PIN Masuk Admin (requestAdminPin) SENGAJA tidak masuk modul ini — itu
+   email untuk admin sendiri, bukan untuk pengelola jurnal.
+   ========================================================================== */
+
+var TEMPLATE_EMAIL_DEFAULT = {
+  pin_jurnal: {
+    nama: 'PIN Verifikasi Pengelola',
+    catatan: 'Dikirim oleh requestJournalPin saat pengelola satu jurnal minta akses sunting/lapor APC lewat token per-jurnal.',
+    variabelWajib: ['{{pin}}', '{{namaJurnal}}'],
+    subjek: 'PIN Verifikasi Pengelola — {{namaJurnal}}',
+    isi: 'PIN Anda: {{pin}}\n\nPIN berlaku 5 menit untuk menyunting data jurnal "{{namaJurnal}}".\n' +
+      'Abaikan email ini bila Anda tidak meminta akses.\n\n— Divisi Jurnal dan Publikasi Ilmiah UPI'
+  },
+  pin_pengelola: {
+    nama: 'PIN Masuk Pengelola',
+    catatan: 'Dikirim oleh requestPengelolaPin saat pengelola login lewat Dashboard Pengelola berbasis email (bisa mengelola lebih dari satu jurnal).',
+    variabelWajib: ['{{pin}}', '{{jumlahJurnal}}', '{{daftarJurnal}}'],
+    subjek: 'PIN Masuk Dashboard Pengelola Jurnal',
+    isi: 'PIN Anda: {{pin}}\n\nPIN berlaku 5 menit untuk masuk ke Dashboard Pengelola Jurnal.\n\n' +
+      'Email ini terdaftar sebagai pengelola untuk {{jumlahJurnal}} jurnal:\n{{daftarJurnal}}\n\n' +
+      'Abaikan email ini bila Anda tidak meminta akses.\n\n— Divisi Jurnal dan Publikasi Ilmiah UPI'
+  },
+  pengingat: {
+    nama: 'Pengingat Jadwal Terbit',
+    catatan: 'Dikirim oleh kirimPengingatTerbitan saat admin mengirim pengingat manual dari modal jadwal terbit di tab Ringkasan.',
+    variabelWajib: ['{{namaJurnal}}', '{{bulan}}', '{{jadwalTerbitan}}', '{{unitPengelola}}', '{{kluster}}'],
+    subjek: 'Pengingat Jadwal Terbitan {{bulan}} — {{namaJurnal}}',
+    isi: 'Yth. Pengelola {{namaJurnal}},\n\n' +
+      'Berdasarkan data Divisi Jurnal dan Publikasi Ilmiah UPI, jurnal Anda dijadwalkan terbit pada bulan {{bulan}}.\n\n' +
+      'Jadwal terbitan terdaftar : {{jadwalTerbitan}}\n' +
+      'Unit pengelola            : {{unitPengelola}}\n' +
+      'Kluster                   : {{kluster}}\n\n' +
+      'Mohon pastikan proses penerbitan berjalan sesuai jadwal. Bila terdapat kendala, silakan hubungi ' +
+      'Divisi Jurnal dan Publikasi Ilmiah UPI agar dapat dibantu.\n\n' +
+      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
+      '— Divisi Jurnal dan Publikasi Ilmiah\nUniversitas Pendidikan Indonesia'
+  },
+  doi_pengajuan: {
+    nama: 'Tanda Terima Usulan DOI',
+    catatan: 'Dikirim oleh kirimReceiptPengajuanDoi_ otomatis begitu pengelola mengirim usulan aktivasi DOI.',
+    variabelWajib: ['{{namaJurnal}}', '{{idUsulan}}', '{{jenisKonten}}', '{{judulArtikel}}', '{{jumlahDoi}}'],
+    subjek: 'Tanda Terima Usulan Aktivasi DOI — {{namaJurnal}}',
+    isi: 'Yth. Pengelola {{namaJurnal}},\n\n' +
+      'Usulan aktivasi DOI Anda telah kami terima dengan rincian berikut:\n\n' +
+      'ID Usulan       : {{idUsulan}}\n' +
+      'Jenis konten    : {{jenisKonten}}\n' +
+      'Judul/Edisi     : {{judulArtikel}}\n' +
+      'Jumlah DOI      : {{jumlahDoi}}\n' +
+      'Status saat ini : Menunggu Validasi\n\n' +
+      'Kami akan menginformasikan perkembangan usulan ini melalui email berikutnya.\n\n' +
+      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
+      '— Divisi Jurnal dan Publikasi Ilmiah\nUniversitas Pendidikan Indonesia'
+  },
+  doi_aktif: {
+    nama: 'DOI Aktif',
+    catatan: 'Dikirim oleh kirimReceiptAktivasiDoi_ otomatis begitu admin mengubah status usulan DOI menjadi BERHASIL.',
+    variabelWajib: ['{{namaJurnal}}', '{{idUsulan}}', '{{judulArtikel}}', '{{doiDiusulkan}}'],
+    subjek: 'DOI Aktif — {{namaJurnal}}',
+    isi: 'Yth. Pengelola {{namaJurnal}},\n\n' +
+      'DOI untuk usulan berikut telah berhasil diaktifkan:\n\n' +
+      'ID Usulan       : {{idUsulan}}\n' +
+      'Judul/Edisi     : {{judulArtikel}}\n' +
+      'DOI aktif       : {{doiDiusulkan}}\n\n' +
+      'Terima kasih atas kerja sama Anda.\n\n' +
+      'Email ini dikirim otomatis dari DJPI Dashboard dan tidak perlu dibalas.\n\n' +
+      '— Divisi Jurnal dan Publikasi Ilmiah\nUniversitas Pendidikan Indonesia'
+  }
+};
+
+var TEMPLATE_EMAIL_HEADER = ['Kunci', 'Subjek', 'Isi', 'Diubah Oleh', 'Diubah Pada'];
+
+/**
+ * Get-or-create sheet Template_Email. Kalau baru dibuat, sheet di-seed
+ * langsung dengan TEMPLATE_EMAIL_DEFAULT supaya admin melihat teks yang
+ * SEKARANG benar-benar terkirim, bukan baris kosong.
+ */
+function getTemplateEmailSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET.TEMPLATE_EMAIL);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET.TEMPLATE_EMAIL);
+    sh.appendRow(TEMPLATE_EMAIL_HEADER);
+    sh.setFrozenRows(1);
+    Object.keys(TEMPLATE_EMAIL_DEFAULT).forEach(function (kunci) {
+      var t = TEMPLATE_EMAIL_DEFAULT[kunci];
+      sh.appendRow([kunci, t.subjek, t.isi, '', '']);
+    });
+  }
+  return sh;
+}
+
+/** Baca sheet Template_Email -> map kunci -> {subjek, isi}. Cache 1 jam. */
+function bacaTemplateEmail_() {
+  var cache = CacheService.getScriptCache();
+  var tersimpan = cache.get(CACHE.TEMPLATE_EMAIL);
+  if (tersimpan) {
+    try { return JSON.parse(tersimpan); } catch (err) { /* cache rusak, baca ulang */ }
+  }
+
+  var sh = getTemplateEmailSheet_();
+  var nilai = sh.getDataRange().getValues();
+  var hasil = {};
+  if (nilai.length >= 2) {
+    var header = nilai[0].map(norm_);
+    var iKunci = header.indexOf(norm_('Kunci'));
+    var iSubjek = header.indexOf(norm_('Subjek'));
+    var iIsi = header.indexOf(norm_('Isi'));
+    for (var r = 1; r < nilai.length; r++) {
+      var kunci = iKunci === -1 ? '' : str_(nilai[r][iKunci]);
+      if (!kunci) continue;
+      hasil[kunci] = {
+        subjek: iSubjek === -1 ? '' : str_(nilai[r][iSubjek]),
+        isi: iIsi === -1 ? '' : str_(nilai[r][iIsi])
+      };
+    }
+  }
+
+  try {
+    var json = JSON.stringify(hasil);
+    if (json.length < CACHE.MAX_VALUE_BYTES) cache.put(CACHE.TEMPLATE_EMAIL, json, CACHE.TEMPLATE_EMAIL_TTL);
+  } catch (err) {}
+
+  return hasil;
+}
+
+function bersihkanCacheTemplateEmail_() {
+  CacheService.getScriptCache().remove(CACHE.TEMPLATE_EMAIL);
+}
+
+/**
+ * Susun subjek & isi email siap kirim untuk satu kunci template, dengan
+ * tiap {{variabel}} diganti nilai sungguhan. Dipanggil dari titik-titik
+ * kirim email (requestJournalPin, requestPengelolaPin,
+ * kirimPengingatTerbitan, kirimReceiptPengajuanDoi_, kirimReceiptAktivasiDoi_).
+ *
+ * Fallback ke TEMPLATE_EMAIL_DEFAULT bila sheet/baris tidak ditemukan,
+ * supaya pengiriman email tidak pernah gagal gara-gara sheet ini rusak
+ * atau belum sempat dibuat.
+ */
+function renderTemplateEmail_(kunci, variabel) {
+  var bawaan = TEMPLATE_EMAIL_DEFAULT[kunci];
+  var tersimpan = bacaTemplateEmail_()[kunci];
+  var subjek = (tersimpan && tersimpan.subjek) ? tersimpan.subjek : bawaan.subjek;
+  var isi = (tersimpan && tersimpan.isi) ? tersimpan.isi : bawaan.isi;
+
+  Object.keys(variabel || {}).forEach(function (key) {
+    var token = '{{' + key + '}}';
+    var nilai = String(variabel[key] === null || variabel[key] === undefined ? '' : variabel[key]);
+    subjek = subjek.split(token).join(nilai);
+    isi = isi.split(token).join(nilai);
+  });
+
+  return { subjek: subjek, isi: isi };
+}
+
+/**
+ * Daftar 5 template untuk panel admin. WAJIB token 'session_' DAN
+ * superadmin — satu template dipakai lintas kluster, beda dari fitur
+ * admin-kluster lain yang datanya sudah terfilter per kluster.
+ * Endpoint: gs('getTemplateEmailUntukAdmin', token).
+ */
+function getTemplateEmailUntukAdmin(token) {
+  var profile = bacaToken_(token, 'session_');
+  if (!profile) return sesiHabis_();
+  if (!profile.isSuperadmin) return { ok: false, message: 'Hanya superadmin yang dapat mengelola template email.' };
+
+  try {
+    var tersimpan = bacaTemplateEmail_();
+    var items = Object.keys(TEMPLATE_EMAIL_DEFAULT).map(function (kunci) {
+      var bawaan = TEMPLATE_EMAIL_DEFAULT[kunci];
+      var t = tersimpan[kunci];
+      return {
+        kunci: kunci,
+        nama: bawaan.nama,
+        catatan: bawaan.catatan,
+        variabelWajib: bawaan.variabelWajib,
+        subjek: (t && t.subjek) ? t.subjek : bawaan.subjek,
+        isi: (t && t.isi) ? t.isi : bawaan.isi
+      };
+    });
+    return { ok: true, items: items };
+  } catch (err) {
+    return { ok: false, message: 'Gagal memuat template email: ' + err.message };
+  }
+}
+
+/**
+ * Simpan perubahan subjek/isi satu template. WAJIB token 'session_' DAN
+ * superadmin. Menolak kalau ada variabel wajib (dari TEMPLATE_EMAIL_DEFAULT,
+ * bukan dari input) yang hilang dari subjek+isi baru — mencegah, misalnya,
+ * {{pin}} terhapus sehingga PIN tidak pernah sampai ke pengelola padahal
+ * sistem tetap melaporkan "terkirim".
+ * Endpoint: gs('simpanTemplateEmail', token, kunci, data).
+ */
+function simpanTemplateEmail(token, kunci, data) {
+  var profile = bacaToken_(token, 'session_');
+  if (!profile) return sesiHabis_();
+  if (!profile.isSuperadmin) return { ok: false, message: 'Hanya superadmin yang dapat mengelola template email.' };
+
+  var bawaan = TEMPLATE_EMAIL_DEFAULT[kunci];
+  if (!bawaan) return { ok: false, message: 'Template tidak dikenal.' };
+  if (!data || typeof data !== 'object') return { ok: false, message: 'Data template kosong.' };
+
+  var subjekBaru = str_(data.subjek);
+  var isiBaru = str_(data.isi);
+  if (!subjekBaru) return { ok: false, message: 'Subjek email wajib diisi.' };
+  if (!isiBaru) return { ok: false, message: 'Isi email wajib diisi.' };
+
+  var gabungan = subjekBaru + '\n' + isiBaru;
+  var hilang = bawaan.variabelWajib.filter(function (v) { return gabungan.indexOf(v) === -1; });
+  if (hilang.length) {
+    return {
+      ok: false,
+      message: 'Perubahan dibatalkan: variabel ' + hilang.join(', ') + ' wajib tetap ada di subjek atau isi, ' +
+        'kalau tidak sistem tidak bisa mengisi nilainya saat email dikirim.'
+    };
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+
+  try {
+    var sh = getTemplateEmailSheet_();
+    var nilai = sh.getDataRange().getValues();
+    var header = nilai[0].map(norm_);
+    var iKunci = header.indexOf(norm_('Kunci'));
+    var iSubjek = header.indexOf(norm_('Subjek'));
+    var iIsi = header.indexOf(norm_('Isi'));
+    var iDiubahOleh = header.indexOf(norm_('Diubah Oleh'));
+    var iDiubahPada = header.indexOf(norm_('Diubah Pada'));
+
+    var barisKe = -1;
+    for (var r = 1; r < nilai.length; r++) {
+      if (str_(nilai[r][iKunci]) === kunci) { barisKe = r + 1; break; }
+    }
+    if (barisKe === -1) return { ok: false, message: 'Baris template tidak ditemukan di sheet.' };
+
+    sh.getRange(barisKe, iSubjek + 1).setValue(aman_(subjekBaru));
+    sh.getRange(barisKe, iIsi + 1).setValue(aman_(isiBaru));
+    if (iDiubahOleh !== -1) sh.getRange(barisKe, iDiubahOleh + 1).setValue(profile.email);
+    if (iDiubahPada !== -1) sh.getRange(barisKe, iDiubahPada + 1).setValue(Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'));
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(profile.email, '-', 'UBAH_TEMPLATE_EMAIL', kunci);
+    bersihkanCacheTemplateEmail_();
+
+    return {
+      ok: true,
+      message: 'Template "' + bawaan.nama + '" berhasil disimpan.',
+      item: {
+        kunci: kunci, nama: bawaan.nama, catatan: bawaan.catatan, variabelWajib: bawaan.variabelWajib,
+        subjek: subjekBaru, isi: isiBaru
+      }
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal menyimpan: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
 }

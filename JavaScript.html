@@ -78,7 +78,10 @@ Vue.createApp({
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
     konfirmasiPencairan:false, // baru: gate konfirmasi sebelum menulis ke Log_Pencairan_APC (append-only, tanpa edit/hapus)
     pesanPencairan:'',pesanPencairanJenis:'info',
-    filterTerbitanStatus:'' // baru: filter status pada tab Progress Terbitan
+    filterTerbitanStatus:'', // baru: filter status pada tab Progress Terbitan
+    // baru: state tab Template Email (superadmin-only)
+    daftarTemplateEmail:[],templateAktifKunci:'',draftTemplateEmail:{subjek:'',isi:''},
+    memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:''
   };},
   computed:{
     fieldSunting:function(){return this.FIELD_ADMIN;},
@@ -93,6 +96,11 @@ Vue.createApp({
       if(!this.filterTerbitanStatus)return items;
       var s=this.filterTerbitanStatus;
       return items.filter(function(t){return t.status===s;});
+    },
+    // baru: entri template email yang sedang dipilih di tab Template Email
+    templateAktifData:function(){
+      var s=this;
+      return this.daftarTemplateEmail.find(function(t){return t.kunci===s.templateAktifKunci;})||null;
     },
     jurnalTersaring:function(){
       if(!this.data)return[];var q=this.cari.trim().toLowerCase(),s=this;
@@ -640,6 +648,61 @@ Vue.createApp({
         })
         .finally(function(){
           s.menyimpanPencairan=false;
+        });
+    },
+
+    // ===== Template Email (tab Template Email, superadmin-only) =====
+    muatTemplateEmail:function(){
+      var s=this;
+      this.memuatTemplateEmail=true;
+      this.galatTemplateEmail='';
+      gs('getTemplateEmailUntukAdmin', s.token)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal memuat template email.');
+          }
+          s.daftarTemplateEmail=r.items;
+          if(r.items.length){
+            s.templateAktifKunci=r.items[0].kunci;
+            s.draftTemplateEmail={subjek:r.items[0].subjek,isi:r.items[0].isi};
+          }
+        })
+        .catch(function(err){
+          s.galatTemplateEmail=err && err.message ? err.message : 'Gagal memuat template email.';
+        })
+        .finally(function(){
+          s.memuatTemplateEmail=false;
+        });
+    },
+
+    pilihTemplateEmail:function(){
+      var t=this.templateAktifData;
+      if(t) this.draftTemplateEmail={subjek:t.subjek,isi:t.isi};
+    },
+
+    simpanTemplateEmail:function(){
+      var s=this;
+      this.menyimpanTemplateEmail=true;
+      this.galatTemplateEmail='';
+      gs('simpanTemplateEmail', s.token, this.templateAktifKunci, {
+        subjek:this.draftTemplateEmail.subjek,
+        isi:this.draftTemplateEmail.isi
+      })
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Template email gagal disimpan.');
+          }
+          var indeks=s.daftarTemplateEmail.findIndex(function(t){return t.kunci===r.item.kunci;});
+          if(indeks!==-1) s.daftarTemplateEmail.splice(indeks,1,r.item);
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
+        })
+        .catch(function(err){
+          s.galatTemplateEmail=err && err.message ? err.message : 'Gagal menyimpan template email.';
+        })
+        .finally(function(){
+          s.menyimpanTemplateEmail=false;
         });
     }
   },

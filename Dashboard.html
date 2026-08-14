@@ -196,6 +196,10 @@
         <button type="button" class="tab" :class="{ aktif: tab === 'akun' }" @click="tab = 'akun'">
           Akun Saya
         </button>
+        <button v-if="profile && profile.isSuperadmin" type="button" class="tab" :class="{ aktif: tab === 'template' }"
+          @click="tab = 'template'; !daftarTemplateEmail.length && muatTemplateEmail()">
+          Template Email
+        </button>
       </nav>
 
       <!-- Ringkasan -->
@@ -1046,6 +1050,62 @@
                 Nonaktifkan PIN Tetap
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Template Email — superadmin saja, isi/subjek email otomatis ke pengelola -->
+      <section v-if="profile && profile.isSuperadmin" v-show="tab === 'template'">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Template Email ke Pengelola</h2>
+              <p class="card-note">Ubah subjek &amp; isi email otomatis. Variabel {{'{{...}}'}} yang wajib harus tetap ada di teks baru.</p>
+            </div>
+            <button type="button" class="btn btn-sm" @click="muatTemplateEmail" :disabled="memuatTemplateEmail">
+              <span v-if="memuatTemplateEmail" class="spinner spinner-gelap" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Muat ulang
+            </button>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="galatTemplateEmail" class="alert alert-galat mb-8" role="alert">{{ galatTemplateEmail }}</div>
+
+            <div v-if="!daftarTemplateEmail.length && !memuatTemplateEmail" class="kosong">
+              <div class="kosong-judul">Belum ada data template</div>
+              <p class="kosong-teks">Klik "Muat ulang" untuk mengambil daftar template dari server.</p>
+            </div>
+
+            <template v-else-if="daftarTemplateEmail.length">
+              <div class="field">
+                <label class="label" for="tplPilih">Pilih email</label>
+                <select id="tplPilih" v-model="templateAktifKunci" @change="pilihTemplateEmail" class="select">
+                  <option v-for="t in daftarTemplateEmail" :key="t.kunci" :value="t.kunci">{{ t.nama }}</option>
+                </select>
+                <p v-if="templateAktifData" class="hint">{{ templateAktifData.catatan }}</p>
+              </div>
+
+              <div class="field">
+                <label class="label" for="tplSubjek">Subjek email</label>
+                <input id="tplSubjek" v-model.trim="draftTemplateEmail.subjek" type="text" class="input">
+              </div>
+
+              <div class="field">
+                <label class="label" for="tplIsi">Isi email</label>
+                <textarea id="tplIsi" v-model.trim="draftTemplateEmail.isi" class="input" rows="11" style="font-family:var(--font-mono)"></textarea>
+              </div>
+
+              <div v-if="templateAktifData" class="flex-tengah gap-6 wrap mb-16">
+                <span class="teks-kecil teks-lembut">Variabel wajib:</span>
+                <span v-for="v in templateAktifData.variabelWajib" :key="v" class="badge badge-none">{{ v }}</span>
+              </div>
+
+              <button type="button" class="btn btn-primer" :disabled="menyimpanTemplateEmail" @click="simpanTemplateEmail">
+                <span v-if="menyimpanTemplateEmail" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanTemplateEmail ? 'Menyimpan…' : 'Simpan template' }}
+              </button>
+            </template>
           </div>
         </div>
       </section>
