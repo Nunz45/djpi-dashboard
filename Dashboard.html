@@ -147,7 +147,40 @@
   </main>
 
   <!-- Dashboard -->
-  <main v-else class="page">
+  <main v-else class="page shell-app">
+    <aside v-if="data" class="sidebar" aria-label="Navigasi dashboard">
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'ringkasan' }" @click="gantiTab('ringkasan')">
+        <i class="fa-solid fa-gauge" aria-hidden="true"></i> Ringkasan
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'jurnal' }" @click="gantiTab('jurnal')">
+        <i class="fa-solid fa-book-open" aria-hidden="true"></i> Daftar Jurnal ({{ data.journals.length }})
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'kualitas' }" @click="gantiTab('kualitas')">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kualitas Data<span v-if="dq && dq.bermasalah"> ({{ dq.bermasalah }})</span>
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'scopus' }" @click="gantiTab('scopus')">
+        <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i> Pipeline Scopus
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'apc' }" @click="gantiTab('apc')">
+        <i class="fa-solid fa-wallet" aria-hidden="true"></i> Pemasukan APC
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'terbitan' }" @click="gantiTab('terbitan')">
+        <i class="fa-solid fa-timeline" aria-hidden="true"></i> Progress Terbitan
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'doi' }"
+        @click="gantiTab('doi'); !memuatDoi && !usulanDoi.length && muatUsulanDoi()">
+        <i class="fa-solid fa-link" aria-hidden="true"></i> Usulan DOI
+      </button>
+      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'akun' }" @click="gantiTab('akun')">
+        <i class="fa-solid fa-user" aria-hidden="true"></i> Akun Saya
+      </button>
+      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'template' }"
+        @click="gantiTab('template'); !daftarTemplateEmail.length && muatTemplateEmail()">
+        <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Template Email
+      </button>
+    </aside>
+
+    <div class="konten-utama">
     <div v-if="galatData" class="alert alert-galat" role="alert">
       <strong>Gagal memuat data.</strong> {{ galatData }}
       <button type="button" class="btn btn-sm mt-8" @click="segarkan">Coba lagi</button>
@@ -169,38 +202,6 @@
           Data terakhir dimuat {{ data.generatedAt }} WIB. Gunakan kartu dan filter untuk membuka daftar jurnal terkait.
         </p>
       </section>
-
-      <nav class="tabs mb-16" aria-label="Bagian dashboard">
-        <button type="button" class="tab" :class="{ aktif: tab === 'ringkasan' }" @click="tab = 'ringkasan'">
-          Ringkasan
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'jurnal' }" @click="tab = 'jurnal'">
-          Daftar Jurnal ({{ data.journals.length }})
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'kualitas' }" @click="tab = 'kualitas'">
-          Kualitas Data<span v-if="dq && dq.bermasalah"> ({{ dq.bermasalah }})</span>
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'scopus' }" @click="tab = 'scopus'">
-          Pipeline Scopus
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'apc' }" @click="tab = 'apc'">
-          Pemasukan APC
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'terbitan' }" @click="tab = 'terbitan'">
-          Progress Terbitan
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'doi' }"
-          @click="tab = 'doi'; !memuatDoi && !usulanDoi.length && muatUsulanDoi()">
-          Usulan DOI
-        </button>
-        <button type="button" class="tab" :class="{ aktif: tab === 'akun' }" @click="tab = 'akun'">
-          Akun Saya
-        </button>
-        <button v-if="profile && profile.isSuperadmin" type="button" class="tab" :class="{ aktif: tab === 'template' }"
-          @click="tab = 'template'; !daftarTemplateEmail.length && muatTemplateEmail()">
-          Template Email
-        </button>
-      </nav>
 
       <!-- Ringkasan -->
       <section v-show="tab === 'ringkasan'">
@@ -1110,6 +1111,7 @@
         </div>
       </section>
     </template>
+    </div>
   </main>
 
   <!-- Modal jadwal terbit -->
@@ -1449,5 +1451,38 @@
 </script>
 
 <?!= include('JavaScript'); ?>
+
+<!-- CSS lokal khusus sidebar-nav Dashboard admin, tidak ada di Stylesheet.html
+     supaya tidak menumpuk CSS tak terpakai di Pengelola.html/Landing.html
+     yang memakai Stylesheet.html sama tapi tidak punya sidebar. -->
+<style>
+.shell-app{display:flex;gap:var(--space-6)}
+.sidebar{
+  width:216px;flex:none;display:flex;flex-direction:column;gap:2px;
+  position:sticky;top:76px;align-self:flex-start;
+  max-height:calc(100vh - 92px);overflow-y:auto;
+}
+.sidebar-item{
+  display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;
+  border:0;border-left:3px solid transparent;border-radius:0 8px 8px 0;
+  background:transparent;color:var(--muted);font-size:13px;font-weight:700;
+  text-align:left;transition:background .14s ease,color .14s ease,border-color .14s ease;
+}
+.sidebar-item:hover{background:var(--elev-4);color:var(--text)}
+.sidebar-item.aktif{background:var(--red-soft);border-left-color:var(--red);color:var(--red-dark)}
+.sidebar-item i{width:16px;flex:none;text-align:center}
+.konten-utama{flex:1;min-width:0}
+
+@media(max-width:900px){
+  .shell-app{flex-direction:column}
+  .sidebar{
+    position:static;width:100%;flex-direction:row;flex-wrap:wrap;
+    max-height:none;overflow:visible;padding-bottom:var(--space-3);
+    border-bottom:1px solid var(--line);
+  }
+  .sidebar-item{width:auto;border-left:0;border-radius:8px}
+  .sidebar-item.aktif{box-shadow:inset 0 0 0 1.5px var(--red)}
+}
+</style>
 </body>
 </html>

@@ -255,6 +255,9 @@ Vue.createApp({
       }).catch(function(e){s.memuatData=false;s.galatData='Gagal menghubungi server: '+e;s.tahap='dashboard';});
     },
     segarkan:function(){this.muatDashboard();},
+    // baru: dipakai tombol sidebar — ganti tab lalu scroll konten balik ke atas
+    // (tab horizontal sebelumnya tidak perlu ini, kontennya selalu mulai di posisi yang sama)
+    gantiTab:function(v){this.tab=v;window.scrollTo({top:0,behavior:'smooth'});},
     hancurkanGrafik:function(){var s=this;Object.keys(this.grafik).forEach(function(k){if(s.grafik[k]){s.grafik[k].destroy();s.grafik[k]=null;}});},
     gambarGrafikBulanan:function(){
       var el=document.getElementById('grafikBulanan'),s=this;if(!el||!this.data)return;if(this.grafik.bulanan)this.grafik.bulanan.destroy();
