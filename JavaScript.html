@@ -52,19 +52,6 @@ Vue.createApp({
     formApc:{edisi:'',jumlahArtikel:'',total:''},toast:null,toastTimer:null,grafik:{bulanan:null,apc:null},
     usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
     doiTerpilih:null,pesanModalDoi:'',mengirimUlangReceipt:{pengajuan:false,aktivasi:false}, // baru: state modal detail DOI
-    formUsulanDoi:{
-      nama_jurnal:'',
-      email_pengelola:'',
-      jenis_objek:'ARTIKEL',
-      volume:'',
-      nomor:'',
-      tahun:String(new Date().getFullYear()),
-      judul_artikel:'',
-      penulis:'',
-      url_landing_page:'',
-      doi_diusulkan:'',
-      catatan_pengelola:''
-    },
     // baru: state panel PIN tetap (login cepat & pengaturan di tab Akun Saya)
     pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
     // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
@@ -374,70 +361,6 @@ Vue.createApp({
         })
         .finally(function(){
           s.memuatDoi=false;
-        });
-    },
-
-    // Catatan: simpanUsulanDoi() di Code.gs WAJIB token 'edit_' (pengelola jurnal),
-    // bukan token 'session_' admin yang dipakai Dashboard ini. Fungsi ini dibiarkan
-    // ada supaya tidak menghapus fitur diam-diam, tetapi secara desain form
-    // pengajuan usulan DOI semestinya berjalan di Dashboard Pengelola, bukan di
-    // sini — panggilan dari sini akan selalu ditolak server dengan SESSION_EXPIRED
-    // karena jenis token yang tidak cocok.
-    simpanUsulanDoi:function(){
-      var s=this;
-      s.menyimpanDoi=true;
-      s.galatDoi='';
-
-      var payload={
-        nama_jurnal:s.formUsulanDoi.nama_jurnal,
-        email_pengelola:s.formUsulanDoi.email_pengelola,
-        jenis_objek:s.formUsulanDoi.jenis_objek,
-        volume:s.formUsulanDoi.volume,
-        nomor:s.formUsulanDoi.nomor,
-        tahun:s.formUsulanDoi.tahun,
-        judul_artikel:s.formUsulanDoi.judul_artikel,
-        penulis:s.formUsulanDoi.penulis,
-        url_landing_page:s.formUsulanDoi.url_landing_page,
-        doi_diusulkan:s.formUsulanDoi.doi_diusulkan,
-        catatan_pengelola:s.formUsulanDoi.catatan_pengelola
-      };
-
-      gs('simpanUsulanDoi', s.token, payload)
-        .then(function(hasil){
-          if(!hasil || !hasil.ok){
-            throw new Error(
-              (hasil && hasil.message) || 'Usulan DOI gagal disimpan.'
-            );
-          }
-
-          s.usulanDoi.unshift(hasil.item);
-
-          s.formUsulanDoi={
-            nama_jurnal:'',
-            email_pengelola:'',
-            jenis_objek:'ARTIKEL',
-            volume:'',
-            nomor:'',
-            tahun:String(new Date().getFullYear()),
-            judul_artikel:'',
-            penulis:'',
-            url_landing_page:'',
-            doi_diusulkan:'',
-            catatan_pengelola:''
-          };
-
-          if(typeof s.tampilkanToast==='function'){
-            s.tampilkanToast('Usulan DOI berhasil disimpan.');
-          }
-        })
-        .catch(function(err){
-          s.galatDoi=err && err.message
-            ? err.message
-            : 'Terjadi kesalahan saat menyimpan usulan DOI.';
-          console.error('simpanUsulanDoi gagal:',err);
-        })
-        .finally(function(){
-          s.menyimpanDoi=false;
         });
     },
 
