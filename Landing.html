@@ -2099,6 +2099,10 @@
             var nilai = url.trim();
             if (!nilai) return '';
 
+            // data: URI cover (dihosting sendiri, base64 di sel sheet) — cuma
+            // gambar, bukan data: URI sembarangan (jaga-jaga dari XSS).
+            if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(nilai)) return nilai;
+
             try {
               var u = new URL(nilai);
               if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
