@@ -367,6 +367,16 @@
                   {{ dq.terkendali }} dari {{ dq.total }} jurnal terkendali ({{ dq.persenTerkendali }}%).
                   Rata-rata kelengkapan {{ dq.totalInti }} field inti mencapai {{ dq.rataLengkap }}%.
                 </p>
+                <p v-if="dq.doaj" class="card-note">
+                  <template v-if="dq.doaj.terakhirDicek">
+                    Verifikasi DOAJ terakhir {{ dq.doaj.terakhirDicek }} —
+                    {{ dq.doaj.terindeks }} terindeks, {{ dq.doaj.tidakDitemukan }} tidak ditemukan,
+                    {{ dq.doaj.gagal }} gagal, {{ dq.doaj.belumDicek }} belum dicek.
+                  </template>
+                  <template v-else>
+                    Verifikasi DOAJ belum pernah dijalankan — jalankan perbaruiVerifikasiDoaj() dari editor Apps Script.
+                  </template>
+                </p>
               </div>
               <button type="button" class="btn btn-sm" @click="eksporKualitas">
                 <i class="fa-solid fa-file-excel" aria-hidden="true"></i>

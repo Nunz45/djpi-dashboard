@@ -36,7 +36,8 @@ var SHEET = {
   SITASI_TREN: 'Sitasi_Tren',                 // sitasi per tahun
   JURNAL_UNGGULAN: 'Jurnal_Unggulan',         // ranking jurnal berdasarkan sitasi
   ARTIKEL_BERPENGARUH: 'Artikel_Berpengaruh', // artikel dengan sitasi tertinggi
-  TEMPLATE_EMAIL: 'Template_Email'            // subjek & isi email otomatis ke pengelola, bisa diedit admin
+  TEMPLATE_EMAIL: 'Template_Email',           // subjek & isi email otomatis ke pengelola, bisa diedit admin
+  VERIFIKASI_DOAJ: 'Verifikasi_DOAJ'          // snapshot hasil pengecekan DOAJ per jurnal (lihat section 22)
 };
 
 var CACHE = {
@@ -57,6 +58,8 @@ var CACHE = {
   TERBITAN_LOG_TTL: 600, // cache terpisah untuk log progress terbitan
   TEMPLATE_EMAIL: 'template_email_v1',
   TEMPLATE_EMAIL_TTL: 3600, // jarang berubah, di-invalidate manual tiap kali admin menyimpan
+  DOAJ: 'doaj_v1',
+  DOAJ_TTL: 3600, // snapshot hasil verifikasi DOAJ, diperbarui trigger harian
   MAX_VALUE_BYTES: 90000
 };
 
@@ -607,6 +610,20 @@ function nilaiKualitas_(j) {
     catat('linkDoaj', 'Link DOAJ', 'rusak', j.linkDoaj,
       'Nilai terisi tetapi bukan URL sah, sehingga tautan disembunyikan dari halaman publik.', 1);
   }
+
+  // -- Silang dengan snapshot verifikasi DOAJ (section 22) ------------------
+  // HANYA status definitif yang dinilai. '' (belum dicek / ISSN tak sah) dan
+  // 'GAGAL' (API bermasalah) sengaja dilewati — lihat aturan 1 di section 22.
+  // Kedua cabang di bawah saling eksklusif dengan pemeriksaan format di atas.
+  if (j.doajStatus === 'TERINDEKS' && placeholder_(j.linkDoaj)) {
+    catat('linkDoaj', 'Link DOAJ', 'kosong', j.linkDoaj,
+      'Terverifikasi terindeks DOAJ' + (j.doajJudul ? ' sebagai "' + j.doajJudul + '"' : '') +
+      ', tetapi tautan DOAJ belum tercatat di direktori.', 1);
+  } else if (j.doajStatus === 'TIDAK DITEMUKAN' && j.terindeksDoaj) {
+    catat('linkDoaj', 'Link DOAJ', 'rusak', j.linkDoaj,
+      'Tautan DOAJ tercatat, tetapi ISSN jurnal ini tidak ditemukan di DOAJ pada pengecekan terakhir. ' +
+      'Perlu diverifikasi — bisa jadi ISSN yang tercatat keliru.', 1);
+  }
   if (!placeholder_(j.linkApc) && !j.linkApcValid) {
     catat('linkApc', 'Tautan informasi APC', 'rusak', j.linkApc,
       'Nilai terisi tetapi bukan URL sah, sehingga tautan disembunyikan dari halaman publik.', 1);
@@ -672,6 +689,8 @@ function rekapKualitas_(daftar) {
 
   var hitungField = {};
   var jumlahLengkap = 0, totalInti = FIELD_INTI.length;
+  // rekap status verifikasi DOAJ (section 22), ditampilkan sebagai catatan di tab Kualitas Data
+  var doaj = { terakhirDicek: '', terindeks: 0, tidakDitemukan: 0, gagal: 0, belumDicek: 0 };
 
   daftar.forEach(function (j) {
     var dq = j.dq || { level: 'terkendali', masalah: [], lengkap: totalInti };
@@ -682,6 +701,12 @@ function rekapKualitas_(daftar) {
     hasil.perluDiperbaiki += (dq.perluDiperbaiki || 0);
     hasil.perluDitindak += (dq.perluDitindak || 0);
     jumlahLengkap += (dq.lengkap || 0);
+
+    if (j.doajStatus === 'TERINDEKS') doaj.terindeks++;
+    else if (j.doajStatus === 'TIDAK DITEMUKAN') doaj.tidakDitemukan++;
+    else if (j.doajStatus === 'GAGAL') doaj.gagal++;
+    else doaj.belumDicek++;
+    if (j.doajDicek && j.doajDicek > doaj.terakhirDicek) doaj.terakhirDicek = j.doajDicek;
 
     (dq.masalah || []).forEach(function (m) {
       var kunci = m.field + '|' + m.jenis;
@@ -707,6 +732,7 @@ function rekapKualitas_(daftar) {
   }
   hasil.totalInti = totalInti;
   hasil.fieldInti = FIELD_INTI;
+  hasil.doaj = doaj; // baru: status snapshot verifikasi DOAJ
 
   return hasil;
 }
@@ -768,12 +794,15 @@ function bacaDataJurnal_() {
   if (nilai.length < 2) return [];
 
   var map = buatHeaderMap_(nilai[0]);
+  var petaDoaj = bacaVerifikasiDoaj_(); // snapshot verifikasi DOAJ (section 22), dibaca SEKALI di luar loop
   var hasil = [];
 
   for (var r = 1; r < nilai.length; r++) {
     var row = nilai[r];
     var nama = ambil_(row, map, 'namaJurnal');
     if (!nama) continue;
+
+    var doaj = petaDoaj[norm_(nama)] || {};
 
     var statusAkr = ambil_(row, map, 'statusAkreditasi');
     var statusOjs = ambil_(row, map, 'statusOjs');
@@ -829,7 +858,12 @@ function bacaDataJurnal_() {
       bereputasi: kuartilValid_(kuartil),
       // email wajib berformat valid agar PIN dan pengingat tidak gagal kirim
       punyaEmail: emailValid_(email),
-      inisial: inisial_(nama)
+      inisial: inisial_(nama),
+      // hasil verifikasi DOAJ (section 22). '' = belum pernah dicek / ISSN tak sah;
+      // 'GAGAL' = API bermasalah. Keduanya BUKAN berarti tidak terindeks.
+      doajStatus: doaj.status || '',
+      doajJudul: doaj.judul || '',
+      doajDicek: doaj.dicek || ''
     };
 
     j.dq = nilaiKualitas_(j); // penilaian kualitas data per jurnal, dihitung di server
@@ -4155,4 +4189,260 @@ function simpanTemplateEmail(token, kunci, data) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+/* ==========================================================================
+   22. VERIFIKASI DOAJ OTOMATIS
+   --------------------------------------------------------------------------
+   Mencocokkan ISSN tiap jurnal ke DOAJ lewat API publik mereka, hasilnya
+   disimpan sebagai snapshot di sheet Verifikasi_DOAJ. Data Quality Engine
+   membaca snapshot itu untuk memunculkan temuan "perlu diverifikasi" bila
+   catatan direktori bertentangan dengan DOAJ.
+
+   POLA YANG DIPEGANG (sama seperti snapshot sitasi Crossref/OpenAlex):
+   API eksternal TIDAK PERNAH dipanggil saat pengunjung membuka halaman.
+   perbaruiVerifikasiDoaj() dijalankan trigger harian / manual dari editor,
+   aplikasi hanya membaca sheet hasilnya.
+
+   TIGA ATURAN YANG TIDAK BOLEH DILANGGAR:
+   1. TRI-STATE, bukan boolean. 'GAGAL' (API error, respons tak dikenali)
+      dan '' (belum pernah dicek / ISSN tak sah) BUKAN berarti tidak
+      terindeks — keduanya tidak pernah memunculkan temuan DQ. Hanya
+      'TERINDEKS' dan 'TIDAK DITEMUKAN' yang dianggap jawaban definitif.
+   2. TIDAK PERNAH menimpa data admin di Sheet1. Modul ini cuma menandai
+      "perlu dicek", keputusan tetap di tangan manusia.
+   3. Bobot temuan selalu 1 (perluVerifikasi), tidak pernah kritis.
+   ========================================================================== */
+
+var DOAJ_API = 'https://doaj.org/api/search/journals/';
+var DOAJ_BATCH = 25; // fetchAll paralel; 181 jurnal -> ~8 batch, aman dari batas 6 menit
+var DOAJ_STATUS = { ADA: 'TERINDEKS', TIDAK: 'TIDAK DITEMUKAN', GAGAL: 'GAGAL' };
+var DOAJ_HEADER = ['Nama Jurnal', 'ISSN Dicek', 'Status', 'Judul di DOAJ', 'Terakhir Dicek', 'Catatan'];
+
+function getVerifikasiDoajSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET.VERIFIKASI_DOAJ);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET.VERIFIKASI_DOAJ);
+    sh.appendRow(DOAJ_HEADER);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+/** Ambil satu ISSN berpola sah dari sel yang mungkin memuat beberapa ISSN. */
+function ambilIssnPertama_(nilai) {
+  var s = norm_(nilai);
+  var m = s.match(/\b(\d{4})-?(\d{3}[\dX])\b/);
+  return m ? (m[1] + '-' + m[2]) : '';
+}
+
+/**
+ * Menerjemahkan satu HTTPResponse DOAJ jadi { status, judul, catatan }.
+ *
+ * DITULIS DEFENSIF DENGAN SENGAJA: apa pun yang tidak dikenali (HTTP bukan
+ * 200, JSON rusak, bentuk respons di luar dugaan) dipetakan ke GAGAL, BUKAN
+ * TIDAK DITEMUKAN. Salah memetakan ke TIDAK DITEMUKAN akan menuduh jurnal
+ * tidak terindeks padahal cuma API-nya yang sedang bermasalah.
+ */
+function parseDoaj_(respons) {
+  try {
+    var kode = respons.getResponseCode();
+    if (kode !== 200) {
+      return { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'HTTP ' + kode };
+    }
+
+    var data;
+    try {
+      data = JSON.parse(respons.getContentText());
+    } catch (err) {
+      return { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'Respons bukan JSON yang sah.' };
+    }
+
+    if (!data || typeof data !== 'object') {
+      return { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'Bentuk respons tidak dikenali.' };
+    }
+
+    var punyaTotal = (typeof data.total === 'number');
+    var punyaResults = (Object.prototype.toString.call(data.results) === '[object Array]');
+    if (!punyaTotal && !punyaResults) {
+      // Bentuk respons berubah / bukan payload pencarian DOAJ — jangan menebak.
+      return { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'Bentuk respons tidak dikenali.' };
+    }
+
+    var jumlah = punyaTotal ? data.total : data.results.length;
+    if (jumlah > 0) {
+      var judul = '';
+      try {
+        if (punyaResults && data.results.length && data.results[0].bibjson) {
+          judul = str_(data.results[0].bibjson.title);
+        }
+      } catch (err) { judul = ''; }
+      return { status: DOAJ_STATUS.ADA, judul: judul, catatan: '' };
+    }
+
+    return { status: DOAJ_STATUS.TIDAK, judul: '', catatan: '' };
+  } catch (err) {
+    return { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'Galat baca respons: ' + err.message };
+  }
+}
+
+/** Snapshot hasil verifikasi -> map norm_(namaJurnal) -> {status, judul, dicek}. */
+function bacaVerifikasiDoaj_() {
+  var cache = CacheService.getScriptCache();
+  var tersimpan = cache.get(CACHE.DOAJ);
+  if (tersimpan) {
+    try { return JSON.parse(tersimpan); } catch (err) { /* cache rusak, baca ulang */ }
+  }
+
+  // sheetOpsional_: modul ini boleh belum pernah dijalankan tanpa membuat
+  // getDashboardDataForAdmin/getPublicData gagal total.
+  var sh = sheetOpsional_(SHEET.VERIFIKASI_DOAJ);
+  if (!sh) return {};
+
+  var nilai = sh.getDataRange().getValues();
+  if (nilai.length < 2) return {};
+
+  var header = nilai[0].map(norm_);
+  var iNama = header.indexOf(norm_('Nama Jurnal'));
+  var iStatus = header.indexOf(norm_('Status'));
+  var iJudul = header.indexOf(norm_('Judul di DOAJ'));
+  var iDicek = header.indexOf(norm_('Terakhir Dicek'));
+
+  var hasil = {};
+  for (var r = 1; r < nilai.length; r++) {
+    var nama = iNama === -1 ? '' : str_(nilai[r][iNama]);
+    if (!nama) continue;
+    hasil[norm_(nama)] = {
+      status: iStatus === -1 ? '' : str_(nilai[r][iStatus]),
+      judul: iJudul === -1 ? '' : str_(nilai[r][iJudul]),
+      dicek: iDicek === -1 ? '' : str_(nilai[r][iDicek])
+    };
+  }
+
+  try {
+    var json = JSON.stringify(hasil);
+    if (json.length < CACHE.MAX_VALUE_BYTES) cache.put(CACHE.DOAJ, json, CACHE.DOAJ_TTL);
+  } catch (err) {}
+
+  return hasil;
+}
+
+function bersihkanCacheDoaj_() {
+  CacheService.getScriptCache().remove(CACHE.DOAJ);
+}
+
+/**
+ * Menarik status DOAJ untuk seluruh jurnal yang punya ISSN sah, lalu menulis
+ * ulang sheet Verifikasi_DOAJ. Dijalankan trigger harian (pasangTriggerDoaj)
+ * atau manual dari editor Apps Script.
+ *
+ * Mengembalikan ringkasan teks supaya hasilnya langsung terbaca di log
+ * eksekusi, pola sama seperti cekIntegritasData()/cekKualitasData().
+ */
+function perbaruiVerifikasiDoaj() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    var sibuk = 'Sistem sedang sibuk, verifikasi DOAJ dilewati.';
+    console.warn(sibuk);
+    return sibuk;
+  }
+
+  try {
+    var semua = bacaDataJurnal_();
+    var target = [];
+    semua.forEach(function (j) {
+      var issn = j.issnValid ? ambilIssnPertama_(j.issn) : '';
+      if (issn) target.push({ namaJurnal: j.namaJurnal, issn: issn });
+    });
+
+    if (!target.length) {
+      var kosong = 'Tidak ada jurnal dengan ISSN sah untuk dicek ke DOAJ.';
+      console.warn(kosong);
+      return kosong;
+    }
+
+    var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    var baris = [];
+    var hitung = { terindeks: 0, tidak: 0, gagal: 0 };
+
+    for (var i = 0; i < target.length; i += DOAJ_BATCH) {
+      var potong = target.slice(i, i + DOAJ_BATCH);
+      var permintaan = potong.map(function (t) {
+        return {
+          url: DOAJ_API + encodeURIComponent('issn:' + t.issn),
+          method: 'get',
+          muteHttpExceptions: true,
+          followRedirects: true
+        };
+      });
+
+      var respons = [];
+      try {
+        respons = UrlFetchApp.fetchAll(permintaan);
+      } catch (err) {
+        // Seluruh batch dianggap GAGAL — bukan "tidak ditemukan". Lihat aturan 1.
+        console.error('fetchAll DOAJ gagal pada batch ' + i + ': ' + err.message);
+        respons = [];
+      }
+
+      potong.forEach(function (t, k) {
+        var hasil = respons[k]
+          ? parseDoaj_(respons[k])
+          : { status: DOAJ_STATUS.GAGAL, judul: '', catatan: 'Permintaan tidak terkirim.' };
+
+        if (hasil.status === DOAJ_STATUS.ADA) hitung.terindeks++;
+        else if (hasil.status === DOAJ_STATUS.TIDAK) hitung.tidak++;
+        else hitung.gagal++;
+
+        baris.push([t.namaJurnal, t.issn, hasil.status, hasil.judul, stempel, hasil.catatan]);
+      });
+    }
+
+    var sh = getVerifikasiDoajSheet_();
+    if (sh.getLastRow() > 1) {
+      sh.getRange(2, 1, sh.getLastRow() - 1, DOAJ_HEADER.length).clearContent();
+    }
+    if (baris.length) {
+      sh.getRange(2, 1, baris.length, DOAJ_HEADER.length).setValues(baris);
+    }
+    SpreadsheetApp.flush();
+
+    bersihkanCacheDoaj_();
+    bersihkanCacheJurnal_(); // WAJIB: nilai dq tiap jurnal ikut berubah
+
+    var ringkas = 'Verifikasi DOAJ selesai ' + stempel + ' — ' + target.length + ' jurnal dicek: ' +
+      hitung.terindeks + ' terindeks, ' + hitung.tidak + ' tidak ditemukan, ' + hitung.gagal + ' gagal.';
+    catatAktivitas_('SISTEM', '-', 'VERIFIKASI_DOAJ', ringkas);
+    console.log(ringkas);
+    return ringkas;
+  } catch (err) {
+    var pesan = 'perbaruiVerifikasiDoaj gagal: ' + err.message;
+    console.error(pesan);
+    return pesan;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Pasang trigger harian. Aman dijalankan berulang — trigger lama dihapus dulu. */
+function pasangTriggerDoaj() {
+  var dihapus = hapusTriggerDoaj();
+  ScriptApp.newTrigger('perbaruiVerifikasiDoaj').timeBased().everyDays(1).atHour(2).create();
+  var pesan = 'Trigger harian verifikasi DOAJ dipasang (sekitar pukul 02:00). ' +
+    (dihapus ? dihapus + ' trigger lama dihapus lebih dulu.' : '');
+  console.log(pesan);
+  return pesan;
+}
+
+function hapusTriggerDoaj() {
+  var jumlah = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'perbaruiVerifikasiDoaj') {
+      ScriptApp.deleteTrigger(t);
+      jumlah++;
+    }
+  });
+  return jumlah;
 }
