@@ -1301,6 +1301,16 @@
               {{ jurnalTerpilih.issn || '—' }}
               <span v-if="jurnalTerpilih.issn && !jurnalTerpilih.issnValid" class="badge badge-bahaya">format tidak sah</span>
             </dd>
+            <dt>E-ISSN</dt>
+            <dd>
+              {{ jurnalTerpilih.eIssn || '—' }}
+              <span v-if="jurnalTerpilih.eIssn && !jurnalTerpilih.eIssnValid" class="badge badge-bahaya">format tidak sah</span>
+            </dd>
+            <dt>P-ISSN</dt>
+            <dd>
+              {{ jurnalTerpilih.pIssn || '—' }}
+              <span v-if="jurnalTerpilih.pIssn && !jurnalTerpilih.pIssnValid" class="badge badge-bahaya">format tidak sah</span>
+            </dd>
             <dt>Akreditasi</dt><dd><span :class="kelasBadge(jurnalTerpilih)">{{ jurnalTerpilih.statusAkreditasi }}</span></dd>
             <dt>Kepatuhan</dt><dd><span :class="kelasTimeliness(jurnalTerpilih.kategoriTimeliness)">{{ jurnalTerpilih.kategoriTimeliness }}</span></dd>
             <dt>Status OJS</dt><dd>{{ jurnalTerpilih.statusOjs || '—' }}</dd>

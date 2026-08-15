@@ -2007,6 +2007,12 @@
           <dt>ISSN</dt>
           <dd>{{ terpilih.issn || 'Belum tercatat' }}</dd>
 
+          <dt>E-ISSN</dt>
+          <dd>{{ terpilih.eIssn || 'Belum tercatat' }}</dd>
+
+          <dt>P-ISSN</dt>
+          <dd>{{ terpilih.pIssn || 'Belum tercatat' }}</dd>
+
           <dt>APC</dt>
           <dd>{{ terpilih.apc || 'Belum tercatat' }}</dd>
 
@@ -2155,6 +2161,8 @@
             j.namaJurnal,
             j.kluster,
             j.issn,
+            j.eIssn,
+            j.pIssn,
             j.unitPengelola,
             j.statusAkreditasi,
             j.kuartil

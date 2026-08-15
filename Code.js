@@ -111,6 +111,8 @@ var FIELD_MAP = {
   issue:           { alias: ['ISSUE'] },
   jadwalTerbitan:  { alias: ['JADWAL TERBITAN'] },
   issn:            { alias: ['ISSN'] },
+  eIssn:           { alias: ['E-ISSN', 'EISSN'] },
+  pIssn:           { alias: ['P-ISSN', 'PISSN'] },
   linkGaruda:      { alias: ['LINK GARUDA'] },
   linkDoaj:        { alias: ['LINK DOAJ'] },
   va:              { alias: ['Nomor VA'] },
@@ -121,7 +123,7 @@ var FIELD_MAP = {
 
 /** Field yang boleh disunting pengelola jurnal (token edit). */
 var EDITABLE_PENGELOLA = [
-  'linkOjs', 'issn', 'linkGaruda', 'linkDoaj', 'apc', 'linkApc',
+  'linkOjs', 'issn', 'eIssn', 'pIssn', 'linkGaruda', 'linkDoaj', 'apc', 'linkApc',
   'namaPengelola', 'email', 'jadwalTerbitan', 'issue',
   'artikelPerIssue', 'artikelPerTahun'
 ];
@@ -394,6 +396,13 @@ function issnValid_(nilai) {
   var s = norm_(nilai);
   // Terima satu atau lebih ISSN 8 karakter, dengan atau tanpa tanda hubung.
   return /\b\d{4}-?\d{3}[\dX]\b/.test(s);
+}
+
+/** Sama seperti issnValid_, tapi sel harus PERSIS satu ISSN — dipakai untuk kolom E-ISSN/P-ISSN. */
+function issnTunggalValid_(nilai) {
+  if (placeholder_(nilai)) return false;
+  var s = norm_(nilai);
+  return /^\d{4}-?\d{3}[\dX]$/.test(s);
 }
 
 /** Status akreditasi hanya sah bila terbaca sebagai SINTA 1-6 atau Belum Akreditasi. */
@@ -843,6 +852,10 @@ function bacaDataJurnal_() {
       statusJadwal: statusJadwal_(jadwal, bulanTerbit), // jadwal terbaca / tak terbaca / kosong
       issn: ambil_(row, map, 'issn'),
       issnValid: issnValid_(ambil_(row, map, 'issn')), // penanda format ISSN
+      eIssn: ambil_(row, map, 'eIssn'),
+      eIssnValid: issnTunggalValid_(ambil_(row, map, 'eIssn')),
+      pIssn: ambil_(row, map, 'pIssn'),
+      pIssnValid: issnTunggalValid_(ambil_(row, map, 'pIssn')),
       linkGaruda: linkGaruda,
       linkDoaj: linkDoaj,
       // indeksasi hanya diakui bila tautannya benar-benar URL sah
@@ -1149,6 +1162,8 @@ function keJurnalPublik_(j) {
     apc: apcValid_(j.apc) ? j.apc : '',
     linkApc: j.linkApcValid ? j.linkApc : '',
     issn: j.issnValid ? j.issn : '',
+    eIssn: j.eIssnValid ? j.eIssn : '',
+    pIssn: j.pIssnValid ? j.pIssn : '',
     linkGaruda: j.terindeksGaruda ? j.linkGaruda : '',
     linkDoaj: j.terindeksDoaj ? j.linkDoaj : '',
     terindeksGaruda: j.terindeksGaruda,
@@ -2376,6 +2391,12 @@ function periksaNilaiField_(field, nilai) {
   }
   if (field === 'issn' && !issnValid_(s)) {
     return { field: field, label: 'ISSN', pesan: 'ISSN harus berpola delapan karakter, contoh 2085-1243.' };
+  }
+  if ((field === 'eIssn' || field === 'pIssn') && !issnTunggalValid_(s)) {
+    return {
+      field: field, label: (field === 'eIssn' ? 'E-ISSN' : 'P-ISSN'),
+      pesan: 'Harus persis satu ISSN delapan karakter, contoh 2085-1243 — tanpa label atau ISSN lain di sel yang sama.'
+    };
   }
   if ((field === 'artikelPerIssue' || field === 'artikelPerTahun') && !/^\d+$/.test(s)) {
     return { field: field, label: (field === 'artikelPerIssue' ? 'Artikel per issue' : 'Artikel per tahun'), pesan: 'Harus berupa angka bulat.' };
@@ -4445,4 +4466,361 @@ function hapusTriggerDoaj() {
     }
   });
   return jumlah;
+}
+
+/* ==========================================================================
+   23. PEMISAHAN E-ISSN / P-ISSN
+   --------------------------------------------------------------------------
+   Kolom ISSN di Sheet1 sering berisi DUA nomor dalam satu sel, misalnya
+   "E-ISSN: 2776-5938; P-ISSN: 2776-6098". pisahkanEissnPissn() membaca
+   kolom itu dan mengisi dua kolom baru, E-ISSN dan P-ISSN (dibuat otomatis
+   bila belum ada di header), supaya keduanya bisa dipakai/divalidasi
+   terpisah di tempat lain.
+
+   ATURAN YANG DIPEGANG (sama semangatnya dengan section 22):
+   1. TIDAK PERNAH menimpa sel E-ISSN/P-ISSN yang sudah terisi — hanya sel
+      kosong yang diisi. Aman dijalankan berulang kali (idempoten).
+   2. Kolom ISSN asli tidak pernah diubah maupun dihapus.
+   3. Bila sel ISSN berisi dua nomor TANPA label E-/P- (mis. "ISSN: X;
+      ISSN: Y"), fungsi ini tidak menebak — dicocokkan dulu ke data resmi
+      DOAJ (identifier eissn/pissn pada bibjson). Kalau DOAJ juga tidak
+      bisa memastikan (gagal/tidak terdaftar/tidak cocok), sel dibiarkan
+      kosong dan baris ditandai di kolom Catatan Pemisahan ISSN untuk
+      dilengkapi manual oleh admin — bukan diisi dengan tebakan.
+   ========================================================================== */
+
+var POLA_ISSN_LABEL = /(E-?ISSN|P-?ISSN)\s*:?\s*(\d{4}-?\d{3}[\dXx])/gi;
+var POLA_ISSN_GENERIK = /\b(\d{4}-?\d{3}[\dXx])\b/g;
+var KOLOM_CATATAN_PISAH_ISSN = 'Catatan Pemisahan ISSN';
+
+function normalisasiIssn_(v) {
+  var s = norm_(v).replace(/[^0-9X]/g, '');
+  if (s.length !== 8) return norm_(v);
+  return s.slice(0, 4) + '-' + s.slice(4);
+}
+
+/** Pastikan kolom berlabel `label` ada di header; buat di ujung kanan bila belum ada. Mengembalikan indeks kolom 1-based. */
+function pastikanKolomAda_(sh, header, label) {
+  var target = norm_(label);
+  for (var i = 0; i < header.length; i++) {
+    if (norm_(header[i]) === target) return i + 1;
+  }
+  var kolomBaru = header.length + 1;
+  sh.getRange(1, kolomBaru).setValue(label);
+  header.push(label);
+  return kolomBaru;
+}
+
+/**
+ * Menerjemahkan satu HTTPResponse DOAJ jadi { eissn, pissn } dari
+ * bibjson.identifier. DITULIS DEFENSIF: apa pun yang tidak dikenali
+ * mengembalikan null, tidak pernah menebak.
+ */
+function ambilIdentifierDoaj_(respons) {
+  try {
+    if (!respons || respons.getResponseCode() !== 200) return null;
+    var data = JSON.parse(respons.getContentText());
+    if (!data || !data.results || !data.results.length) return null;
+    var bibjson = data.results[0].bibjson;
+    if (!bibjson || Object.prototype.toString.call(bibjson.identifier) !== '[object Array]') return null;
+
+    var out = {};
+    bibjson.identifier.forEach(function (id) {
+      if (!id || !id.type || !id.id) return;
+      var tipe = String(id.type).toLowerCase();
+      if (tipe === 'eissn') out.eissn = normalisasiIssn_(id.id);
+      if (tipe === 'pissn') out.pissn = normalisasiIssn_(id.id);
+    });
+    return (out.eissn || out.pissn) ? out : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Memisahkan sel ISSN (Sheet1) ke kolom E-ISSN/P-ISSN. Baris dengan label
+ * eksplisit dipisah langsung; baris dengan ISSN ganda tanpa label
+ * dicocokkan ke DOAJ. Dijalankan manual dari editor Apps Script — bukan
+ * trigger harian, karena ini migrasi data yang idempoten, bukan sinkron
+ * berkelanjutan.
+ */
+function pisahkanEissnPissn() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    var sibuk = 'Sistem sedang sibuk, pemisahan ISSN dilewati.';
+    console.warn(sibuk);
+    return sibuk;
+  }
+
+  try {
+    var sh = sheetWajib_(SHEET.MAIN);
+    var lastRow = sh.getLastRow();
+    var lastCol = sh.getLastColumn();
+    if (lastRow < 2) {
+      var kosongSheet = 'Sheet1 belum punya data jurnal.';
+      console.warn(kosongSheet);
+      return kosongSheet;
+    }
+
+    var header = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    var map = buatHeaderMap_(header);
+    if (map.issn === undefined) {
+      var tanpaIssn = 'Kolom ISSN tidak ditemukan di Sheet1, pemisahan dibatalkan.';
+      console.warn(tanpaIssn);
+      return tanpaIssn;
+    }
+
+    var kolomE = pastikanKolomAda_(sh, header, 'E-ISSN');
+    var kolomP = pastikanKolomAda_(sh, header, 'P-ISSN');
+    var kolomCatatan = pastikanKolomAda_(sh, header, KOLOM_CATATAN_PISAH_ISSN);
+
+    // Header row mungkin baru diperlebar oleh pastikanKolomAda_ — baca ulang data lengkap.
+    lastCol = sh.getLastColumn();
+    var nilai = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+    var tulisan = []; // { baris, kolom, nilai }
+    var perluDoaj = []; // { indeksBaris(0-based di `nilai`), namaJurnal, kandidat: [issn,...] }
+    var hitung = { berlabel: 0, sudahAda: 0, dilewati: 0 };
+
+    for (var r = 0; r < nilai.length; r++) {
+      var row = nilai[r];
+      var namaJurnal = ambil_(row, map, 'namaJurnal');
+      if (!namaJurnal) continue;
+
+      var eSekarang = str_(row[kolomE - 1]);
+      var pSekarang = str_(row[kolomP - 1]);
+      if (eSekarang && pSekarang) { hitung.sudahAda++; continue; }
+
+      var issnMentah = ambil_(row, map, 'issn');
+      if (!issnMentah) { hitung.dilewati++; continue; }
+
+      var labelE = '', labelP = '';
+      var m;
+      POLA_ISSN_LABEL.lastIndex = 0;
+      while ((m = POLA_ISSN_LABEL.exec(issnMentah)) !== null) {
+        var tipeLabel = m[1].toUpperCase().replace(/-/g, '');
+        var nilaiIssn = normalisasiIssn_(m[2]);
+        if (tipeLabel === 'EISSN' && !labelE) labelE = nilaiIssn;
+        if (tipeLabel === 'PISSN' && !labelP) labelP = nilaiIssn;
+      }
+
+      if (labelE || labelP) {
+        if (labelE && !eSekarang) { tulisan.push({ baris: r + 2, kolom: kolomE, nilai: labelE }); hitung.berlabel++; }
+        if (labelP && !pSekarang) { tulisan.push({ baris: r + 2, kolom: kolomP, nilai: labelP }); hitung.berlabel++; }
+        continue;
+      }
+
+      // Tidak ada label E-/P- sama sekali — kumpulkan kandidat ISSN generik untuk dicek ke DOAJ.
+      if (eSekarang || pSekarang) { hitung.dilewati++; continue; } // salah satu sudah terisi manual, jangan ganggu
+      var kandidat = [];
+      POLA_ISSN_GENERIK.lastIndex = 0;
+      while ((m = POLA_ISSN_GENERIK.exec(issnMentah)) !== null) {
+        var norm = normalisasiIssn_(m[1]);
+        if (kandidat.indexOf(norm) === -1) kandidat.push(norm);
+      }
+      if (!kandidat.length) { hitung.dilewati++; continue; }
+
+      perluDoaj.push({ baris: r + 2, namaJurnal: namaJurnal, kandidat: kandidat.slice(0, 2) });
+    }
+
+    var hitungDoaj = { cocok: 0, manual: 0 };
+    if (perluDoaj.length) {
+      for (var i = 0; i < perluDoaj.length; i++) {
+        var target = perluDoaj[i];
+        var identifier = null;
+        for (var k = 0; k < target.kandidat.length && !identifier; k++) {
+          var permintaan = {
+            url: DOAJ_API + encodeURIComponent('issn:' + target.kandidat[k]),
+            method: 'get',
+            muteHttpExceptions: true,
+            followRedirects: true
+          };
+          var respons = null;
+          try { respons = UrlFetchApp.fetch(permintaan.url, permintaan); } catch (err) { respons = null; }
+          identifier = respons ? ambilIdentifierDoaj_(respons) : null;
+        }
+
+        if (identifier) {
+          // Hanya percaya hasil DOAJ bila salah satu nomornya memang ada di antara kandidat kita —
+          // memastikan record yang cocok benar-benar jurnal yang sama, bukan salah tangkap.
+          var eDoaj = identifier.eissn || '';
+          var pDoaj = identifier.pissn || '';
+          var cocokSalahSatu = target.kandidat.indexOf(eDoaj) !== -1 || target.kandidat.indexOf(pDoaj) !== -1;
+          if (cocokSalahSatu) {
+            if (eDoaj) tulisan.push({ baris: target.baris, kolom: kolomE, nilai: eDoaj });
+            if (pDoaj) tulisan.push({ baris: target.baris, kolom: kolomP, nilai: pDoaj });
+            hitungDoaj.cocok++;
+            continue;
+          }
+        }
+
+        tulisan.push({
+          baris: target.baris, kolom: kolomCatatan,
+          nilai: '[PERLU DICEK MANUAL] ISSN tanpa label E-/P- (' + target.kandidat.join(', ') +
+                 '), DOAJ tidak bisa memastikan mana elektronik/cetak.'
+        });
+        hitungDoaj.manual++;
+      }
+    }
+
+    tulisan.forEach(function (t) {
+      sh.getRange(t.baris, t.kolom).setValue(t.nilai);
+    });
+    SpreadsheetApp.flush();
+
+    bersihkanCacheJurnal_();
+
+    var ringkas = 'Pemisahan E-ISSN/P-ISSN selesai — ' + hitung.berlabel + ' nilai terisi dari label eksplisit, ' +
+      hitungDoaj.cocok + ' baris ambigu terselesaikan lewat DOAJ, ' + hitungDoaj.manual +
+      ' baris ambigu ditandai perlu dicek manual, ' + hitung.sudahAda + ' baris sudah terisi sebelumnya (dilewati).';
+    catatAktivitas_('SISTEM', '-', 'PISAH_ISSN', ringkas);
+    console.log(ringkas);
+    return ringkas;
+  } catch (err) {
+    var pesan = 'pisahkanEissnPissn gagal: ' + err.message;
+    console.error(pesan);
+    return pesan;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+var TAG_AKURASI_ISSN = '[AKURASI DOAJ]';
+
+/**
+ * Audit akurasi: mencocokkan SEMUA E-ISSN/P-ISSN yang sudah terisi di
+ * Sheet1 (baik dari label eksplisit, hasil DOAJ, maupun input manual
+ * pengelola) ke data resmi DOAJ, lalu menuliskan peringatan bila tidak
+ * cocok. TIDAK PERNAH mengubah nilai E-ISSN/P-ISSN itu sendiri — hanya
+ * menulis/menghapus catatan bertanda "[AKURASI DOAJ]" di kolom Catatan
+ * Pemisahan ISSN. Catatan lain (mis. "[PERLU DICEK MANUAL]" dari
+ * pisahkanEissnPissn, atau catatan bebas admin) tidak pernah disentuh.
+ * Dijalankan manual dari editor Apps Script, atau dipasang trigger sendiri
+ * seperti pasangTriggerDoaj() bila ingin berkala.
+ */
+function periksaAkurasiEissnPissn() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    var sibuk = 'Sistem sedang sibuk, audit akurasi ISSN dilewati.';
+    console.warn(sibuk);
+    return sibuk;
+  }
+
+  try {
+    var sh = sheetWajib_(SHEET.MAIN);
+    var lastRow = sh.getLastRow();
+    var lastCol = sh.getLastColumn();
+    if (lastRow < 2) {
+      var kosongSheet = 'Sheet1 belum punya data jurnal.';
+      console.warn(kosongSheet);
+      return kosongSheet;
+    }
+
+    var header = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    var map = buatHeaderMap_(header);
+    var kolomE = pastikanKolomAda_(sh, header, 'E-ISSN');
+    var kolomP = pastikanKolomAda_(sh, header, 'P-ISSN');
+    var kolomCatatan = pastikanKolomAda_(sh, header, KOLOM_CATATAN_PISAH_ISSN);
+
+    lastCol = sh.getLastColumn();
+    var nilai = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+    var target = [];
+    for (var r = 0; r < nilai.length; r++) {
+      var row = nilai[r];
+      var namaJurnal = ambil_(row, map, 'namaJurnal');
+      if (!namaJurnal) continue;
+
+      var eLokal = str_(row[kolomE - 1]);
+      var pLokal = str_(row[kolomP - 1]);
+      if (!eLokal && !pLokal) continue;
+
+      var catatanSekarang = str_(row[kolomCatatan - 1]);
+      target.push({
+        baris: r + 2, namaJurnal: namaJurnal, eLokal: eLokal, pLokal: pLokal,
+        issnCari: eLokal || pLokal, catatanSekarang: catatanSekarang
+      });
+    }
+
+    if (!target.length) {
+      var tanpaTarget = 'Belum ada E-ISSN/P-ISSN terisi untuk diaudit. Jalankan pisahkanEissnPissn() dulu.';
+      console.warn(tanpaTarget);
+      return tanpaTarget;
+    }
+
+    var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    var tulisan = [];
+    var hitung = { cocok: 0, masalah: 0, takTerverifikasi: 0 };
+
+    for (var i = 0; i < target.length; i += DOAJ_BATCH) {
+      var potong = target.slice(i, i + DOAJ_BATCH);
+      var permintaan = potong.map(function (t) {
+        return {
+          url: DOAJ_API + encodeURIComponent('issn:' + t.issnCari),
+          method: 'get',
+          muteHttpExceptions: true,
+          followRedirects: true
+        };
+      });
+
+      var respons = [];
+      try {
+        respons = UrlFetchApp.fetchAll(permintaan);
+      } catch (err) {
+        console.error('fetchAll DOAJ (audit ISSN) gagal pada batch ' + i + ': ' + err.message);
+        respons = [];
+      }
+
+      potong.forEach(function (t, k) {
+        // Hanya cell kosong atau bertanda TAG_AKURASI_ISSN yang boleh disentuh —
+        // catatan manual/ambigu dari fungsi lain tidak pernah ditimpa di sini.
+        var bolehTulis = !t.catatanSekarang || t.catatanSekarang.indexOf(TAG_AKURASI_ISSN) === 0;
+
+        var identifier = respons[k] ? ambilIdentifierDoaj_(respons[k]) : null;
+        if (!identifier) { hitung.takTerverifikasi++; return; } // GAGAL/tidak terdaftar — bukan berarti salah, jangan menuduh
+
+        var masalah = [];
+        if (t.eLokal && identifier.eissn && identifier.eissn !== t.eLokal) {
+          masalah.push('E-ISSN tercatat ' + t.eLokal + ', DOAJ mencatat ' + identifier.eissn);
+        }
+        if (t.pLokal && identifier.pissn && identifier.pissn !== t.pLokal) {
+          masalah.push('P-ISSN tercatat ' + t.pLokal + ', DOAJ mencatat ' + identifier.pissn);
+        }
+
+        if (masalah.length) {
+          hitung.masalah++;
+          if (bolehTulis) {
+            tulisan.push({
+              baris: t.baris, kolom: kolomCatatan,
+              nilai: TAG_AKURASI_ISSN + ' ' + masalah.join('; ') + '. Dicek ' + stempel + '.'
+            });
+          }
+        } else {
+          hitung.cocok++;
+          // Sebelumnya bermasalah, sekarang cocok — bersihkan catatan lama milik audit ini.
+          if (bolehTulis && t.catatanSekarang) {
+            tulisan.push({ baris: t.baris, kolom: kolomCatatan, nilai: '' });
+          }
+        }
+      });
+    }
+
+    tulisan.forEach(function (t) {
+      sh.getRange(t.baris, t.kolom).setValue(t.nilai);
+    });
+    SpreadsheetApp.flush();
+
+    var ringkas = 'Audit akurasi E-ISSN/P-ISSN selesai ' + stempel + ' — ' + target.length + ' jurnal dicek: ' +
+      hitung.cocok + ' cocok dengan DOAJ, ' + hitung.masalah + ' tidak cocok (ditandai), ' +
+      hitung.takTerverifikasi + ' tidak bisa diverifikasi (DOAJ gagal/tidak terdaftar, tidak ditandai salah).';
+    catatAktivitas_('SISTEM', '-', 'AUDIT_AKURASI_ISSN', ringkas);
+    console.log(ringkas);
+    return ringkas;
+  } catch (err) {
+    var pesan = 'periksaAkurasiEissnPissn gagal: ' + err.message;
+    console.error(pesan);
+    return pesan;
+  } finally {
+    lock.releaseLock();
+  }
 }
