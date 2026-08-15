@@ -640,7 +640,7 @@
                   <td>
                     <div class="teks-tebal putus">{{ j.namaJurnal }}</div>
                     <div class="teks-kecil teks-lembut">
-                      {{ j.issnValid ? j.issn : 'ISSN belum sah' }}
+                      {{ j.eIssn || j.pIssn || 'ISSN belum sah' }}
                       <span v-if="!j.punyaEmail"> · email pengelola belum dapat dipakai</span>
                     </div>
                   </td>
@@ -1296,11 +1296,6 @@
         <template v-if="!modeSunting && !panelApc">
           <dl class="dl">
             <dt>Unit pengelola</dt><dd>{{ jurnalTerpilih.unitPengelola || '—' }}</dd>
-            <dt>ISSN</dt>
-            <dd>
-              {{ jurnalTerpilih.issn || '—' }}
-              <span v-if="jurnalTerpilih.issn && !jurnalTerpilih.issnValid" class="badge badge-bahaya">format tidak sah</span>
-            </dd>
             <dt>E-ISSN</dt>
             <dd>
               {{ jurnalTerpilih.eIssn || '—' }}

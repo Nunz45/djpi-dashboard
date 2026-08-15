@@ -3200,7 +3200,7 @@ function ubahStatusUsulanDoi(token, payload) {
 
     if (status === 'SIAP_DIPROSES') {
       const cocokJurnal = cariJurnal_(bacaDataJurnal_(), item.nama_jurnal)[0];
-      if (!cocokJurnal || !cocokJurnal.issnValid) {
+      if (!cocokJurnal || !(cocokJurnal.issnValid || cocokJurnal.eIssnValid || cocokJurnal.pIssnValid)) {
         return {
           ok: false,
           message: 'Status tidak dapat diubah ke Siap Diproses: jurnal ini belum memiliki ISSN yang sah. ' +

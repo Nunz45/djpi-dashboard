@@ -227,7 +227,7 @@ Vue.createApp({
   },
   created:function(){
     this.FIELD_PENGELOLA=[
-      {k:'linkOjs',l:'Link OJS'},{k:'issn',l:'ISSN'},{k:'eIssn',l:'E-ISSN'},{k:'pIssn',l:'P-ISSN'},{k:'linkGaruda',l:'Link Garuda'},{k:'linkDoaj',l:'Link DOAJ'},
+      {k:'linkOjs',l:'Link OJS'},{k:'eIssn',l:'E-ISSN'},{k:'pIssn',l:'P-ISSN'},{k:'linkGaruda',l:'Link Garuda'},{k:'linkDoaj',l:'Link DOAJ'},
       {k:'apc',l:'Tarif APC'},{k:'linkApc',l:'Tautan informasi APC'},{k:'namaPengelola',l:'Nama pengelola'},
       {k:'email',l:'Email pengelola'},{k:'issue',l:'Frekuensi terbit'},{k:'jadwalTerbitan',l:'Jadwal terbitan'},
       {k:'artikelPerIssue',l:'Artikel per issue'},{k:'artikelPerTahun',l:'Artikel per tahun'}
@@ -489,7 +489,7 @@ Vue.createApp({
     issnJurnalSah:function(namaJurnal){
       if(!this.data || !this.data.journals) return false;
       var j=this.data.journals.find(function(x){return x.namaJurnal===namaJurnal;});
-      return !!(j && j.issnValid);
+      return !!(j && (j.issnValid || j.eIssnValid || j.pIssnValid));
     },
 
     urlDoiValid:function(url){

@@ -1700,7 +1700,7 @@
 
                 <span class="kartu-body">
                   <span class="kartu-judul">{{ j.namaJurnal }}</span>
-                  <span class="kartu-meta">{{ j.issn || 'ISSN belum tercatat' }}</span>
+                  <span class="kartu-meta">{{ j.eIssn || j.pIssn || 'ISSN belum tercatat' }}</span>
                   <span v-if="j.scope" class="kartu-scope">{{ j.scope }}</span>
 
                   <span class="kartu-badge">
@@ -1746,7 +1746,7 @@
             <span class="kartu-body">
               <span class="kartu-judul">{{ j.namaJurnal }}</span>
               <span class="kartu-meta">
-                {{ j.kluster }} · {{ j.issn || 'ISSN belum tercatat' }}
+                {{ j.kluster }} · {{ j.eIssn || j.pIssn || 'ISSN belum tercatat' }}
               </span>
               <span v-if="j.scope" class="kartu-scope">{{ j.scope }}</span>
 
@@ -2003,9 +2003,6 @@
 
           <dt>Unit pengelola</dt>
           <dd>{{ terpilih.unitPengelola || 'Belum tercatat' }}</dd>
-
-          <dt>ISSN</dt>
-          <dd>{{ terpilih.issn || 'Belum tercatat' }}</dd>
 
           <dt>E-ISSN</dt>
           <dd>{{ terpilih.eIssn || 'Belum tercatat' }}</dd>
