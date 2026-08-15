@@ -32,6 +32,16 @@ var KELAS_STATUS_DOI={
   BERHASIL:'badge badge-ok',
   GAGAL:'badge badge-bahaya'
 };
+// baru: label tampilan section/tab Layout Landing (harus sinkron manual
+// dengan kunci di PENGATURAN_LANDING_DEFAULT, Code.gs section 26, dan
+// tabDaftar/nama-section di Landing.html)
+var LABEL_LAYOUT_LANDING={
+  stat_grid:'Kartu statistik hero', info_callout:'Info "Cara memilih jurnal"',
+  tab_directory:'Tab & grid direktori jurnal', citation_impact:'Dampak sitasi publikasi',
+  sinta_link:'Link profil SINTA',
+  bereputasi:'Tab: Scopus', terakreditasi:'Tab: Terakreditasi', doaj:'Tab: DOAJ',
+  kluster:'Tab: Per Kluster', semua:'Tab: Semua Jurnal'
+};
 // baru: persentase alokasi pencairan APC, HANYA untuk pratinjau di sisi tampilan —
 // nilai yang sebenarnya dihitung ulang di server (catatPencairanApc di Code.gs),
 // sehingga menaruh angka ini di klien tidak membuka celah manipulasi.
@@ -83,7 +93,12 @@ Vue.createApp({
     filterTerbitanStatus:'', // baru: filter status pada tab Progress Terbitan
     // baru: state tab Template Email (superadmin-only)
     daftarTemplateEmail:[],templateAktifKunci:'',draftTemplateEmail:{subjek:'',isi:''},
-    memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:''
+    memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:'',
+    // baru: state tab Review Profil Jurnal (draft cover/scope, superadmin-only)
+    draftProfilJurnal:[],memuatDraftProfil:false,galatDraftProfil:'',
+    draftProfilTerpilih:null,memprosesDraftProfil:false,catatanTolakDraftInput:'',
+    // baru: state tab Layout Landing (superadmin-only)
+    pengaturanLanding:[],memuatPengaturanLanding:false,menyimpanPengaturanLanding:false,galatPengaturanLanding:''
   };},
   computed:{
     // baru: sapaan topbar mengikuti jam perangkat, dan inisial avatar dari email admin
@@ -116,6 +131,17 @@ Vue.createApp({
     templateAktifData:function(){
       var s=this;
       return this.daftarTemplateEmail.find(function(t){return t.kunci===s.templateAktifKunci;})||null;
+    },
+    // baru: baris Pengaturan_Landing dikelompokkan untuk tab Layout Landing.
+    // Label tampilan TIDAK disimpan di sheet (lihat Code.js section 26) --
+    // dipetakan di sini, harus sinkron manual dengan LABEL_LAYOUT_LANDING.
+    pengaturanLandingSections:function(){
+      return this.pengaturanLanding.filter(function(p){return p.jenis==='section';})
+        .slice().sort(function(a,b){return a.urutan-b.urutan;});
+    },
+    pengaturanLandingTabs:function(){
+      return this.pengaturanLanding.filter(function(p){return p.jenis==='tab';})
+        .slice().sort(function(a,b){return a.urutan-b.urutan;});
     },
     jurnalTersaring:function(){
       if(!this.data)return[];var q=this.cari.trim().toLowerCase(),s=this;
@@ -728,6 +754,10 @@ Vue.createApp({
       if(t) this.draftTemplateEmail={subjek:t.subjek,isi:t.isi};
     },
 
+    labelLayoutLanding:function(kunci){
+      return LABEL_LAYOUT_LANDING[kunci]||kunci;
+    },
+
     simpanTemplateEmail:function(){
       var s=this;
       this.menyimpanTemplateEmail=true;
@@ -750,6 +780,124 @@ Vue.createApp({
         })
         .finally(function(){
           s.menyimpanTemplateEmail=false;
+        });
+    },
+
+    // ===== Review Profil Jurnal (tab draftProfil, superadmin-only) =====
+    muatDraftProfilJurnal:function(){
+      var s=this;
+      this.memuatDraftProfil=true;
+      this.galatDraftProfil='';
+      gs('getDraftProfilJurnal', s.token)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal memuat draft profil jurnal.');
+          }
+          s.draftProfilJurnal=r.items;
+        })
+        .catch(function(err){
+          s.galatDraftProfil=err && err.message ? err.message : 'Gagal memuat draft profil jurnal.';
+        })
+        .finally(function(){
+          s.memuatDraftProfil=false;
+        });
+    },
+
+    bukaDetailDraftProfil:function(d){
+      this.draftProfilTerpilih=Object.assign({},d);
+      this.catatanTolakDraftInput='';
+    },
+
+    tutupDetailDraftProfil:function(){
+      this.draftProfilTerpilih=null;
+      this.catatanTolakDraftInput='';
+    },
+
+    setujuiDraftProfil:function(){
+      var s=this, nama=this.draftProfilTerpilih.namaJurnal;
+      this.memprosesDraftProfil=true;
+      gs('setujuiDraftProfilJurnal', s.token, nama)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal menyetujui draft.');
+          }
+          s.draftProfilJurnal=s.draftProfilJurnal.filter(function(x){return x.namaJurnal!==nama;});
+          s.tutupDetailDraftProfil();
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
+        })
+        .catch(function(err){
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(err.message||'Gagal menyetujui draft.'); }
+        })
+        .finally(function(){
+          s.memprosesDraftProfil=false;
+        });
+    },
+
+    tolakDraftProfil:function(){
+      if(!this.catatanTolakDraftInput.trim()){
+        if(typeof this.tampilkanToast==='function'){ this.tampilkanToast('Alasan penolakan wajib diisi.'); }
+        return;
+      }
+      var s=this, nama=this.draftProfilTerpilih.namaJurnal;
+      this.memprosesDraftProfil=true;
+      gs('tolakDraftProfilJurnal', s.token, nama, this.catatanTolakDraftInput.trim())
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal menolak draft.');
+          }
+          s.draftProfilJurnal=s.draftProfilJurnal.filter(function(x){return x.namaJurnal!==nama;});
+          s.tutupDetailDraftProfil();
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
+        })
+        .catch(function(err){
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(err.message||'Gagal menolak draft.'); }
+        })
+        .finally(function(){
+          s.memprosesDraftProfil=false;
+        });
+    },
+
+    // ===== Layout Landing (tab layoutLanding, superadmin-only) =====
+    muatPengaturanLanding:function(){
+      var s=this;
+      this.memuatPengaturanLanding=true;
+      this.galatPengaturanLanding='';
+      gs('getPengaturanLanding', s.token)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal memuat pengaturan layout.');
+          }
+          s.pengaturanLanding=r.items;
+        })
+        .catch(function(err){
+          s.galatPengaturanLanding=err && err.message ? err.message : 'Gagal memuat pengaturan layout.';
+        })
+        .finally(function(){
+          s.memuatPengaturanLanding=false;
+        });
+    },
+
+    simpanPengaturanLandingKlik:function(){
+      var s=this;
+      this.menyimpanPengaturanLanding=true;
+      var perubahan=this.pengaturanLanding.map(function(p){return {kunci:p.kunci,aktif:p.aktif,urutan:p.urutan};});
+      gs('simpanPengaturanLanding', s.token, perubahan)
+        .then(function(r){
+          if(!r || !r.ok){
+            if(r && r.code==='SESSION_EXPIRED'){ s.sesiBerakhir(); return; }
+            throw new Error((r && r.message) || 'Gagal menyimpan pengaturan layout.');
+          }
+          if(typeof s.tampilkanToast==='function'){ s.tampilkanToast(r.message); }
+        })
+        .catch(function(err){
+          s.galatPengaturanLanding=err && err.message ? err.message : 'Gagal menyimpan pengaturan layout.';
+        })
+        .finally(function(){
+          s.menyimpanPengaturanLanding=false;
         });
     }
   },

@@ -192,11 +192,43 @@
             </div>
 
             <form class="card-pad" @submit.prevent="simpanSuntingJurnal">
-              <div v-for="f in fieldSuntingPengelola" :key="f.k" class="field">
+              <div v-for="f in fieldSuntingPengelolaGenerik" :key="f.k" class="field">
                 <label class="label" :for="'s-' + f.k">{{ f.l }}<span v-if="f.wajib" class="wajib"> *</span></label>
                 <input :id="'s-' + f.k" v-model="draftSunting[f.k]" type="text" class="input"
                   :class="{ 'input-galat': galatFieldSunting[f.k] }">
                 <p v-if="galatFieldSunting[f.k]" class="hint hint-galat">{{ galatFieldSunting[f.k] }}</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Tampilan publik (cover &amp; deskripsi jurnal)</label>
+                <p class="card-note" style="margin:0 0 8px">
+                  Cover dan deskripsi di sini TIDAK langsung tayang — superadmin meninjau dulu
+                  sebelum tampil di direktori publik.
+                </p>
+                <p v-if="draftSunting.statusDraftProfil === 'MENUNGGU_REVIEW'" class="hint">
+                  <span class="badge badge-none">Menunggu Review</span>
+                  Draft Anda sedang ditinjau superadmin.
+                </p>
+                <p v-else-if="draftSunting.statusDraftProfil === 'DITOLAK'" class="hint">
+                  <span class="badge badge-bahaya">Ditolak</span>
+                  {{ draftSunting.catatanTolakDraft || 'Tidak ada catatan.' }}
+                </p>
+              </div>
+
+              <div class="field">
+                <label class="label" for="s-coverUrlDraft">Cover jurnal</label>
+                <input id="s-coverUrlDraft" type="file" accept="image/*" class="input" @change="pilihCoverDraft">
+                <p class="hint">Gambar otomatis diperkecil sebelum diunggah. Format PNG/JPEG.</p>
+                <img v-if="draftSunting.coverUrlDraft" :src="draftSunting.coverUrlDraft"
+                  alt="Pratinjau cover draft" style="max-width:120px;border-radius:8px;margin-top:8px;display:block">
+                <p v-if="galatFieldSunting.coverUrlDraft" class="hint hint-galat">{{ galatFieldSunting.coverUrlDraft }}</p>
+              </div>
+
+              <div class="field">
+                <label class="label" for="s-scopeDraft">Deskripsi jurnal (scope)</label>
+                <textarea id="s-scopeDraft" v-model="draftSunting.scopeDraft" class="input" rows="5"
+                  :class="{ 'input-galat': galatFieldSunting.scopeDraft }"></textarea>
+                <p v-if="galatFieldSunting.scopeDraft" class="hint hint-galat">{{ galatFieldSunting.scopeDraft }}</p>
               </div>
 
               <button type="submit" class="btn btn-primer" :disabled="menyimpanSunting">
@@ -642,7 +674,13 @@ createApp({
         { k: 'jadwalTerbitan', l: 'Jadwal terbitan' },
         { k: 'issue', l: 'Issue berjalan' },
         { k: 'artikelPerIssue', l: 'Jumlah artikel per issue', wajib: true },
-        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun', wajib: true }
+        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun', wajib: true },
+        // Dua field ini SENGAJA tidak dirender lewat v-for generik di atas
+        // (butuh widget upload/textarea, bukan <input type=text>) -- tetap
+        // didaftarkan di sini supaya ikut logika diff simpanSuntingJurnal().
+        // Lihat komponen khusus di template untuk UI-nya.
+        { k: 'coverUrlDraft', l: 'Cover jurnal' },
+        { k: 'scopeDraft', l: 'Deskripsi jurnal (scope)' }
       ],
 
       // --- panel Lapor APC ---
@@ -696,6 +734,13 @@ createApp({
            (f.jenis_konten === 'edisi' || f.penulis)),
         !!f.persetujuan
       ];
+    },
+
+    // fieldSuntingPengelola dipakai juga untuk diff simpanSuntingJurnal(),
+    // tapi coverUrlDraft/scopeDraft punya widget sendiri di template
+    // (bukan <input type=text> generik) -- computed ini yang dipakai v-for.
+    fieldSuntingPengelolaGenerik() {
+      return this.fieldSuntingPengelola.filter((f) => f.k !== 'coverUrlDraft' && f.k !== 'scopeDraft');
     }
   },
 
@@ -905,6 +950,40 @@ createApp({
         })
         .withFailureHandler((err) => { this.memuatSunting = false; this.galatPanel = 'Gagal memuat: ' + err.message; })
         .getJournalDetailForEditor(this.token, this.namaJurnalAktif);
+    },
+
+    // Baca file gambar dipilih -> perkecil lewat canvas offscreen -> simpan
+    // sebagai data URI base64 di draftSunting.coverUrlDraft. Diperkecil di
+    // sini (bukan di server) supaya tetap di bawah batas ~50.000 karakter
+    // per sel Sheets (lihat COVER_IMPORT_RUNBOOK.md untuk konteksnya).
+    pilihCoverDraft(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type)) {
+        this.galatFieldSunting = Object.assign({}, this.galatFieldSunting, { coverUrlDraft: 'File harus berupa gambar.' });
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = (ev) => {
+        var img = new Image();
+        img.onload = () => {
+          var maks = 220;
+          var skala = Math.min(1, maks / Math.max(img.width, img.height));
+          var w = Math.round(img.width * skala), h = Math.round(img.height * skala);
+          var kanvas = document.createElement('canvas');
+          kanvas.width = w; kanvas.height = h;
+          kanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          this.draftSunting.coverUrlDraft = kanvas.toDataURL('image/jpeg', 0.7);
+          var g = Object.assign({}, this.galatFieldSunting); delete g.coverUrlDraft;
+          this.galatFieldSunting = g;
+        };
+        img.onerror = () => {
+          this.galatFieldSunting = Object.assign({}, this.galatFieldSunting, { coverUrlDraft: 'Gagal membaca gambar.' });
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
     },
 
     simpanSuntingJurnal() {

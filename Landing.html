@@ -384,6 +384,12 @@
       max-width: 1180px;
       margin: 0 auto;
       padding: 24px 20px 60px;
+      /* flex-column: sama tampilannya dengan block stacking biasa, tapi
+         mengizinkan urutan section diatur admin lewat CSS `order` (lihat
+         :style="{order: sectionUrutan(...)}" di template) tanpa merombak
+         markup jadi komponen dinamis per section. */
+      display: flex;
+      flex-direction: column;
     }
 
     /* Panduan singkat — satu baris tipis, bukan blok besar yang menahan alur ke hasil */
@@ -1576,6 +1582,7 @@
           </div>
 
           <a
+            v-if="sectionAktif('sinta_link')"
             class="sinta-link"
             href="https://sinta.kemdiktisaintek.go.id/journals/index/414"
             target="_blank"
@@ -1585,7 +1592,7 @@
           </a>
         </div>
 
-        <div v-if="data" class="hero-stat-grid" aria-label="Ringkasan direktori">
+        <div v-if="data && sectionAktif('stat_grid')" class="hero-stat-grid" aria-label="Ringkasan direktori">
           <div class="hero-stat">
             <span class="ha-nilai tabular">{{ data.stats.total }}</span>
             <span class="ha-label">Jurnal aktif</span>
@@ -1608,11 +1615,12 @@
   </header>
 
   <main class="page">
-    <p class="panduan-baris">
+    <p v-if="sectionAktif('info_callout')" class="panduan-baris" :style="{order: sectionUrutan('info_callout')}">
       <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
       <span><strong>Cara memilih jurnal:</strong> periksa indeksasi Scopus/DOAJ/SINTA, bandingkan APC, lalu buka situs jurnal untuk membaca fokus &amp; cakupan sebelum submit.</span>
     </p>
 
+    <div v-if="sectionAktif('tab_directory')" :style="{order: sectionUrutan('tab_directory')}">
     <div v-if="galat" class="alert alert-galat" role="alert">
       <strong>Data belum dapat dimuat.</strong> {{ galat }}
       <button type="button" class="btn" style="margin-top:10px" @click="muat">Coba lagi</button>
@@ -1772,9 +1780,11 @@
         </div>
       </template>
     </template>
+    </div>
 
     <section
-      v-if="data && data.citationStats"
+      v-if="data && data.citationStats && sectionAktif('citation_impact')"
+      :style="{order: sectionUrutan('citation_impact')}"
       class="sitasi-section"
       aria-labelledby="dampakSitasi">
       <div class="sitasi-head">
@@ -2131,7 +2141,9 @@
         filterSinta: '',
         terpilih: null,
         klusterTerbuka: {}, // baru: peta nama kluster -> boolean (terbuka/tertutup) untuk mode dropdown
-        tabDaftar: [
+        // Label tab tetap di kode (bukan admin-editable, lihat Code.js section 26)
+        // -- yang admin atur cuma aktif/urutan lewat data.layout.tabs.
+        tabDaftarSemua: [
           { kunci: 'bereputasi', label: 'Scopus' },
           { kunci: 'terakreditasi', label: 'Terakreditasi' },
           { kunci: 'doaj', label: 'DOAJ' },
@@ -2151,6 +2163,29 @@
     },
 
     computed: {
+      // Tab yang benar-benar dirender: label tetap dari kode
+      // (tabDaftarSemua), aktif/urutan dari data.layout.tabs (admin,
+      // Code.js section 26). Belum ada pengaturan/gagal muat -> tampilkan
+      // semua tab apa adanya, urutan bawaan (supaya Landing tidak pernah
+      // kosong gara-gara layout belum sempat di-setup).
+      tabDaftar: function () {
+        var self = this;
+        var konfig = this.data && this.data.layout && this.data.layout.tabs;
+        if (!konfig || !konfig.length) return this.tabDaftarSemua;
+
+        var peta = {};
+        konfig.forEach(function (k) { peta[k.kunci] = k; });
+
+        return this.tabDaftarSemua
+          .filter(function (t) { return !peta[t.kunci] || peta[t.kunci].aktif; })
+          .slice()
+          .sort(function (a, b) {
+            var ua = peta[a.kunci] ? peta[a.kunci].urutan : 0;
+            var ub = peta[b.kunci] ? peta[b.kunci].urutan : 0;
+            return ua - ub;
+          });
+      },
+
       tersaringCari: function () {
         if (!this.data) return [];
 
@@ -2271,6 +2306,21 @@
     },
 
     methods: {
+      // Section belum ada pengaturan (layout gagal muat/belum di-setup admin)
+      // -> dianggap aktif, supaya halaman tidak pernah kosong karena itu.
+      sectionAktif: function (kunci) {
+        var konfig = this.data && this.data.layout && this.data.layout.sections;
+        if (!konfig) return true;
+        var s = konfig.find(function (x) { return x.kunci === kunci; });
+        return s ? s.aktif : true;
+      },
+
+      sectionUrutan: function (kunci) {
+        var konfig = this.data && this.data.layout && this.data.layout.sections;
+        var s = konfig && konfig.find(function (x) { return x.kunci === kunci; });
+        return s ? s.urutan : 0;
+      },
+
       muat: function () {
         var self = this;
         this.memuat = true;

@@ -179,6 +179,15 @@
         @click="gantiTab('template'); !daftarTemplateEmail.length && muatTemplateEmail()">
         <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Template Email
       </button>
+      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'draftProfil' }"
+        @click="gantiTab('draftProfil'); !memuatDraftProfil && !draftProfilJurnal.length && muatDraftProfilJurnal()">
+        <i class="fa-solid fa-image" aria-hidden="true"></i> Review Profil Jurnal
+        <span v-if="draftProfilJurnal.length" class="badge badge-emas">{{ draftProfilJurnal.length }}</span>
+      </button>
+      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'layoutLanding' }"
+        @click="gantiTab('layoutLanding'); !pengaturanLanding.length && muatPengaturanLanding()">
+        <i class="fa-solid fa-table-cells" aria-hidden="true"></i> Layout Landing
+      </button>
     </aside>
 
     <div class="konten-utama">
@@ -1208,9 +1217,132 @@
           </div>
         </div>
       </section>
+
+      <!-- Review Profil Jurnal — superadmin saja, approve/reject draft cover & scope pengelola -->
+      <section v-if="profile && profile.isSuperadmin" v-show="tab === 'draftProfil'">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Review Profil Jurnal</h2>
+              <p class="card-note">Cover &amp; deskripsi jurnal yang diajukan pengelola, menunggu ditinjau sebelum tayang di direktori publik.</p>
+            </div>
+            <button type="button" class="btn btn-sm" @click="muatDraftProfilJurnal" :disabled="memuatDraftProfil">
+              <span v-if="memuatDraftProfil" class="spinner spinner-gelap" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Muat ulang
+            </button>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="galatDraftProfil" class="alert alert-galat mb-8" role="alert">{{ galatDraftProfil }}</div>
+
+            <div v-if="!draftProfilJurnal.length && !memuatDraftProfil" class="kosong">
+              <div class="kosong-judul">Tidak ada draft menunggu</div>
+              <p class="kosong-teks">Semua draft cover/scope pengelola sudah ditinjau.</p>
+            </div>
+
+            <div v-for="d in draftProfilJurnal" :key="d.namaJurnal" class="dq-item" style="cursor:pointer" @click="bukaDetailDraftProfil(d)">
+              <img v-if="d.coverUrlDraft" :src="d.coverUrlDraft" alt="" style="width:40px;height:56px;object-fit:cover;border-radius:6px;margin-right:10px">
+              <div style="flex:1">
+                <div class="teks-tebal">{{ d.namaJurnal }}</div>
+                <div class="teks-kecil teks-lembut">{{ d.kluster }} &middot; {{ d.scopeDraft ? 'ada perubahan scope' : 'cover saja' }}</div>
+              </div>
+              <button type="button" class="btn btn-sm">Tinjau</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layout Landing — superadmin saja, aktif/urutan section & tab direktori publik -->
+      <section v-if="profile && profile.isSuperadmin" v-show="tab === 'layoutLanding'">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Layout Landing Publik</h2>
+              <p class="card-note">Atur section &amp; tab mana yang tampil di direktori publik, dan urutannya. Angka lebih kecil tampil lebih dulu.</p>
+            </div>
+            <button type="button" class="btn btn-sm" @click="muatPengaturanLanding" :disabled="memuatPengaturanLanding">
+              <span v-if="memuatPengaturanLanding" class="spinner spinner-gelap" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Muat ulang
+            </button>
+          </div>
+
+          <div class="card-pad">
+            <div v-if="galatPengaturanLanding" class="alert alert-galat mb-8" role="alert">{{ galatPengaturanLanding }}</div>
+
+            <template v-if="pengaturanLanding.length">
+              <h3 class="teks-kecil teks-lembut mb-8">Section halaman</h3>
+              <div v-for="p in pengaturanLandingSections" :key="p.kunci" class="flex-tengah gap-8 mb-8">
+                <input type="checkbox" v-model="p.aktif" :id="'ll-' + p.kunci">
+                <label :for="'ll-' + p.kunci" style="flex:1">{{ labelLayoutLanding(p.kunci) }}</label>
+                <input type="number" v-model.number="p.urutan" class="input" style="width:70px">
+              </div>
+
+              <h3 class="teks-kecil teks-lembut mb-8 mt-16">Tab direktori jurnal</h3>
+              <div v-for="p in pengaturanLandingTabs" :key="p.kunci" class="flex-tengah gap-8 mb-8">
+                <input type="checkbox" v-model="p.aktif" :id="'ll-' + p.kunci">
+                <label :for="'ll-' + p.kunci" style="flex:1">{{ labelLayoutLanding(p.kunci) }}</label>
+                <input type="number" v-model.number="p.urutan" class="input" style="width:70px">
+              </div>
+
+              <button type="button" class="btn btn-primer mt-16" :disabled="menyimpanPengaturanLanding" @click="simpanPengaturanLandingKlik">
+                <span v-if="menyimpanPengaturanLanding" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanPengaturanLanding ? 'Menyimpan…' : 'Simpan pengaturan' }}
+              </button>
+            </template>
+            <div v-else-if="!memuatPengaturanLanding" class="kosong">
+              <div class="kosong-judul">Belum ada data</div>
+              <p class="kosong-teks">Klik "Muat ulang" untuk mengambil pengaturan layout dari server.</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </template>
     </div>
   </main>
+
+  <!-- Modal review draft profil jurnal -->
+  <div v-if="draftProfilTerpilih" class="overlay" @click.self="tutupDetailDraftProfil">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <h2 class="card-title" style="font-size:17px">{{ draftProfilTerpilih.namaJurnal }}</h2>
+          <p class="card-note">{{ draftProfilTerpilih.kluster }}</p>
+        </div>
+        <button type="button" class="x-btn" @click="tutupDetailDraftProfil" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <dl class="dl">
+          <dt>Cover saat ini</dt>
+          <dd><img v-if="draftProfilTerpilih.coverUrl" :src="draftProfilTerpilih.coverUrl" alt="" style="max-width:100px;border-radius:6px"><span v-else>&mdash;</span></dd>
+
+          <dt>Cover draft (diajukan)</dt>
+          <dd><img v-if="draftProfilTerpilih.coverUrlDraft" :src="draftProfilTerpilih.coverUrlDraft" alt="" style="max-width:100px;border-radius:6px"><span v-else>&mdash;</span></dd>
+
+          <dt>Scope saat ini</dt>
+          <dd>{{ draftProfilTerpilih.scope || '—' }}</dd>
+
+          <dt>Scope draft (diajukan)</dt>
+          <dd>{{ draftProfilTerpilih.scopeDraft || '—' }}</dd>
+        </dl>
+
+        <div class="field mt-16">
+          <label class="label" for="catatanTolakInput">Alasan penolakan (wajib diisi kalau menolak)</label>
+          <input id="catatanTolakInput" v-model="catatanTolakDraftInput" type="text" class="input">
+        </div>
+      </div>
+
+      <div class="modal-foot flex-antara">
+        <button type="button" class="btn" :disabled="memprosesDraftProfil" @click="tolakDraftProfil">Tolak</button>
+        <button type="button" class="btn btn-primer" :disabled="memprosesDraftProfil" @click="setujuiDraftProfil">
+          <span v-if="memprosesDraftProfil" class="spinner" aria-hidden="true"></span>
+          {{ memprosesDraftProfil ? 'Memproses…' : 'Setujui & tayangkan' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal jadwal terbit -->
   <div v-if="modalBulan" class="overlay" @click.self="tutupModalBulan">
