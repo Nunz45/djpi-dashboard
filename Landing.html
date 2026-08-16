@@ -150,7 +150,26 @@
       width: 100%;
       max-width: 1180px;
       margin: 0 auto;
-      padding: 30px 20px 34px;
+      /* Bottom lebih lega dari sebelumnya (34px) supaya ada ruang untuk
+         .capaian-kartu "mengambang" menumpang ke atas lewat margin negatif. */
+      padding: 30px 20px 90px;
+    }
+
+    .capaian-mengambang {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1180px;
+      margin: -68px auto 0;
+      padding: 0 20px;
+    }
+
+    .capaian-kartu {
+      border-radius: 18px;
+      border: 1px solid rgba(139, 0, 0, .08);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 26px 54px -22px rgba(139, 0, 0, .32), 0 6px 18px rgba(31, 29, 27, .08);
     }
 
     .hero-atas {
@@ -264,9 +283,10 @@
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(270px, .8fr);
-      gap: 24px;
-      align-items: end;
+      /* Dulu 2 kolom (teks + kartu statistik). Kartu statistik sekarang
+         "mengambang" di luar hero (lihat .capaian-mengambang), jadi hero
+         cuma tersisa 1 kolom teks. */
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .hero h1 {
@@ -338,17 +358,28 @@
       box-shadow: 0 0 0 3px rgba(139, 0, 0, .12);
     }
 
-    /* Baris ledger ringkasan — echo sitasi-stat-grid, versi terang di kop surat */
+    /* Baris ledger ringkasan — dulu nempel border-top/bottom di dalam hero,
+       sekarang jadi isi .capaian-kartu yang mengambang (border/shadow-nya
+       dipegang kartu itu sendiri, bukan grid ini, supaya tidak dobel). */
     .hero-stat-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      margin-top: 4px;
-      border-top: 1px solid var(--garis-kuat);
-      border-bottom: 1px solid var(--garis-kuat);
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      padding: 20px 22px;
+    }
+
+    @media (max-width: 820px) {
+      .hero-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .hero-stat:nth-child(3n+1) {
+        border-left: none;
+      }
     }
 
     .hero-stat {
-      padding: 14px 14px 14px 0;
+      padding: 14px 12px;
+      text-align: center;
       border-left: 1px solid var(--garis);
     }
 
@@ -506,16 +537,32 @@
 
     .grid-kartu {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      /* Kolom tetap per breakpoint (bukan auto-fill/minmax) — jumlah kolom
+         dipilih sengaja per lebar layar, bukan "jatuh" dari pembagian
+         lebar/172px. Tetap konsisten dengan tab yang jurnalnya sedikit
+         (mis. Scopus cuma 3) karena kolom tidak melar mengisi baris. */
+      grid-template-columns: repeat(2, 1fr);
       gap: 14px;
+    }
+
+    @media (min-width: 560px) {
+      .grid-kartu { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 820px) {
+      .grid-kartu { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media (min-width: 1040px) {
+      .grid-kartu { grid-template-columns: repeat(6, 1fr); }
     }
 
     .kartu {
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
+      flex-direction: column;
+      align-items: stretch;
       width: 100%;
-      padding: 16px;
+      overflow: hidden;
       border: 1px solid var(--garis);
       border-radius: var(--radius-sm);
       background: var(--permukaan);
@@ -562,88 +609,131 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .modal-head .avatar {
-      width: 52px;
-      height: 52px;
-      border-radius: 5px;
-      font-size: 18px;
+      width: 84px;
+      height: 108px;
+      border-radius: 6px;
+      font-size: 24px;
+    }
+
+    .kartu-cover {
+      position: relative;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      overflow: hidden;
+      background: var(--upi-merah-lembut);
+      color: var(--upi-merah);
+    }
+
+    .kartu-cover-emas {
+      background: var(--upi-emas-lembut);
+      color: #76580f;
+    }
+
+    .kartu-cover-foto {
+      background: var(--permukaan-lembut);
+    }
+
+    .kartu-cover img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .kartu-cover-inisial {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-plat);
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .kartu-stempel {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .kartu-cover-judul {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 20px 10px 8px;
+      background: linear-gradient(to top, rgba(20, 16, 14, .82), rgba(20, 16, 14, 0));
+      color: #fff;
+      font-family: var(--font-plat);
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.28;
+      text-align: center;
+      overflow-wrap: anywhere;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
     .kartu-body {
       min-width: 0;
       flex: 1;
-    }
-
-    .kartu-judul {
-      display: block;
-      margin: 0 0 5px;
-      overflow-wrap: anywhere;
-      font-family: var(--font-plat);
-      font-size: 15.5px;
-      font-weight: 600;
-      line-height: 1.32;
-    }
-
-    .kartu-meta {
-      color: var(--teks-lembut);
-      font-family: var(--font-ledger);
-      font-size: 11.5px;
-      letter-spacing: .01em;
-    }
-
-    .kartu-scope {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      margin-top: 7px;
-      color: var(--teks-lembut);
-      font-size: 12.3px;
-      line-height: 1.45;
-    }
-
-    .kartu-badge {
-      display: flex;
-      gap: 5px;
-      margin-top: 9px;
-      flex-wrap: wrap;
+      padding: 14px 16px 16px;
     }
 
     .kartu-metrik {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 12px;
+      /* Satu kolom, ditumpuk — supaya lebar baris APC/Jadwal tidak pernah
+         melebihi lebar cover di atasnya (kartu sekarang sempit, dibuat
+         muat 6 per baris). */
+      grid-template-columns: 1fr;
+      gap: 6px;
     }
 
     .kartu-metrik-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       min-width: 0;
-      padding: 9px 10px;
+      padding: 6px 8px;
       border: 1px solid var(--garis);
       border-left: 2px solid var(--garis-kuat);
       border-radius: 3px;
       background: var(--permukaan-lembut);
     }
 
+    /* Ikon ganti label teks ("APC"/"Jadwal Terbitan") supaya hemat ruang di
+       kartu sempit — teks aslinya tetap ada untuk pembaca layar (.sr-only). */
     .kartu-metrik-label {
-      display: block;
-      color: var(--teks-lembut);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .07em;
-      text-transform: uppercase;
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      color: var(--upi-merah);
+      font-size: 11px;
     }
 
     .kartu-metrik-value {
-      display: block;
-      margin-top: 4px;
+      min-width: 0;
       overflow-wrap: anywhere;
       color: var(--teks);
       font-family: var(--font-ledger);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 500;
       line-height: 1.3;
     }
@@ -679,6 +769,22 @@
     .badge-emas { border-color: rgba(212, 175, 55, .65); background: var(--upi-emas-lembut); color: #76580f; }
     .badge-doaj { border-color: rgba(23, 86, 94, .4); background: #e3f0f2; color: var(--info); }
     .badge-apc { border-color: rgba(147, 88, 20, .4); background: #fff4e8; color: var(--peringatan); }
+
+    /* Stempel di atas cover: latar gelap tembus pandang tetap, apa pun warna
+       cover di baliknya (foto asli maupun blok inisial) — supaya kontras teks
+       terjamin, bukan ikut warna badge peringkat yang dirancang untuk latar terang. */
+    .badge.stempel {
+      border-color: rgba(255, 255, 255, .38);
+      background: rgba(20, 16, 14, .6);
+      backdrop-filter: blur(2px);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+      /* Kartu sekarang sempit (6 per baris) — perkecil cuma yang di atas
+         cover, tidak menyentuh .badge dasar yang dipakai modal/Dashboard. */
+      padding: 2px 6px;
+      font-size: 8.5px;
+      letter-spacing: .01em;
+    }
 
     .kluster-blok {
       margin-bottom: 12px;
@@ -754,6 +860,62 @@
 
     .kluster-panel {
       padding: 16px 18px 18px;
+    }
+
+    .subjek-section {
+      margin-bottom: 4px;
+    }
+
+    .subjek-eyebrow {
+      color: var(--upi-merah);
+      font-family: var(--font-ledger);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .subjek-title {
+      margin: 6px 0 14px;
+      font-family: var(--font-plat);
+      font-size: clamp(19px, 2.2vw, 24px);
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+
+    .grid-subjek {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .subjek-ubin {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 14px 16px;
+      border: 1px solid var(--garis);
+      border-radius: var(--radius-sm);
+      background: var(--permukaan);
+      box-shadow: var(--bayang);
+      text-align: left;
+    }
+
+    .subjek-ubin:hover {
+      border-color: var(--garis-kuat);
+      box-shadow: 0 10px 28px rgba(31, 29, 27, .1);
+      transform: translateY(-2px);
+    }
+
+    .subjek-ubin-nama {
+      font-family: var(--font-plat);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .subjek-ubin-jml {
+      color: var(--teks-lembut);
+      font-size: 11.5px;
     }
 
     .kosong {
@@ -1468,15 +1630,9 @@
       transform: translateX(-50%);
     }
 
-    @media (max-width: 820px) {
-      .hero-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     @media (max-width: 640px) {
       .hero-inner {
-        padding: 20px 14px 26px;
+        padding: 20px 14px 56px;
       }
 
       .hero h1 {
@@ -1487,25 +1643,22 @@
         display: none;
       }
 
-      .hero-stat-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .capaian-mengambang {
+        margin-top: -40px;
+        padding: 0 14px;
       }
 
-      .hero-stat:nth-child(3) {
-        padding-left: 0;
+      .hero-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 14px 16px;
+      }
+
+      .hero-stat:nth-child(odd) {
         border-left: none;
       }
 
       .page {
         padding: 16px 14px 42px;
-      }
-
-      .grid-kartu {
-        grid-template-columns: 1fr;
-      }
-
-      .kartu-metrik {
-        grid-template-columns: 1fr;
       }
 
       .dl {
@@ -1591,34 +1744,64 @@
             Profil afiliasi UPI di SINTA
           </a>
         </div>
-
-        <div v-if="data && sectionAktif('stat_grid')" class="hero-stat-grid" aria-label="Ringkasan direktori">
-          <div class="hero-stat">
-            <span class="ha-nilai tabular">{{ data.stats.total }}</span>
-            <span class="ha-label">Jurnal aktif</span>
-          </div>
-          <div class="hero-stat">
-            <span class="ha-nilai tabular">{{ data.stats.terakreditasi }}</span>
-            <span class="ha-label">Terakreditasi SINTA</span>
-          </div>
-          <div class="hero-stat">
-            <span class="ha-nilai tabular">{{ data.stats.bereputasi }}</span>
-            <span class="ha-label">Terindeks Scopus</span>
-          </div>
-          <div class="hero-stat">
-            <span class="ha-nilai tabular">{{ data.stats.doaj }}</span>
-            <span class="ha-label">Terindeks DOAJ</span>
-          </div>
-        </div>
       </div>
     </div>
   </header>
+
+  <div class="capaian-mengambang">
+    <div v-if="data && sectionAktif('stat_grid')" class="hero-stat-grid capaian-kartu" aria-label="Ringkasan direktori">
+      <div class="hero-stat">
+        <span class="ha-nilai tabular">{{ data.stats.total }}</span>
+        <span class="ha-label">Jurnal aktif</span>
+      </div>
+      <div class="hero-stat">
+        <span class="ha-nilai tabular">{{ data.stats.terakreditasi }}</span>
+        <span class="ha-label">Terakreditasi SINTA</span>
+      </div>
+      <div class="hero-stat">
+        <span class="ha-nilai tabular">{{ data.stats.bereputasi }}</span>
+        <span class="ha-label">Terindeks Scopus</span>
+      </div>
+      <div class="hero-stat">
+        <span class="ha-nilai tabular">{{ data.stats.doaj }}</span>
+        <span class="ha-label">Terindeks DOAJ</span>
+      </div>
+      <div v-if="data.citationStats" class="hero-stat">
+        <span class="ha-nilai tabular">{{ formatAngka(data.citationStats.totalDoiCrossref) }}</span>
+        <span class="ha-label">Artikel terbit</span>
+      </div>
+      <div v-if="data.citationStats" class="hero-stat">
+        <span class="ha-nilai tabular">{{ formatAngka(data.citationStats.totalSitasiCrossref) }}</span>
+        <span class="ha-label">Sitasi (Crossref)</span>
+      </div>
+    </div>
+  </div>
 
   <main class="page">
     <p v-if="sectionAktif('info_callout')" class="panduan-baris" :style="{order: sectionUrutan('info_callout')}">
       <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
       <span><strong>Cara memilih jurnal:</strong> periksa indeksasi Scopus/DOAJ/SINTA, bandingkan APC, lalu buka situs jurnal untuk membaca fokus &amp; cakupan sebelum submit.</span>
     </p>
+
+    <section
+      v-if="data && data.clusters && data.clusters.length && sectionAktif('subject_grid')"
+      :style="{order: sectionUrutan('subject_grid')}"
+      class="subjek-section"
+      aria-labelledby="subjekJelajah">
+      <span class="subjek-eyebrow">Rumpun ilmu</span>
+      <h2 id="subjekJelajah" class="subjek-title">Jelajahi jurnal per kluster</h2>
+      <div class="grid-subjek">
+        <button
+          v-for="c in data.clusters.filter(function (c) { return c.nama !== 'BELUM DIKELOLA'; })"
+          :key="c.nama"
+          type="button"
+          class="subjek-ubin"
+          @click="bukaKluster(c.nama)">
+          <span class="subjek-ubin-nama">{{ c.nama }}</span>
+          <span class="subjek-ubin-jml">{{ c.total }} jurnal &middot; {{ c.terakreditasi }} terakreditasi</span>
+        </button>
+      </div>
+    </section>
 
     <div v-if="sectionAktif('tab_directory')" :style="{order: sectionUrutan('tab_directory')}">
     <div v-if="galat" class="alert alert-galat" role="alert">
@@ -1628,8 +1811,8 @@
 
     <section v-else-if="memuat" class="grid-kartu" aria-label="Memuat jurnal">
       <div v-for="n in 6" :key="n" class="kartu">
-        <div class="skeleton" style="width:44px;height:44px;flex:none"></div>
-        <div style="flex:1">
+        <div class="skeleton" style="width:100%;aspect-ratio:3/4;border-radius:0"></div>
+        <div style="padding:16px">
           <div class="skeleton" style="height:14px;width:82%"></div>
           <div class="skeleton" style="height:11px;width:52%;margin-top:8px"></div>
           <div class="skeleton" style="height:18px;width:44%;margin-top:12px"></div>
@@ -1704,31 +1887,7 @@
                 type="button"
                 class="kartu"
                 @click="buka(j)">
-                <avatar-jurnal :jurnal="j"></avatar-jurnal>
-
-                <span class="kartu-body">
-                  <span class="kartu-judul">{{ j.namaJurnal }}</span>
-                  <span class="kartu-meta">{{ j.eIssn || j.pIssn || 'ISSN belum tercatat' }}</span>
-                  <span v-if="j.scope" class="kartu-scope">{{ j.scope }}</span>
-
-                  <span class="kartu-badge">
-                    <span :class="kelasBadge(j)">{{ j.statusAkreditasi }}</span>
-                    <span v-if="j.bereputasi" class="badge badge-emas">{{ j.kuartil }}</span>
-                    <span v-if="j.terindeksDoaj" class="badge badge-doaj">DOAJ</span>
-                    <span v-if="j.terindeksGaruda" class="badge badge-none">Garuda</span>
-                  </span>
-
-                  <span class="kartu-metrik">
-                    <span class="kartu-metrik-item">
-                      <span class="kartu-metrik-label">APC</span>
-                      <span class="kartu-metrik-value">{{ j.apc || 'Belum tercatat' }}</span>
-                    </span>
-                    <span class="kartu-metrik-item">
-                      <span class="kartu-metrik-label">Jadwal Terbitan</span>
-                      <span class="kartu-metrik-value">{{ formatJadwal(j.jadwalTerbitan) }}</span>
-                    </span>
-                  </span>
-                </span>
+                <kartu-isi :jurnal="j"></kartu-isi>
               </button>
             </div>
           </div>
@@ -1749,33 +1908,7 @@
             type="button"
             class="kartu"
             @click="buka(j)">
-            <avatar-jurnal :jurnal="j"></avatar-jurnal>
-
-            <span class="kartu-body">
-              <span class="kartu-judul">{{ j.namaJurnal }}</span>
-              <span class="kartu-meta">
-                {{ j.kluster }} · {{ j.eIssn || j.pIssn || 'ISSN belum tercatat' }}
-              </span>
-              <span v-if="j.scope" class="kartu-scope">{{ j.scope }}</span>
-
-              <span class="kartu-badge">
-                <span :class="kelasBadge(j)">{{ j.statusAkreditasi }}</span>
-                <span v-if="j.bereputasi" class="badge badge-emas">{{ j.kuartil }}</span>
-                <span v-if="j.terindeksDoaj" class="badge badge-doaj">DOAJ</span>
-                <span v-if="j.terindeksGaruda" class="badge badge-none">Garuda</span>
-              </span>
-
-              <span class="kartu-metrik">
-                <span class="kartu-metrik-item">
-                  <span class="kartu-metrik-label">APC</span>
-                  <span class="kartu-metrik-value">{{ j.apc || 'Belum tercatat' }}</span>
-                </span>
-                <span class="kartu-metrik-item">
-                  <span class="kartu-metrik-label">Jadwal Terbitan</span>
-                  <span class="kartu-metrik-value">{{ formatJadwal(j.jadwalTerbitan) }}</span>
-                </span>
-              </span>
-            </span>
+            <kartu-isi :jurnal="j"></kartu-isi>
           </button>
         </div>
       </template>
@@ -1988,7 +2121,7 @@
             </h2>
 
             <div class="indeksasi-baris">
-              <span :class="kelasBadge(terpilih)">{{ terpilih.statusAkreditasi }}</span>
+              <span v-if="terpilih.terakreditasi" :class="kelasBadge(terpilih)">{{ terpilih.statusAkreditasi }}</span>
               <span v-if="terpilih.bereputasi" class="badge badge-emas">Scopus · {{ terpilih.kuartil }}</span>
               <span v-if="terpilih.terindeksDoaj" class="badge badge-doaj">DOAJ</span>
               <span v-if="terpilih.terindeksGaruda" class="badge badge-none">Garuda</span>
@@ -2094,6 +2227,27 @@
     });
   }
 
+  // Validasi URL cover (dipakai avatarJurnal & kartuIsi) — cuma data: URI
+  // gambar atau http(s) yang lolos, jaga-jaga dari XSS lewat kolom sheet.
+  function urlCoverAman_(jurnal) {
+    var url = jurnal && jurnal.coverUrl;
+    if (!url || typeof url !== 'string') return '';
+
+    var nilai = url.trim();
+    if (!nilai) return '';
+
+    if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(nilai)) return nilai;
+
+    try {
+      var u = new URL(nilai);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+    } catch (e) {
+      return '';
+    }
+
+    return nilai;
+  }
+
   Vue.createApp({
     components: {
       avatarJurnal: {
@@ -2103,30 +2257,92 @@
         },
         computed: {
           cover: function () {
-            var url = this.jurnal && this.jurnal.coverUrl;
-            if (!url || typeof url !== 'string') return '';
-
-            var nilai = url.trim();
-            if (!nilai) return '';
-
-            // data: URI cover (dihosting sendiri, base64 di sel sheet) — cuma
-            // gambar, bukan data: URI sembarangan (jaga-jaga dari XSS).
-            if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(nilai)) return nilai;
-
-            try {
-              var u = new URL(nilai);
-              if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
-            } catch (e) {
-              return '';
-            }
-
-            return nilai;
+            return urlCoverAman_(this.jurnal);
           }
         },
         template:
           '<span class="avatar" :class="{ \'avatar-emas\': jurnal.bereputasi, \'avatar-foto\': cover && !gagal }">' +
             '<img v-if="cover && !gagal" :src="cover" :alt="\'Sampul \' + jurnal.namaJurnal" loading="lazy" @error="gagal = true">' +
             '<template v-else>{{ jurnal.inisial }}</template>' +
+          '</span>'
+      },
+
+      // baru: isi kartu jurnal (cover poster + stempel SINTA/Scopus + badan
+      // kartu) — satu komponen dipakai di semua tab grid supaya tidak ada
+      // markup ganda antara tab "Per Kluster" dan tab lain.
+      kartuIsi: {
+        props: ['jurnal'],
+        data: function () {
+          return { gagal: false };
+        },
+        computed: {
+          cover: function () {
+            return urlCoverAman_(this.jurnal);
+          }
+        },
+        methods: {
+          kelasBadge: function (jurnal) {
+            return jurnal.terakreditasi
+              ? 'badge badge-s' + jurnal.peringkatSinta
+              : 'badge badge-none';
+          },
+          formatJadwal: function (val) {
+            if (!val) return 'Belum tercatat';
+
+            var arr = val;
+
+            if (typeof val === 'string') {
+              try {
+                arr = JSON.parse(val);
+              } catch (e) {
+                if (val.indexOf(',') !== -1) {
+                  arr = val.replace(/[\[\]\s]/g, '').split(',');
+                } else {
+                  return val;
+                }
+              }
+            }
+
+            if (Array.isArray(arr)) {
+              var namaBulan = [
+                '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+              ];
+
+              return arr.map(function (x) {
+                var num = parseInt(x, 10);
+                return (num >= 1 && num <= 12) ? namaBulan[num] : x;
+              }).join(', ');
+            }
+
+            return val;
+          }
+        },
+        template:
+          '<span class="kartu-cover" :class="{ \'kartu-cover-emas\': jurnal.bereputasi, \'kartu-cover-foto\': cover && !gagal }">' +
+            '<img v-if="cover && !gagal" :src="cover" :alt="\'Sampul \' + jurnal.namaJurnal" loading="lazy" @error="gagal = true">' +
+            '<span v-else class="kartu-cover-inisial">{{ jurnal.inisial }}</span>' +
+            '<span class="kartu-stempel" aria-hidden="true">' +
+              '<span v-if="jurnal.terakreditasi" :class="[kelasBadge(jurnal), \'stempel\']">{{ jurnal.statusAkreditasi }}</span>' +
+              '<span v-if="jurnal.bereputasi" class="badge badge-emas stempel">{{ jurnal.kuartil }}</span>' +
+              '<span v-if="jurnal.terindeksDoaj" class="badge badge-doaj stempel">DOAJ</span>' +
+              '<span v-if="jurnal.terindeksGaruda" class="badge badge-none stempel">Garuda</span>' +
+            '</span>' +
+            '<span class="kartu-cover-judul">{{ jurnal.namaJurnal }}</span>' +
+          '</span>' +
+          '<span class="kartu-body">' +
+            '<span class="kartu-metrik">' +
+              '<span class="kartu-metrik-item">' +
+                '<span class="kartu-metrik-label" aria-hidden="true"><i class="fa-solid fa-coins"></i></span>' +
+                '<span class="sr-only">APC</span>' +
+                '<span class="kartu-metrik-value">{{ jurnal.apc || \'Belum tercatat\' }}</span>' +
+              '</span>' +
+              '<span class="kartu-metrik-item">' +
+                '<span class="kartu-metrik-label" aria-hidden="true"><i class="fa-solid fa-calendar-days"></i></span>' +
+                '<span class="sr-only">Jadwal Terbitan</span>' +
+                '<span class="kartu-metrik-value">{{ formatJadwal(jurnal.jadwalTerbitan) }}</span>' +
+              '</span>' +
+            '</span>' +
           '</span>'
       }
     },
@@ -2190,9 +2406,7 @@
         if (!this.data) return [];
 
         var q = this.cari.trim().toLowerCase();
-        if (!q) return this.data.journals;
-
-        return this.data.journals.filter(function (j) {
+        var daftar = !q ? this.data.journals : this.data.journals.filter(function (j) {
           var gabung = [
             j.namaJurnal,
             j.kluster,
@@ -2205,6 +2419,13 @@
           ].join(' ').toLowerCase();
 
           return gabung.indexOf(q) !== -1;
+        });
+
+        // Urutan bawaan: peringkat SINTA terbaik dulu (1 = tertinggi), jurnal
+        // yang belum terakreditasi di paling akhir. .slice() supaya tidak
+        // mengubah array asli data.journals.
+        return daftar.slice().sort(function (a, b) {
+          return Number(a.peringkatSinta || 99) - Number(b.peringkatSinta || 99);
         });
       },
 
@@ -2424,6 +2645,21 @@
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
+      },
+
+      // baru: dipanggil dari ubin "Jelajahi jurnal per kluster" — pindah ke
+      // tab Per Kluster, buka panel kluster yang diklik, lalu scroll ke sana.
+      bukaKluster: function (nama) {
+        this.tab = 'kluster';
+        this.filterSinta = '';
+        this.cari = '';
+        this.klusterTerbuka[nama] = true;
+
+        var slug = this.slugKluster(nama);
+        this.$nextTick(function () {
+          var el = document.getElementById('klusterPanel-' + slug);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       },
 
       formatJadwal: function (val) {

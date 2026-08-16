@@ -5783,6 +5783,7 @@ var PENGATURAN_LANDING_DEFAULT = [
   ['tab_directory', 'section', true, 3],
   ['citation_impact', 'section', true, 4],
   ['sinta_link', 'section', true, 5],
+  ['subject_grid', 'section', true, 6],
   ['bereputasi', 'tab', true, 1],
   ['terakreditasi', 'tab', true, 2],
   ['doaj', 'tab', true, 3],
@@ -5799,7 +5800,24 @@ function getPengaturanLandingSheet_() {
     sh.setFrozenRows(1);
     sh.getRange(2, 1, PENGATURAN_LANDING_DEFAULT.length, PENGATURAN_LANDING_HEADER.length)
       .setValues(PENGATURAN_LANDING_DEFAULT);
+    return sh;
   }
+
+  // Migrasi lunak: baris baru yang ditambahkan ke PENGATURAN_LANDING_DEFAULT
+  // (mis. section baru) belum tentu ada di sheet lama yang sudah terlanjur
+  // dibuat — tambahkan yang belum ada TANPA menyentuh baris yang sudah ada,
+  // supaya aktif/urutan yang sudah diatur admin sebelumnya tidak berubah.
+  var kunciAda = {};
+  var nilai = sh.getDataRange().getValues();
+  for (var r = 1; r < nilai.length; r++) {
+    var k = str_(nilai[r][0]);
+    if (k) kunciAda[k] = true;
+  }
+  var kurang = PENGATURAN_LANDING_DEFAULT.filter(function (row) { return !kunciAda[row[0]]; });
+  if (kurang.length) {
+    sh.getRange(sh.getLastRow() + 1, 1, kurang.length, PENGATURAN_LANDING_HEADER.length).setValues(kurang);
+  }
+
   return sh;
 }
 
