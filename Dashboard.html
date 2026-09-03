@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
@@ -20,8 +20,8 @@
 <body>
 <div id="app" v-cloak class="app-shell">
 
-  <!-- Header -->
-  <header class="topbar">
+  <!-- Header — hanya untuk layar loading & login; dashboard punya shell sendiri -->
+  <header v-if="tahap !== 'dashboard'" class="topbar">
     <div class="topbar-inner">
       <div class="brand-mark">DJPI</div>
 
@@ -30,29 +30,7 @@
         <div class="brand-sub">Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia</div>
       </div>
 
-      <template v-if="tahap === 'dashboard' && profile">
-        <div class="topbar-profil">
-          <div class="topbar-sapaan">
-            {{ sapaan }}<span v-if="profile.isSuperadmin"> · Superadmin</span><span v-else-if="profile.aksesKluster && profile.aksesKluster.length"> · {{ profile.aksesKluster.join(', ') }}</span>
-          </div>
-          <div class="topbar-email">{{ profile.email }}</div>
-        </div>
-
-        <button type="button" class="btn btn-sm" @click="segarkan" :disabled="memuatData">
-          <span v-if="memuatData" class="spinner spinner-gelap" aria-hidden="true"></span>
-          <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
-          Segarkan
-        </button>
-
-        <button type="button" class="btn btn-sm" @click="keluar">
-          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-          Keluar
-        </button>
-
-        <div class="topbar-avatar" aria-hidden="true">{{ inisialProfil }}</div>
-      </template>
-
-      <a v-else class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
+      <a class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
         <i class="fa-solid fa-globe" aria-hidden="true"></i>
         Halaman publik
       </a>
@@ -147,50 +125,73 @@
     </div>
   </main>
 
-  <!-- Dashboard -->
-  <main v-else class="page shell-app">
-    <aside v-if="data" class="sidebar" aria-label="Navigasi dashboard">
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'ringkasan' }" @click="gantiTab('ringkasan')">
-        <i class="fa-solid fa-gauge" aria-hidden="true"></i> Ringkasan
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'jurnal' }" @click="gantiTab('jurnal')">
-        <i class="fa-solid fa-book-open" aria-hidden="true"></i> Daftar Jurnal ({{ data.journals.length }})
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'kualitas' }" @click="gantiTab('kualitas')">
-        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kualitas Data<span v-if="dq && dq.bermasalah"> ({{ dq.bermasalah }})</span>
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'scopus' }" @click="gantiTab('scopus')">
-        <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i> Pipeline Scopus
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'apc' }" @click="gantiTab('apc')">
-        <i class="fa-solid fa-wallet" aria-hidden="true"></i> Pemasukan APC
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'terbitan' }" @click="gantiTab('terbitan')">
-        <i class="fa-solid fa-timeline" aria-hidden="true"></i> Progress Terbitan
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'doi' }"
-        @click="gantiTab('doi'); !memuatDoi && !usulanDoi.length && muatUsulanDoi()">
-        <i class="fa-solid fa-link" aria-hidden="true"></i> Usulan DOI
-      </button>
-      <button type="button" class="sidebar-item" :class="{ aktif: tab === 'akun' }" @click="gantiTab('akun')">
-        <i class="fa-solid fa-user" aria-hidden="true"></i> Akun Saya
-      </button>
-      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'template' }"
-        @click="gantiTab('template'); !daftarTemplateEmail.length && muatTemplateEmail()">
-        <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Template Email
-      </button>
-      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'draftProfil' }"
-        @click="gantiTab('draftProfil'); !memuatDraftProfil && !draftProfilJurnal.length && muatDraftProfilJurnal()">
-        <i class="fa-solid fa-image" aria-hidden="true"></i> Review Profil Jurnal
-        <span v-if="draftProfilJurnal.length" class="badge badge-emas">{{ draftProfilJurnal.length }}</span>
-      </button>
-      <button v-if="profile && profile.isSuperadmin" type="button" class="sidebar-item" :class="{ aktif: tab === 'layoutLanding' }"
-        @click="gantiTab('layoutLanding'); !pengaturanLanding.length && muatPengaturanLanding()">
-        <i class="fa-solid fa-table-cells" aria-hidden="true"></i> Layout Landing
-      </button>
+  <!-- ================= DASHBOARD APP SHELL (sidebar gelap "inset") ================= -->
+  <div v-else class="app">
+    <div v-if="navMobileTerbuka" class="app-nav-backdrop" @click="navMobileTerbuka = false"></div>
+
+    <aside class="app-nav" :class="{ terbuka: navMobileTerbuka }" aria-label="Navigasi dashboard">
+      <div class="app-nav-merek">
+        <div class="brand-mark">DJPI</div>
+        <div>
+          <div class="app-nav-merek-judul">DJPI Dashboard</div>
+          <div class="app-nav-merek-sub">Divisi Jurnal &amp; Publikasi Ilmiah</div>
+        </div>
+      </div>
+
+      <label class="app-nav-cari">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input v-model="cariMenu" type="search" placeholder="Cari menu…" aria-label="Cari menu">
+      </label>
+
+      <nav class="app-nav-daftar">
+        <template v-for="grup in menuTersaring" :key="grup.judul">
+          <div class="app-nav-grup">{{ grup.judul }}</div>
+          <button v-for="m in grup.item" :key="m.k" type="button"
+            class="app-nav-item" :class="{ aktif: tab === m.k }" @click="gantiTab(m.k)">
+            <i :class="m.ikon" aria-hidden="true"></i>
+            <span>{{ m.label }}</span>
+            <span v-if="m.badge" class="app-nav-badge">{{ m.badge }}</span>
+          </button>
+        </template>
+        <p v-if="!menuTersaring.length" class="app-nav-grup">Tidak ada menu cocok</p>
+      </nav>
+
+      <div v-if="profile" class="app-nav-user">
+        <div class="topbar-avatar" aria-hidden="true">{{ inisialProfil }}</div>
+        <div class="app-nav-user-teks">
+          <div class="app-nav-user-nama">{{ namaProfil }}</div>
+          <div class="app-nav-user-email">
+            {{ profile.email }}<span v-if="profile.isSuperadmin"> · superadmin</span>
+          </div>
+        </div>
+        <button type="button" class="x-btn" @click="keluar" title="Keluar" aria-label="Keluar">
+          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+        </button>
+      </div>
     </aside>
 
-    <div class="konten-utama">
+    <div class="app-utama">
+      <div class="app-panel">
+        <header class="app-atas">
+          <button type="button" class="ikon-btn app-atas-toggle" @click="navMobileTerbuka = !navMobileTerbuka" aria-label="Buka menu">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          </button>
+          <div class="app-atas-judul">{{ judulTab }}</div>
+          <div class="app-atas-alat">
+            <span v-if="data" class="app-atas-meta">Data {{ data.generatedAt }} WIB</span>
+            <button type="button" class="ikon-btn" @click="gantiTema" :title="'Tema: ' + labelTema" aria-label="Ganti tema">
+              <i :class="ikonTema" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-primer btn-sm" @click="segarkan" :disabled="memuatData">
+              <span v-if="memuatData" class="spinner" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Segarkan
+            </button>
+          </div>
+        </header>
+
+        <main class="app-isi">
+        <div class="konten-utama">
     <div v-if="galatData" class="alert alert-galat" role="alert">
       <strong>Gagal memuat data.</strong> {{ galatData }}
       <button type="button" class="btn btn-sm mt-8" @click="segarkan">Coba lagi</button>
@@ -204,17 +205,9 @@
     </div>
 
     <template v-if="data">
-      <section class="mb-16">
-        <h1 style="font-size:25px;line-height:1.15;margin:0 0 5px">
-          Monitoring jurnal dan prioritas operasional
-        </h1>
-        <p class="card-note">
-          Data terakhir dimuat {{ data.generatedAt }} WIB. Gunakan kartu dan filter untuk membuka daftar jurnal terkait.
-        </p>
-      </section>
-
       <!-- Ringkasan -->
       <section v-show="tab === 'ringkasan'">
+        <div class="kpi-eyebrow"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Basis monitoring jurnal</div>
         <div class="grid grid-kpi mb-16">
           <div class="card kpi">
             <div class="kpi-top"><div class="kpi-icon kpi-icon-n"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div></div>
@@ -1299,8 +1292,15 @@
         </div>
       </section>
     </template>
-    </div>
-  </main>
+        </div><!-- /konten-utama -->
+        </main>
+
+        <footer class="footer">
+          Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
+        </footer>
+      </div><!-- /app-panel -->
+    </div><!-- /app-utama -->
+  </div><!-- /app -->
 
   <!-- Modal review draft profil jurnal -->
   <div v-if="draftProfilTerpilih" class="overlay" @click.self="tutupDetailDraftProfil">
@@ -1641,9 +1641,6 @@
     {{ toast }}
   </div>
 
-  <footer class="footer">
-    Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
-  </footer>
 </div>
 
 <script>
@@ -1687,54 +1684,32 @@
 
 <?!= include('JavaScript'); ?>
 
-<!-- CSS lokal khusus sidebar-nav Dashboard admin, tidak ada di Stylesheet.html
-     supaya tidak menumpuk CSS tak terpakai di Pengelola.html/Landing.html
-     yang memakai Stylesheet.html sama tapi tidak punya sidebar. -->
+<!-- CSS khusus Dashboard admin (shell umum ada di Stylesheet.html) -->
 <style>
-.shell-app{display:flex;gap:var(--space-6)}
-.sidebar{
-  width:216px;flex:none;display:flex;flex-direction:column;gap:2px;
-  position:sticky;top:76px;align-self:flex-start;
-  max-height:calc(100vh - 92px);overflow-y:auto;
-}
-.sidebar-item{
-  display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;
-  border:0;border-left:3px solid transparent;border-radius:0 8px 8px 0;
-  background:transparent;color:var(--muted);font-size:13px;font-weight:700;
-  text-align:left;transition:background .14s ease,color .14s ease,border-color .14s ease;
-}
-.sidebar-item:hover{background:var(--elev-4);color:var(--text)}
-.sidebar-item.aktif{background:var(--red-soft);border-left-color:var(--red);color:var(--red-dark)}
-.sidebar-item i{width:16px;flex:none;text-align:center}
-.konten-utama{flex:1;min-width:0}
-
-/* topbar: sapaan + avatar (dashboard saja) */
-.topbar-profil{display:flex;flex-direction:column;line-height:1.3;text-align:right}
-.topbar-sapaan{font-size:12.5px;font-weight:700}
-.topbar-email{font-size:11px;opacity:.85}
+/* avatar pengguna di dasar sidebar gelap */
 .topbar-avatar{
-  width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;
-  background:var(--gold-soft);color:#76580f;font-weight:800;font-size:11.5px;
+  width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;
+  font-weight:800;font-size:12px;background:rgba(230,197,99,.16);color:#e6c563;
 }
 
-/* kartu KPI Ringkasan: badge ikon di atas label */
+/* eyebrow di atas grup kartu KPI (pola litabmas) */
+.kpi-eyebrow{
+  display:flex;align-items:center;gap:7px;margin:0 0 10px;
+  font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+}
+
+/* badge ikon KPI — kotak pastel */
 .kpi-top{display:flex;margin-bottom:-6px}
-.kpi-icon{width:32px;height:32px;flex:none;border-radius:9px;display:grid;place-items:center}
+.kpi-icon{width:36px;height:36px;flex:none;border-radius:10px;display:grid;place-items:center}
 .kpi-icon-n{background:var(--elev-4);color:var(--muted)}
 .kpi-icon-r{background:var(--red-soft);color:var(--red)}
 .kpi-icon-w{background:#fff1e2;color:var(--warn)}
 .kpi-icon-g{background:var(--gold-soft);color:#7a5310}
-
-@media(max-width:900px){
-  .shell-app{flex-direction:column}
-  .sidebar{
-    position:static;width:100%;flex-direction:row;flex-wrap:wrap;
-    max-height:none;overflow:visible;padding-bottom:var(--space-3);
-    border-bottom:1px solid var(--line);
-  }
-  .sidebar-item{width:auto;border-left:0;border-radius:8px}
-  .sidebar-item.aktif{box-shadow:inset 0 0 0 1.5px var(--red)}
-}
+.kpi-icon-b{background:#e7edfb;color:#3a5bd0}
+.kpi-icon-ok{background:#e7f2ea;color:#2f7a3d}
+:root[data-theme="dark"] .kpi-icon-b,body.dark .kpi-icon-b{background:#1b2540;color:#8fb0ff}
+:root[data-theme="dark"] .kpi-icon-ok,body.dark .kpi-icon-ok{background:#16301f;color:#6fc586}
+:root[data-theme="dark"] .badge-none,body.dark .badge-none{background:#2b2925;color:var(--muted);border-color:#3f3c36}
 </style>
 </body>
 </html>

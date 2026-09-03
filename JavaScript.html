@@ -70,6 +70,8 @@ Vue.createApp({
   data:function(){return{
     tahap:'memuat',email:'',pin:'',token:'',profile:null,sedangKirim:false,pesanGalat:'',pesanInfo:'',
     memuatData:false,data:null,galatData:'',tab:'ringkasan',
+    // baru: shell sidebar gelap "inset" — filter menu, drawer mobile, preferensi tema
+    cariMenu:'',navMobileTerbuka:false,tema:'auto',
     cari:'',filterKluster:'',filterSinta:'',filterTimeliness:'',filterMigrasi:'',filterScopus:'',
     filterKualitas:'',filterMasalah:'',urutan:'nama', // baru: filter & urutan berbasis kualitas data
     halaman:1,perHalaman:25,namaBulan:BULAN,modalBulan:null,memuatBulan:false,terpilihBulan:[],konfirmasiKirim:false,mengirim:false,hasilKirim:null,
@@ -114,6 +116,57 @@ Vue.createApp({
       if(!bagian.length) return this.profile.email.substring(0,2).toUpperCase();
       if(bagian.length===1) return bagian[0].substring(0,2).toUpperCase();
       return (bagian[0][0]+bagian[1][0]).toUpperCase();
+    },
+    // baru: nama pengelola dari bagian lokal email, untuk kartu pengguna di sidebar
+    namaProfil:function(){
+      if(!this.profile||!this.profile.email)return'';
+      var n=this.profile.email.split('@')[0].replace(/[._\-]+/g,' ').trim();
+      return n.replace(/\b\w/g,function(c){return c.toUpperCase();});
+    },
+    // baru: status toggle tema terang/gelap/ikut-sistem di topbar shell
+    labelTema:function(){return{auto:'ikut sistem',light:'terang',dark:'gelap'}[this.tema];},
+    ikonTema:function(){
+      return this.tema==='light'?'fa-solid fa-sun':this.tema==='dark'?'fa-solid fa-moon':'fa-solid fa-circle-half-stroke';
+    },
+    // baru: menu sidebar dikelompokkan (pola litabmas.upi.edu). Badge angka ikut data.
+    menuGroups:function(){
+      var d=this.data,dq=this.dq,sup=this.profile&&this.profile.isSuperadmin;
+      var grup=[
+        {judul:'Monitoring',item:[
+          {k:'ringkasan',label:'Ringkasan',ikon:'fa-solid fa-gauge'},
+          {k:'jurnal',label:'Daftar Jurnal',ikon:'fa-solid fa-book-open',badge:d?d.journals.length:0},
+          {k:'kualitas',label:'Kualitas Data',ikon:'fa-solid fa-shield-halved',badge:dq&&dq.bermasalah?dq.bermasalah:0}
+        ]},
+        {judul:'Operasional',item:[
+          {k:'scopus',label:'Pipeline Scopus',ikon:'fa-solid fa-arrow-trend-up'},
+          {k:'apc',label:'Pemasukan APC',ikon:'fa-solid fa-wallet'},
+          {k:'terbitan',label:'Progress Terbitan',ikon:'fa-solid fa-timeline'},
+          {k:'doi',label:'Usulan DOI',ikon:'fa-solid fa-link'}
+        ]},
+        {judul:'Akun & Admin',item:[
+          {k:'akun',label:'Akun Saya',ikon:'fa-solid fa-user'}
+        ]}
+      ];
+      if(sup){
+        grup[2].item.push(
+          {k:'template',label:'Template Email',ikon:'fa-solid fa-envelope-open-text'},
+          {k:'draftProfil',label:'Review Profil Jurnal',ikon:'fa-solid fa-image',badge:this.draftProfilJurnal.length||0},
+          {k:'layoutLanding',label:'Layout Landing',ikon:'fa-solid fa-table-cells'}
+        );
+      }
+      return grup;
+    },
+    menuTersaring:function(){
+      var q=this.cariMenu.trim().toLowerCase();
+      if(!q)return this.menuGroups;
+      return this.menuGroups.map(function(g){
+        return{judul:g.judul,item:g.item.filter(function(m){return m.label.toLowerCase().indexOf(q)!==-1;})};
+      }).filter(function(g){return g.item.length;});
+    },
+    judulTab:function(){
+      var t=this.tab,f='Dashboard';
+      this.menuGroups.forEach(function(g){g.item.forEach(function(m){if(m.k===t)f=m.label;});});
+      return f;
     },
     fieldSunting:function(){return this.FIELD_ADMIN;},
     daftarKluster:function(){return this.data?this.data.clusters.map(function(x){return x.nama;}):[];},
@@ -282,6 +335,8 @@ Vue.createApp({
   },
   mounted:function(){
     document.addEventListener('keydown',this.tutupModalEsc); // baru: tutup modal aktif dengan Esc
+    try{this.tema=localStorage.getItem('djpi-tema')||'auto';}catch(e){} // baru: preferensi tema
+    this.terapkanTema();
     if(typeof google==='undefined'||!google.script||!google.script.run){this.tahap='login';this.pesanGalat='Buka melalui URL web app Apps Script yang berakhiran /exec.';return;}
     if(typeof TOKEN_AWAL==='string'&&TOKEN_AWAL){this.token=TOKEN_AWAL;this.muatDashboard(true);}else this.tahap='login';
   },
@@ -317,17 +372,53 @@ Vue.createApp({
       }).catch(function(e){s.memuatData=false;s.galatData='Gagal menghubungi server: '+e;s.tahap='dashboard';});
     },
     segarkan:function(){this.muatDashboard();},
-    // baru: dipakai tombol sidebar — ganti tab lalu scroll konten balik ke atas
-    // (tab horizontal sebelumnya tidak perlu ini, kontennya selalu mulai di posisi yang sama)
-    gantiTab:function(v){this.tab=v;window.scrollTo({top:0,behavior:'smooth'});},
+    // dipakai tombol sidebar — ganti tab, tutup drawer mobile, scroll ke atas,
+    // lalu muat data tab yang lazy saat pertama dibuka (dulu ditulis inline di template)
+    gantiTab:function(v){
+      this.tab=v;this.navMobileTerbuka=false;window.scrollTo({top:0,behavior:'smooth'});
+      if(v==='doi'&&!this.memuatDoi&&!this.usulanDoi.length)this.muatUsulanDoi();
+      else if(v==='template'&&!this.memuatTemplateEmail&&!this.daftarTemplateEmail.length)this.muatTemplateEmail();
+      else if(v==='draftProfil'&&!this.memuatDraftProfil&&!this.draftProfilJurnal.length)this.muatDraftProfilJurnal();
+      else if(v==='layoutLanding'&&!this.memuatPengaturanLanding&&!this.pengaturanLanding.length)this.muatPengaturanLanding();
+    },
+    // baru: siklus tema terang -> gelap -> ikut sistem. Preferensi tampilan ini
+    // disimpan di localStorage; token sesi tetap hanya di memori tab (lihat header file).
+    gantiTema:function(){
+      var urut=['auto','light','dark'];
+      this.tema=urut[(urut.indexOf(this.tema)+1)%3];
+      try{localStorage.setItem('djpi-tema',this.tema);}catch(e){}
+      this.terapkanTema();
+    },
+    terapkanTema:function(){
+      var el=document.documentElement,s=this;
+      if(this.tema==='auto')el.removeAttribute('data-theme');
+      else el.setAttribute('data-theme',this.tema);
+      // gambar ulang grafik agar warnanya ikut tema baru
+      this.$nextTick(function(){
+        if(s.tab==='ringkasan')s.gambarGrafikBulanan();
+        if(s.tab==='apc')s.gambarGrafikApc();
+      });
+    },
     hancurkanGrafik:function(){var s=this;Object.keys(this.grafik).forEach(function(k){if(s.grafik[k]){s.grafik[k].destroy();s.grafik[k]=null;}});},
+    // baru: warna grafik mengikuti tema aktif (Chart.js tidak membaca CSS var sendiri)
+    warnaGrafik:function(){
+      var cs=getComputedStyle(document.documentElement);
+      return{
+        bar:cs.getPropertyValue('--red').trim()||'#8b0000',
+        barHover:cs.getPropertyValue('--red-dark').trim()||'#650000',
+        grid:cs.getPropertyValue('--line').trim()||'#efede9',
+        tick:cs.getPropertyValue('--muted').trim()||'#6e6c67'
+      };
+    },
     gambarGrafikBulanan:function(){
       var el=document.getElementById('grafikBulanan'),s=this;if(!el||!this.data)return;if(this.grafik.bulanan)this.grafik.bulanan.destroy();
-      this.grafik.bulanan=new Chart(el,{type:'bar',data:{labels:BULAN,datasets:[{data:this.data.bulanan,backgroundColor:'#8b0000',hoverBackgroundColor:'#650000',borderRadius:5,maxBarThickness:34}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},onClick:function(e,x){if(x.length)s.bukaBulan(x[0].index);},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0},grid:{color:'#efede9'}}}}});
+      var w=this.warnaGrafik();
+      this.grafik.bulanan=new Chart(el,{type:'bar',data:{labels:BULAN,datasets:[{data:this.data.bulanan,backgroundColor:w.bar,hoverBackgroundColor:w.barHover,borderRadius:5,maxBarThickness:34}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},onClick:function(e,x){if(x.length)s.bukaBulan(x[0].index);},scales:{x:{grid:{display:false},ticks:{color:w.tick}},y:{beginAtZero:true,ticks:{precision:0,color:w.tick},grid:{color:w.grid}}}}});
     },
     gambarGrafikApc:function(){
       var el=document.getElementById('grafikApc'),s=this;if(!el||!this.data||this.data.apc.kosong)return;if(this.grafik.apc)this.grafik.apc.destroy();
-      var b=this.data.apc.perKluster.slice(0,10);this.grafik.apc=new Chart(el,{type:'bar',data:{labels:b.map(function(x){return x.nama;}),datasets:[{data:b.map(function(x){return x.total;}),backgroundColor:'#8b0000',borderRadius:5,maxBarThickness:25}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return rupiah(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return rupiah(v);}},grid:{color:'#efede9'}},y:{grid:{display:false}}}}});
+      var w=this.warnaGrafik();
+      var b=this.data.apc.perKluster.slice(0,10);this.grafik.apc=new Chart(el,{type:'bar',data:{labels:b.map(function(x){return x.nama;}),datasets:[{data:b.map(function(x){return x.total;}),backgroundColor:w.bar,borderRadius:5,maxBarThickness:25}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return rupiah(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return rupiah(v);},color:w.tick},grid:{color:w.grid}},y:{grid:{display:false},ticks:{color:w.tick}}}}});
     },
     resetFilter:function(){this.cari='';this.filterKluster='';this.filterSinta='';this.filterTimeliness='';this.filterMigrasi='';this.filterScopus='';this.filterKualitas='';this.filterMasalah='';this.halaman=1;},
     bukaDaftar:function(jenis){

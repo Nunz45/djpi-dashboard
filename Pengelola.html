@@ -38,7 +38,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
@@ -51,22 +51,15 @@
 <body>
 <div id="app" v-cloak class="app-shell">
 
-  <header class="topbar">
+  <header v-if="tahap !== 'menu'" class="topbar">
     <div class="topbar-inner">
       <div class="brand-mark">DJPI</div>
       <div style="flex:1 1 220px">
         <div class="brand-title">Dashboard Pengelola Jurnal</div>
-        <div class="brand-sub">{{ namaJurnalAktif || 'Divisi Jurnal dan Publikasi Ilmiah · UPI' }}</div>
+        <div class="brand-sub">Divisi Jurnal dan Publikasi Ilmiah · UPI</div>
       </div>
 
-      <template v-if="tahap === 'menu'">
-        <button type="button" class="btn btn-sm" @click="keluar">
-          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-          Keluar
-        </button>
-      </template>
-
-      <a v-else class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
+      <a class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
         <i class="fa-solid fa-globe" aria-hidden="true"></i>
         Halaman publik
       </a>
@@ -147,26 +140,60 @@
     </div>
   </main>
 
-  <!-- ===================== MENU + PANEL ===================== -->
-  <main v-else-if="tahap === 'menu'" class="page">
+  <!-- ============= MENU + PANEL (sidebar gelap "inset") ============= -->
+  <div v-else-if="tahap === 'menu'" class="app">
+    <div v-if="navMobileTerbuka" class="app-nav-backdrop" @click="navMobileTerbuka = false"></div>
 
-    <nav class="tabs mb-16" aria-label="Menu pengelola">
-      <button type="button" class="tab" :class="{ aktif: menuAktif === 'sunting' }" @click="bukaMenu('sunting')">
-        Sunting Data Jurnal
-      </button>
-      <button type="button" class="tab" :class="{ aktif: menuAktif === 'apc' }" @click="bukaMenu('apc')">
-        Lapor APC
-      </button>
-      <button type="button" class="tab" :class="{ aktif: menuAktif === 'doi' }" @click="bukaMenu('doi')">
-        Ajukan Aktivasi DOI
-      </button>
-      <button type="button" class="tab" :class="{ aktif: menuAktif === 'terbitan' }" @click="bukaMenu('terbitan')">
-        Lapor Progress Terbitan
-      </button>
-      <button type="button" class="tab tab-nonaktif" disabled title="Segera hadir">
-        Persiapan Akreditasi SINTA
-      </button>
-    </nav>
+    <aside class="app-nav" :class="{ terbuka: navMobileTerbuka }" aria-label="Menu pengelola">
+      <div class="app-nav-merek">
+        <div class="brand-mark">DJPI</div>
+        <div>
+          <div class="app-nav-merek-judul">Dashboard Pengelola</div>
+          <div class="app-nav-merek-sub">{{ namaJurnalAktif || 'Jurnal DJPI UPI' }}</div>
+        </div>
+      </div>
+
+      <nav class="app-nav-daftar">
+        <div class="app-nav-grup">Menu Pengelola</div>
+        <button v-for="m in menuGroups" :key="m.k" type="button"
+          class="app-nav-item" :class="{ aktif: menuAktif === m.k }"
+          :disabled="m.nonaktif" :title="m.nonaktif ? 'Segera hadir' : null"
+          @click="bukaMenu(m.k)">
+          <i :class="m.ikon" aria-hidden="true"></i>
+          <span>{{ m.label }}</span>
+        </button>
+      </nav>
+
+      <div class="app-nav-user">
+        <div class="topbar-avatar" aria-hidden="true"><i class="fa-solid fa-book" style="font-size:12px"></i></div>
+        <div class="app-nav-user-teks">
+          <div class="app-nav-user-nama">{{ namaJurnalAktif || 'Pengelola' }}</div>
+          <div class="app-nav-user-email">{{ emailInput || 'terhubung' }}</div>
+        </div>
+        <button type="button" class="x-btn" @click="keluar" title="Keluar" aria-label="Keluar">
+          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+        </button>
+      </div>
+    </aside>
+
+    <div class="app-utama">
+      <div class="app-panel">
+        <header class="app-atas">
+          <button type="button" class="ikon-btn app-atas-toggle" @click="navMobileTerbuka = !navMobileTerbuka" aria-label="Buka menu">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          </button>
+          <div class="app-atas-judul">{{ judulMenu }}</div>
+          <div class="app-atas-alat">
+            <button type="button" class="ikon-btn" @click="gantiTema" :title="'Tema: ' + labelTema" aria-label="Ganti tema">
+              <i :class="ikonTema" aria-hidden="true"></i>
+            </button>
+            <a class="ikon-btn" href="<?= urlLanding ?>" target="_top" title="Halaman publik" aria-label="Halaman publik">
+              <i class="fa-solid fa-globe" aria-hidden="true"></i>
+            </a>
+          </div>
+        </header>
+
+        <main class="app-isi">
 
     <div v-if="galatPanel" class="alert alert-galat mb-16" role="alert">{{ galatPanel }}</div>
     <div v-if="toastPanel" class="alert alert-ok mb-16" role="status">{{ toastPanel }}</div>
@@ -607,11 +634,14 @@
       </div>
     </section>
 
-  </main>
+        </main>
 
-  <footer class="footer">
-    Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
-  </footer>
+        <footer class="footer">
+          Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia
+        </footer>
+      </div><!-- /app-panel -->
+    </div><!-- /app-utama -->
+  </div><!-- /app -->
 </div>
 
 <script>
@@ -649,6 +679,8 @@ createApp({
       menuAktif: 'sunting',
       galatPanel: '',
       toastPanel: '',
+      navMobileTerbuka: false,   // drawer sidebar di layar sempit
+      tema: 'auto',              // auto | light | dark (preferensi tampilan, disimpan localStorage)
 
       // --- panel Sunting Data Jurnal ---
       memuatSunting: false,
@@ -697,6 +729,9 @@ createApp({
   },
 
   mounted() {
+    try { this.tema = localStorage.getItem('djpi-tema') || 'auto'; } catch (e) {}
+    this.terapkanTema();
+
     // Jalur pemulihan sesi: token dititipkan lewat ?t= (pola sama seperti
     // sesi darurat admin), atau dari localStorage bila pengelola sebelumnya
     // sudah login di perangkat yang sama.
@@ -718,6 +753,29 @@ createApp({
   },
 
   computed: {
+    // --- shell sidebar ---
+    menuGroups() {
+      return [
+        { k: 'sunting', label: 'Sunting Data Jurnal', ikon: 'fa-solid fa-pen-to-square' },
+        { k: 'apc', label: 'Lapor APC', ikon: 'fa-solid fa-wallet' },
+        { k: 'doi', label: 'Ajukan Aktivasi DOI', ikon: 'fa-solid fa-link' },
+        { k: 'terbitan', label: 'Lapor Progress Terbitan', ikon: 'fa-solid fa-timeline' },
+        { k: 'akreditasi', label: 'Persiapan Akreditasi SINTA', ikon: 'fa-solid fa-award', nonaktif: true }
+      ];
+    },
+    judulMenu() {
+      var m = this.menuGroups.find((x) => x.k === this.menuAktif);
+      return m ? m.label : 'Dashboard Pengelola';
+    },
+    labelTema() {
+      return { auto: 'ikut sistem', light: 'terang', dark: 'gelap' }[this.tema];
+    },
+    ikonTema() {
+      return this.tema === 'light' ? 'fa-solid fa-sun'
+        : this.tema === 'dark' ? 'fa-solid fa-moon'
+        : 'fa-solid fa-circle-half-stroke';
+    },
+
     whatsappValid() {
       var v = (this.formDoi.whatsapp_pemohon || '').replace(/[\s-]/g, '');
       return /^(0|\+62)8\d{8,11}$/.test(v);
@@ -828,9 +886,24 @@ createApp({
       this.bukaMenu('sunting');
     },
 
+    // ================= TEMA (terang / gelap / ikut sistem) =================
+    gantiTema() {
+      var urut = ['auto', 'light', 'dark'];
+      this.tema = urut[(urut.indexOf(this.tema) + 1) % 3];
+      try { localStorage.setItem('djpi-tema', this.tema); } catch (e) {}
+      this.terapkanTema();
+    },
+    terapkanTema() {
+      var el = document.documentElement;
+      if (this.tema === 'auto') el.removeAttribute('data-theme');
+      else el.setAttribute('data-theme', this.tema);
+    },
+
     // ================= NAVIGASI MENU =================
     bukaMenu(kunci) {
+      if (kunci === 'akreditasi') return; // placeholder, belum ada backend
       this.menuAktif = kunci;
+      this.navMobileTerbuka = false;
       this.galatPanel = ''; this.toastPanel = '';
       if (kunci === 'sunting' && !this.detailSunting) this.muatDataSunting();
       if (kunci === 'doi' && !this.riwayatDoi.length) this.muatRiwayatDoi();

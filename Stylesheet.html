@@ -335,4 +335,97 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 :root[data-theme="dark"] .badge-bahaya,body.dark .badge-bahaya{background:#3a1616;border-color:#5c2626}
 :root[data-theme="dark"] .badge-emas,body.dark .badge-emas{background:#332a10;border-color:#5c4c1e}
 :root[data-theme="dark"] .kosong,body.dark .kosong{background:var(--elev-2)}
+
+/* =========================================================================
+   SHELL APLIKASI — sidebar gelap "inset" ala litabmas.upi.edu.
+   Dipakai Dashboard.html (admin) & Pengelola.html; Landing.html memakai
+   .shell sendiri sehingga tidak terpengaruh. Font Archivo di-scope ke
+   .app-shell agar halaman publik tetap Inter.
+   ========================================================================= */
+.app-shell{
+  --font-body:'Archivo','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-family:var(--font-body);
+  --nav-w:248px;
+  --nav-bg:#1c1a17;--nav-fg:#dcd8cf;--nav-fg-dim:#8d887d;
+  --nav-item-aktif:#2d2a25;--nav-merah:#e35b5b;
+}
+:root[data-theme="dark"] .app,body.dark .app{--nav-bg:#111010}
+
+.app{display:flex;min-height:100vh;background:var(--nav-bg)}
+.app-nav-backdrop{position:fixed;inset:0;z-index:45;background:rgba(10,9,8,.5)}
+
+.app-nav{
+  position:fixed;inset:0 auto 0 0;width:var(--nav-w);z-index:50;
+  display:flex;flex-direction:column;background:var(--nav-bg);color:var(--nav-fg);
+}
+.app-nav-merek{display:flex;align-items:center;gap:10px;padding:16px 16px 10px}
+.app-nav-merek-judul{font-size:13px;font-weight:800;color:#fff;line-height:1.2}
+.app-nav-merek-sub{font-size:10px;color:var(--nav-fg-dim);overflow-wrap:anywhere}
+.app-nav-cari{display:flex;align-items:center;gap:8px;margin:2px 12px 6px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.06)}
+.app-nav-cari i{font-size:11px;color:var(--nav-fg-dim)}
+.app-nav-cari input{flex:1;min-width:0;border:0;background:transparent;color:var(--nav-fg);font-size:12.5px;outline:none}
+.app-nav-cari input::placeholder{color:var(--nav-fg-dim)}
+.app-nav-daftar{flex:1;overflow-y:auto;padding:4px 8px 10px}
+.app-nav-grup{padding:12px 10px 5px;font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--nav-fg-dim)}
+.app-nav-item{
+  display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;
+  border:0;border-radius:8px;background:transparent;color:var(--nav-fg);
+  font-size:12.5px;font-weight:600;text-align:left;
+  transition:background .14s var(--ease-standard),color .14s var(--ease-standard);
+}
+.app-nav-item i{width:15px;flex:none;text-align:center;font-size:12px;color:var(--nav-fg-dim);transition:color .14s}
+.app-nav-item>span:not(.app-nav-badge){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-nav-item:hover:not(:disabled){background:rgba(255,255,255,.05);color:#fff}
+.app-nav-item.aktif{background:var(--nav-item-aktif);color:#fff}
+.app-nav-item.aktif i{color:var(--nav-merah)}
+.app-nav-item:disabled{opacity:.4;cursor:not-allowed}
+.app-nav-badge{
+  flex:none;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.1);
+  color:var(--nav-fg);font-size:10px;font-weight:700;font-family:var(--font-mono);
+}
+.app-nav-item.aktif .app-nav-badge{background:var(--nav-merah);color:#fff}
+.app-nav-user{display:flex;align-items:center;gap:9px;padding:11px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.app-nav-user-teks{flex:1;min-width:0;line-height:1.35}
+.app-nav-user-nama{font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-nav-user-email{font-size:10px;color:var(--nav-fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-nav-user .x-btn{flex:none;width:30px;height:30px;color:var(--nav-fg-dim)}
+.app-nav-user .x-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+
+.app-utama{flex:1;min-width:0;margin-left:var(--nav-w);background:var(--nav-bg);padding:8px 8px 8px 0;display:flex}
+.app-panel{
+  flex:1;min-width:0;display:flex;flex-direction:column;
+  background:var(--bg);border-radius:14px;
+  box-shadow:0 1px 3px rgba(0,0,0,.22),0 8px 24px rgba(0,0,0,.16);
+}
+.app-atas{
+  position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;
+  padding:11px 20px;background:var(--surface);border-bottom:1px solid var(--line);
+  border-radius:14px 14px 0 0;
+}
+.app-atas-judul{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.app-atas-alat{display:flex;align-items:center;gap:8px;margin-left:auto}
+.app-atas-meta{font-size:11px;color:var(--muted);white-space:nowrap}
+.ikon-btn{
+  display:inline-flex;width:34px;height:34px;flex:none;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);
+  font-size:13px;transition:color .14s,border-color .14s;
+}
+.ikon-btn:hover{color:var(--text);border-color:var(--line-strong)}
+.app-atas-toggle{display:none}
+.app-isi{flex:1;padding:20px}
+.app-isi .konten-utama{max-width:1440px}
+
+@media(max-width:900px){
+  .app-nav{transform:translateX(-100%);transition:transform .2s var(--ease-standard);box-shadow:0 0 40px rgba(0,0,0,.5)}
+  .app-nav.terbuka{transform:none}
+  .app-utama{margin-left:0;padding:0}
+  .app-panel{border-radius:0;box-shadow:none}
+  .app-atas{border-radius:0}
+  .app-atas-toggle{display:inline-flex}
+}
+@media(max-width:680px){
+  .app-isi{padding:14px}
+  .app-atas{padding:10px 14px}
+  .app-atas-meta{display:none}
+}
 </style>

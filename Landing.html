@@ -153,6 +153,7 @@
       /* Bottom lebih lega dari sebelumnya (34px) supaya ada ruang untuk
          .capaian-kartu "mengambang" menumpang ke atas lewat margin negatif. */
       padding: 30px 20px 90px;
+      text-align: center;
     }
 
     .capaian-mengambang {
@@ -287,11 +288,12 @@
          "mengambang" di luar hero (lihat .capaian-mengambang), jadi hero
          cuma tersisa 1 kolom teks. */
       grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
     }
 
     .hero h1 {
       max-width: 760px;
-      margin: 0 0 10px;
+      margin: 0 auto 10px;
       color: var(--teks);
       font-family: var(--font-plat);
       font-size: clamp(28px, 3.8vw, 44px);
@@ -302,7 +304,7 @@
 
     .hero-lead {
       max-width: 690px;
-      margin: 0;
+      margin: 0 auto;
       color: var(--teks-lembut);
       font-size: 15px;
     }
@@ -325,6 +327,8 @@
     .cari-bungkus {
       position: relative;
       max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
     }
 
     .cari-bungkus i {
@@ -427,14 +431,16 @@
     .panduan-baris {
       display: flex;
       align-items: baseline;
+      justify-content: center;
       gap: 8px;
       max-width: 90ch;
-      margin: 0 0 18px;
-      padding-left: 11px;
-      border-left: 2px solid var(--upi-emas);
+      margin: 0 auto 18px;
+      padding-top: 9px;
+      border-top: 2px solid var(--upi-emas);
       color: var(--teks-lembut);
       font-size: 12.5px;
       line-height: 1.55;
+      text-align: center;
     }
 
     .panduan-baris i {
@@ -450,6 +456,7 @@
 
     .tabs {
       display: flex;
+      justify-content: center;
       gap: 4px;
       margin-bottom: 18px;
       overflow-x: auto;
@@ -479,6 +486,7 @@
 
     .subfilter-baris {
       display: flex;
+      justify-content: center;
       gap: 7px;
       margin: -4px 0 18px;
       flex-wrap: wrap;
@@ -512,6 +520,7 @@
     .hasil-info {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       margin: 0 0 14px;
       color: var(--teks-lembut);
@@ -536,32 +545,22 @@
     }
 
     .grid-kartu {
-      display: grid;
-      /* Kolom tetap per breakpoint (bukan auto-fill/minmax) — jumlah kolom
-         dipilih sengaja per lebar layar, bukan "jatuh" dari pembagian
-         lebar/172px. Tetap konsisten dengan tab yang jurnalnya sedikit
-         (mis. Scopus cuma 3) karena kolom tidak melar mengisi baris. */
-      grid-template-columns: repeat(2, 1fr);
+      /* Flex, bukan grid — lebar kartu tetap dihitung sama seperti
+         repeat(N, 1fr) per breakpoint (lihat flex-basis .kartu di bawah),
+         tapi justify-content: center membuat baris yang tidak penuh
+         (mis. tab Scopus cuma 3 kartu dari slot 6) merapat ke tengah,
+         bukan menggantung rata kiri seperti pada CSS grid biasa. */
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 14px;
-    }
-
-    @media (min-width: 560px) {
-      .grid-kartu { grid-template-columns: repeat(3, 1fr); }
-    }
-
-    @media (min-width: 820px) {
-      .grid-kartu { grid-template-columns: repeat(4, 1fr); }
-    }
-
-    @media (min-width: 1040px) {
-      .grid-kartu { grid-template-columns: repeat(6, 1fr); }
     }
 
     .kartu {
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      width: 100%;
+      flex: 0 0 calc(50% - 7px);
       overflow: hidden;
       border: 1px solid var(--garis);
       border-radius: var(--radius-sm);
@@ -569,6 +568,18 @@
       color: var(--teks);
       box-shadow: var(--bayang);
       text-align: left;
+    }
+
+    @media (min-width: 560px) {
+      .kartu { flex-basis: calc(33.333% - 9.334px); }
+    }
+
+    @media (min-width: 820px) {
+      .kartu { flex-basis: calc(25% - 10.5px); }
+    }
+
+    @media (min-width: 1040px) {
+      .kartu { flex-basis: calc(16.667% - 11.667px); }
     }
 
     .kartu:hover {
@@ -864,6 +875,7 @@
 
     .subjek-section {
       margin-bottom: 4px;
+      text-align: center;
     }
 
     .subjek-eyebrow {
@@ -987,7 +999,8 @@
 
     .sitasi-head {
       position: relative;
-      padding: 34px 130px 18px 30px;
+      padding: 34px 130px 18px 130px;
+      text-align: center;
     }
 
     .sitasi-eyebrow {
@@ -1011,7 +1024,7 @@
 
     .sitasi-note {
       max-width: 62ch;
-      margin: 0;
+      margin: 0 auto;
       color: var(--sitasi-perkamen-redup);
       font-size: 12.5px;
       line-height: 1.6;
