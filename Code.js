@@ -150,16 +150,19 @@ var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
    ========================================================================== */
 
 function doGet(e) {
-  // Direktori publik dipindahkan ke Litabmas, sehingga halaman Landing dihapus
-  // dan bawaan rute sekarang dashboard. Akses web app juga dibatasi DOMAIN di
-  // appsscript.json; itulah yang benar-benar menutup akses anonim, bukan
-  // hilangnya rute ini.
-  var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page) : 'dashboard';
-  var isPengelola = (page === 'pengelola');
-  var berkas = isPengelola ? 'Pengelola' : 'Dashboard';
-  var judul = isPengelola
-    ? 'Dashboard Pengelola Jurnal — DJPI UPI'
-    : 'DJPI Dashboard — Divisi Jurnal dan Publikasi Ilmiah UPI';
+  // Direktori publik dipindahkan ke Litabmas, sehingga halaman Landing dihapus.
+  // Bawaan rute kini halaman Masuk, yang cuma menawarkan dua pilihan peran.
+  // Akses web app dibatasi DOMAIN di appsscript.json; itulah yang benar-benar
+  // menutup akses anonim, bukan pilihan rute di sini.
+  var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page) : 'masuk';
+  var HALAMAN = {
+    masuk:     { berkas: 'Masuk',     judul: 'Masuk — DJPI UPI' },
+    dashboard: { berkas: 'Dashboard', judul: 'DJPI Dashboard — Divisi Jurnal dan Publikasi Ilmiah UPI' },
+    pengelola: { berkas: 'Pengelola', judul: 'Dashboard Pengelola Jurnal — DJPI UPI' }
+  };
+  var pilih = HALAMAN[page] || HALAMAN.masuk;
+  var berkas = pilih.berkas;
+  var judul = pilih.judul;
 
   var t = HtmlService.createTemplateFromFile(berkas);
 
@@ -169,6 +172,7 @@ function doGet(e) {
   // memakai URL absolut web app.
   var urlDasar = '';
   try { urlDasar = ScriptApp.getService().getUrl() || ''; } catch (err) { urlDasar = ''; }
+  t.urlMasuk = urlDasar ? (urlDasar + '?page=masuk') : '?page=masuk';
   t.urlDashboard = urlDasar ? (urlDasar + '?page=dashboard') : '?page=dashboard';
   t.urlPengelola = urlDasar ? (urlDasar + '?page=pengelola') : '?page=pengelola';
 
