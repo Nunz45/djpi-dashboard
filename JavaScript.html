@@ -55,7 +55,7 @@ var KELAS_TERBITAN_STATUS={
   PUBLISH:'badge badge-ok'
 };
 
-Vue.createApp({
+var appDjpi = Vue.createApp({
   data:function(){return{
     tahap:'memuat',email:'',pin:'',token:'',profile:null,sedangKirim:false,pesanGalat:'',pesanInfo:'',
     memuatData:false,data:null,galatData:'',tab:'ringkasan',
@@ -980,5 +980,7 @@ Vue.createApp({
     }
   },
   beforeUnmount:function(){this.hancurkanGrafik();document.removeEventListener('keydown',this.tutupModalEsc);}
-}).mount('#app');
+});
+daftarKomponenDjpi(appDjpi);
+appDjpi.mount('#app');
 </script>

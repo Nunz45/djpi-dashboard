@@ -46,6 +46,7 @@
   <!-- Memakai Stylesheet yang sama dengan Dashboard.html, supaya var(--...) dan
        kelas (.card, .field, .btn, .badge, dst.) konsisten lintas dua portal. -->
   <?!= include('Stylesheet'); ?>
+  <?!= include('Komponen'); ?>
 </head>
 
 <body>
@@ -514,12 +515,7 @@
     <!-- -------- Panel: Lapor APC -------- -->
     <section v-if="menuAktif === 'apc'">
       <div class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">Lapor pemasukan APC</h2>
-            <p class="card-note">Laporkan pemasukan Article Processing Charge untuk satu edisi.</p>
-          </div>
-        </div>
+        <kartu-kepala judul="Lapor pemasukan APC" catatan="Laporkan pemasukan Article Processing Charge untuk satu edisi." />
 
         <form class="card-pad" @submit.prevent="kirimLaporanApc">
           <div class="field">
@@ -593,12 +589,7 @@
       </div>
 
       <div class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">Lapor progres terbitan</h2>
-            <p class="card-note">Laporkan tahap naskah saat ini untuk satu edisi.</p>
-          </div>
-        </div>
+        <kartu-kepala judul="Lapor progres terbitan" catatan="Laporkan tahap naskah saat ini untuk satu edisi." />
 
         <form class="card-pad" @submit.prevent="kirimProgressTerbitan">
           <div class="field">
@@ -669,12 +660,7 @@
 
             <!-- ===== LANGKAH 1 — Ringkasan jurnal ===== -->
             <div v-show="akrLangkah === 1" class="card akr-langkah">
-              <div class="card-head">
-                <div>
-                  <h2 class="card-title">Ringkasan jurnal</h2>
-                  <p class="card-note">Periksa data jurnal Anda, lalu tentukan jenis pengajuan dan tenggatnya.</p>
-                </div>
-              </div>
+              <kartu-kepala judul="Ringkasan jurnal" catatan="Periksa data jurnal Anda, lalu tentukan jenis pengajuan dan tenggatnya." />
               <div class="card-pad">
                 <div class="akr-identitas">
                   <div><div class="card-note">Jurnal</div>
@@ -1029,15 +1015,8 @@
 
             <!-- ===== LANGKAH 6 — Tinjau & simpan ===== -->
             <div v-show="akrLangkah === 6" class="card akr-langkah">
-              <div class="card-head">
-                <div>
-                  <h2 class="card-title">Tinjau sebelum menyimpan</h2>
-                  <p class="card-note">
-                    Periksa kembali seluruh jawaban Anda. Tekan Ubah pada bagian mana pun untuk
-                    memperbaikinya.
-                  </p>
-                </div>
-              </div>
+              <kartu-kepala judul="Tinjau sebelum menyimpan" catatan="Periksa kembali seluruh jawaban Anda. Tekan Ubah pada bagian mana pun untuk
+                    memperbaikinya." />
               <div class="card-pad">
                 <!-- ringkasan jurnal -->
                 <div class="akr-rev">
@@ -1169,7 +1148,7 @@ var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
 
 const { createApp } = Vue;
 
-createApp({
+const appPengelola = createApp({
   data() {
     return {
       // --- alur login (berbasis email, bukan nama jurnal) ---
@@ -2163,7 +2142,9 @@ createApp({
       window.print();
     }
   }
-}).mount('#app');
+});
+daftarKomponenDjpi(appPengelola);
+appPengelola.mount('#app');
 </script>
 
 <!-- CSS tambahan Pengelola.html (shell umum ada di Stylesheet.html) -->

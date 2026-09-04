@@ -242,12 +242,7 @@
         <!-- Baris 1: Kepatuhan terbitan (⅓) sejajar Sebaran jadwal terbitan (⅔) -->
         <div class="grid grid-13 mb-16">
           <div class="card">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Kepatuhan terbitan</h2>
-                <p class="card-note">Nilai kosong dibaca sebagai Belum Dinilai.</p>
-              </div>
-            </div>
+            <kartu-kepala judul="Kepatuhan terbitan" catatan="Nilai kosong dibaca sebagai Belum Dinilai." />
 
             <div class="card-pad flex-kolom gap-10">
               <div v-for="(jumlah, kategori) in data.stats.timeliness" :key="kategori" class="flex-antara">
@@ -285,12 +280,7 @@
         <!-- Baris 2: Status migrasi OJS (⅓) sejajar Rekap per kluster (⅔) -->
         <div class="grid grid-13">
           <div class="card">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Status migrasi OJS</h2>
-                <p class="card-note">Status berasal dari kolom STATUS OJS 3.5/STATUS OJS.</p>
-              </div>
-            </div>
+            <kartu-kepala judul="Status migrasi OJS" catatan="Status berasal dari kolom STATUS OJS 3.5/STATUS OJS." />
 
             <div class="card-pad flex-kolom gap-10">
               <div class="flex-antara">
@@ -312,12 +302,7 @@
           </div>
 
           <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">Rekap per kluster</h2>
-              <p class="card-note">BELUM DIKELOLA adalah kelompok data tanpa kluster.</p>
-            </div>
-          </div>
+          <kartu-kepala judul="Rekap per kluster" catatan="BELUM DIKELOLA adalah kelompok data tanpa kluster." />
 
           <div class="tabel-bungkus">
             <table class="tabel">
@@ -415,12 +400,7 @@
           </div>
 
           <div class="card mb-16">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Rincian per jenis masalah</h2>
-                <p class="card-note">Pilih satu baris untuk melihat jurnal yang mengalaminya.</p>
-              </div>
-            </div>
+            <kartu-kepala judul="Rincian per jenis masalah" catatan="Pilih satu baris untuk melihat jurnal yang mengalaminya." />
 
             <div v-if="!dq.ringkas.length" class="card-pad">
               <div class="alert alert-ok">Tidak ada masalah kualitas data pada cakupan kluster Anda.</div>
@@ -453,12 +433,7 @@
           </div>
 
           <div class="card">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Antrean perbaikan prioritas</h2>
-                <p class="card-note">Dua puluh jurnal paling mendesak menurut skor prioritas server.</p>
-              </div>
-            </div>
+            <kartu-kepala judul="Antrean perbaikan prioritas" catatan="Dua puluh jurnal paling mendesak menurut skor prioritas server." />
 
             <div v-if="!antreanKualitas.length" class="card-pad">
               <div class="alert alert-ok">Seluruh jurnal pada cakupan Anda berstatus terkendali.</div>
@@ -577,8 +552,7 @@
                       <div class="bar-track mt-8" style="width:90px"><div class="bar-fill" :style="{ width: r.skor + '%' }"></div></div>
                     </td>
                     <td class="teks-kecil">
-                      <div v-for="p in r.penghambat" :key="p">{{ p }}</div>
-                      <span v-if="!r.penghambat.length" class="teks-lembut">—</span>
+                      <daftar-ringkas :isi="r.penghambat" kosong="—" baris />
                     </td>
                     <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
                   </tr>
@@ -633,8 +607,7 @@
                       <span class="teks-kecil teks-lembut"> · {{ r.lulus }}/7<span v-if="r.perluCek"> ({{ r.perluCek }} dicek)</span></span>
                     </td>
                     <td class="teks-kecil">
-                      <span v-for="(p, i) in r.penghambat" :key="p">{{ p }}<span v-if="i < r.penghambat.length - 1">, </span></span>
-                      <span v-if="!r.penghambat.length" class="teks-lembut">tidak ada</span>
+                      <daftar-ringkas :isi="r.penghambat" kosong="tidak ada" />
                     </td>
                     <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
                   </tr>
@@ -676,12 +649,10 @@
                     <td class="teks-kecil">{{ r.kluster }}</td>
                     <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
                     <td class="teks-kecil">
-                      <span v-for="(a, i) in r.alasan" :key="a">{{ a }}<span v-if="i < r.alasan.length - 1">, </span></span>
-                      <span v-if="!r.alasan.length" class="teks-lembut">—</span>
+                      <daftar-ringkas :isi="r.alasan" kosong="—" />
                     </td>
                     <td class="teks-kecil">
-                      <span v-for="(p, i) in r.penghambat" :key="p">{{ p }}<span v-if="i < r.penghambat.length - 1">, </span></span>
-                      <span v-if="!r.penghambat.length" class="teks-lembut">—</span>
+                      <daftar-ringkas :isi="r.penghambat" kosong="—" />
                     </td>
                     <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
                   </tr>
@@ -717,7 +688,7 @@
                     <td class="teks-kecil">{{ r.statusAkreditasi }}</td>
                     <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
                     <td class="teks-kecil">
-                      <span v-for="(a, i) in r.alasan" :key="a">{{ a }}<span v-if="i < r.alasan.length - 1">, </span></span>
+                      <daftar-ringkas :isi="r.alasan" kosong="—" />
                     </td>
                     <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
                   </tr>
@@ -1102,12 +1073,7 @@
 
         <!-- Form catat pencairan — selalu tampil, tidak bergantung ada/tidaknya laporan APC -->
         <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">Catat Pengajuan Pencairan</h2>
-              <p class="card-note">10% otomatis ke UPI, 2% ke DPPM, sisanya tercatat sebagai dana terserap jurnal.</p>
-            </div>
-          </div>
+          <kartu-kepala judul="Catat Pengajuan Pencairan" catatan="10% otomatis ke UPI, 2% ke DPPM, sisanya tercatat sebagai dana terserap jurnal." />
 
           <div class="card-pad">
             <div v-if="pesanPencairan" class="alert mb-8" :class="pesanPencairanJenis === 'galat' ? 'alert-galat' : 'alert-ok'">
@@ -1169,12 +1135,7 @@
         </div>
 
         <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">Laporan progres terbitan</h2>
-              <p class="card-note">Sumber data: Log_Terbitan (laporan pengelola per edisi).</p>
-            </div>
-          </div>
+          <kartu-kepala judul="Laporan progres terbitan" catatan="Sumber data: Log_Terbitan (laporan pengelola per edisi)." />
 
           <div class="card-pad">
             <div class="grid grid-2 mb-8">
@@ -1331,15 +1292,8 @@
       <!-- Akun Saya — panel PIN tetap -->
       <section v-show="tab === 'akun'">
         <div class="card mb-16">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">PIN Tetap untuk Login Cepat</h2>
-              <p class="card-note">
-                Opsional. Setelah diatur, Anda bisa masuk langsung dengan email + PIN ini,
-                tanpa menunggu email PIN sekali pakai.
-              </p>
-            </div>
-          </div>
+          <kartu-kepala judul="PIN Tetap untuk Login Cepat" catatan="Opsional. Setelah diatur, Anda bisa masuk langsung dengan email + PIN ini,
+                tanpa menunggu email PIN sekali pakai." />
 
           <div class="card-pad">
             <div v-if="pesanPinTetap" class="alert mb-8" :class="pesanPinTetapJenis === 'galat' ? 'alert-galat' : 'alert-ok'">
@@ -1887,6 +1841,7 @@
   // ============================================================
 </script>
 
+<?!= include('Komponen'); ?>
 <?!= include('JavaScript'); ?>
 
 <!-- CSS khusus Dashboard admin (shell umum ada di Stylesheet.html) -->

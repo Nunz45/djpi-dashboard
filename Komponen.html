@@ -1,0 +1,92 @@
+<!-- Komponen.html — komponen Vue bersama untuk Dashboard.html & Pengelola.html.
+
+     Di-include SEBELUM skrip yang memanggil createApp, lalu didaftarkan lewat
+     daftarKomponenDjpi(app). Semuanya memakai template string biasa (bukan SFC)
+     karena Apps Script tidak punya langkah build.
+
+     Kelas CSS-nya sudah ada di Stylesheet.html; komponen ini hanya membungkus
+     markup yang berulang, tidak memperkenalkan gaya baru.
+-->
+<script>
+window.KOMPONEN_DJPI = {
+
+  /* Kepala kartu: judul, catatan opsional, dan satu aksi opsional di kanan.
+     Terpakai 38 kali di dua halaman.
+
+       <kartu-kepala judul="Rekap per kluster" catatan="3 tahun terakhir">
+         <button class="btn btn-sm">Ekspor</button>
+       </kartu-kepala>
+
+     Catatan yang butuh markup (v-if, interpolasi bersyarat) memakai slot:
+
+       <kartu-kepala judul="Ringkasan">
+         <template #catatan>Terakhir disimpan <b>{{ waktu }}</b>.</template>
+       </kartu-kepala>                                                        */
+  'kartu-kepala': {
+    props: {
+      judul: { type: String, required: true },
+      catatan: { type: String, default: '' }
+    },
+    template:
+      '<div class="card-head">' +
+        '<div>' +
+          '<h2 class="card-title">{{ judul }}<slot name="judul-tambahan"></slot></h2>' +
+          '<p v-if="$slots.catatan || catatan" class="card-note">' +
+            '<slot name="catatan">{{ catatan }}</slot>' +
+          '</p>' +
+        '</div>' +
+        '<slot></slot>' +
+      '</div>'
+  },
+
+  /* Daftar pendek dipisah koma, dengan teks pengganti saat kosong. Sebelumnya
+     ditulis manual sebagai v-for plus pengecekan indeks terakhir untuk koma,
+     lima kali di Dashboard, dan gampang salah pada batas terakhir.
+
+       <daftar-ringkas :isi="r.penghambat" kosong="—" />
+       <daftar-ringkas :isi="r.alasan" kosong="tidak ada" pemisah="; " />
+
+     Pakai baris="true" untuk menumpuk tiap butir ke barisnya sendiri.          */
+  'daftar-ringkas': {
+    props: {
+      isi: { type: Array, default: function () { return []; } },
+      kosong: { type: String, default: '—' },
+      pemisah: { type: String, default: ', ' },
+      baris: { type: Boolean, default: false }
+    },
+    computed: {
+      butir: function () {
+        return (this.isi || []).filter(function (x) {
+          return x !== null && x !== undefined && String(x).trim() !== '';
+        });
+      }
+    },
+    template:
+      '<span v-if="!butir.length" class="teks-lembut">{{ kosong }}</span>' +
+      '<template v-else-if="baris">' +
+        '<div v-for="b in butir" :key="b">{{ b }}</div>' +
+      '</template>' +
+      '<span v-else>' +
+        '<span v-for="(b, i) in butir" :key="b">{{ b }}<span v-if="i < butir.length - 1">{{ pemisah }}</span></span>' +
+      '</span>'
+  },
+
+  /* CATATAN: komponen untuk sel <td> aksi pernah dicoba dan DIBATALKAN.
+     Template Vue di sini adalah in-DOM template, sehingga markup lebih dulu
+     diurai parser HTML peramban. Elemen kustom yang jadi anak langsung
+     <table>, <thead>, <tbody>, atau <tr> diangkat keluar dari tabel oleh
+     parser, sehingga lepas dari cakupan v-for dan barisnya jadi undefined.
+     Kalau suatu saat perlu, satu-satunya jalan adalah placeholder asli
+     dengan atribut is, misalnya <td is="vue:sel-aksi">. Komponen di dalam
+     <td> aman -- daftar-ringkas dipakai begitu.                             */
+
+};
+
+/** Daftarkan seluruh komponen bersama ke satu instance aplikasi Vue. */
+window.daftarKomponenDjpi = function (app) {
+  Object.keys(window.KOMPONEN_DJPI).forEach(function (nama) {
+    app.component(nama, window.KOMPONEN_DJPI[nama]);
+  });
+  return app;
+};
+</script>
