@@ -9,3 +9,6 @@ mutu-artikel/bukti/
 # Python
 __pycache__/
 *.pyc
+
+# Pintasan Windows yang kadang terbuat saat membuka berkas dari Explorer
+*.lnk

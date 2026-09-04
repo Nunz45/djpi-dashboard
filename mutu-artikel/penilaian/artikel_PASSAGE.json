@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"A pragmatic analysis of impoliteness strategies in the second debate of the 2024 vice-presidential candidates\". Lugas dan spesifik: menyebut pendekatan (pragmatik), objek (strategi ketidaksantunan), dan korpus (debat kedua cawapres 2024). Jurnal berbahasa Inggris, jadi ketentuan judul dwibahasa tidak berlaku.",
+    "catatan": "Judul menerangkan objek kajian, belum memuat temuan. Rubrik menempatkan judul yang lugas sekaligus memuat informasi temuan pada tingkat tertinggi. Temuan utamanya sudah jelas dan ringkas, yaitu dominasi Bald on Record Impoliteness.",
+    "saran": "Kalau ingin mengangkat temuan ke judul, dominasi Bald on Record dan Affective Impoliteness bisa disebut. Panjang judul saat ini masih wajar, jadi ini pilihan, bukan keharusan.",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak 245 kata, memuat tujuan, metode (deskriptif kualitatif berbasis ujaran), hasil berangka, dan simpulan.",
+    "catatan": "Dua masalah. Pertama, angka di abstrak tidak cocok dengan Tabel 1. Abstrak menulis Bald on Record 30% lalu \"Positive Impoliteness, Negative Impoliteness, Sarcasm, and Mock Impoliteness have the same percentage: 22.5%\", sehingga totalnya 120%. Tabel 1 memuat lima kategori yang berjumlah 100%: Bald on Record 30% (12), Negative 22,5% (9), Positive 22,5% (9), Sarcasm or Mock 22,5% (9), Withhold Politeness 2,5% (1), total 40 data. Abstrak memecah \"Sarcasm or Mock\" menjadi dua kategori dan menghilangkan Withhold Politeness. Kedua, abstrak memuat rujukan (\"Drawing on the theories from Culpeper et al. (2003) and Culpeper (2005, 2011)\"), padahal rubrik meminta abstrak tanpa rujukan.",
+    "saran": "Samakan angka abstrak dengan Tabel 1: sebut lima kategori, atau cukup sebut yang dominan dan yang terendah tanpa merinci semuanya. Pindahkan penyebutan teori Culpeper dari abstrak ke pendahuluan atau metode. Ketidakcocokan angka antara abstrak dan tabel adalah temuan yang mudah diperiksa asesor.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Enam kata kunci: impoliteness strategies, pragmatic analysis, presidential debate, responses, dan dua lainnya.",
+    "catatan": "Kata kunci mencerminkan isi artikel. Satu ketidaktepatan kecil: objek kajiannya debat calon wakil presiden, sedangkan kata kuncinya \"presidential debate\".",
+    "saran": "Ganti \"presidential debate\" menjadi \"vice-presidential debate\" agar sesuai objek, dan pertimbangkan menambahkan \"Culpeper\" atau \"face attack\" sebagai penanda kerangka teori.",
+    "keyakinan": "sedang"
+  },
+  "F.4": {
+    "ada": "Pendahuluan mengulas riset terdahulu secara berurutan (Kadhum & Abbas, 2021; Anshari et al., 2023; Rahman & Johan, 2023) berikut temuan masing-masing. Kesenjangan dinyatakan tegas: \"Many studies have indeed examined impoliteness strategies, but they only focused on the types and functions of impoliteness strategies, leaving the responses to the impoliteness acts unaddressed.\" Tujuan riset dirinci menjadi tiga: mengidentifikasi jenis, mendeskripsikan fungsi, dan mengidentifikasi respons terhadap strategi ketidaksantunan. Kerangka teori disebut jelas (Culpeper et al., 2003; Culpeper, 2005, 2011).",
+    "catatan": "Ketiga unsur yang diminta rubrik terpenuhi: state of the art, justifikasi kesenjangan, dan tujuan riset. Ini butir terkuat pada artikel ini. Yang bisa diperkuat: kesenjangan dinyatakan pada tataran topik (respons belum diteliti), belum pada tataran konteks, padahal debat politik Indonesia sendiri merupakan konteks yang membedakannya dari kajian terdahulu yang mengambil film dan restoran.",
+    "saran": "Tambahkan satu kalimat yang menyatakan kebaruan konteks, yaitu debat elektoral Indonesia sebagai ranah yang berbeda dari korpus fiksi dan layanan pelanggan pada riset terdahulu.",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Metode deskriptif kualitatif dengan rujukan Creswell (2014). Sumber data satu video debat kedua cawapres dari kanal YouTube Kompas TV Sukabumi, 21 Januari 2024. Analisis memakai kerangka Culpeper dan menghasilkan 40 data ujaran yang diklasifikasi ke lima jenis, tiga fungsi, dan tiga jenis respons, masing-masing disajikan dalam tabel berfrekuensi dan berpersentase disertai contoh ujaran.",
+    "catatan": "Klasifikasi berjalan konsisten dan tabelnya berjumlah 100%. Yang kurang: prosedur pemilihan 40 ujaran dari keseluruhan durasi debat tidak dijelaskan, sehingga pembaca tidak tahu apakah itu seluruh ujaran tidak santun yang ada atau hasil penyaringan. Keabsahan analisis juga tidak dibahas, misalnya apakah pengodean diperiksa ulang oleh orang kedua. Untuk kajian pragmatik dengan pengodean kategori, kesepakatan antarpengode lazim dilaporkan. Pembahasan lebih banyak memerikan temuan per kategori daripada membandingkannya secara kritis dengan tiga riset terdahulu yang sudah dikutip di pendahuluan.",
+    "saran": "Tambahkan di metode: durasi debat yang ditranskripsi, kriteria sebuah ujaran dimasukkan sebagai data, dan cara memastikan keandalan pengodean. Di pembahasan, hubungkan temuan dominasi Affective Impoliteness dengan Anshari et al. (2023) dan Rahman & Johan (2023) yang menemukan pola serupa pada konteks berbeda, lalu terangkan apa artinya kesamaan itu.",
+    "keyakinan": "tinggi"
+  },
+  "F.6": {
+    "ada": "Simpulan menjawab ketiga tujuan secara berurutan: jenis dominan Bald on Record, fungsi dominan Affective Impoliteness, respons dominan Countering the Face Attack, masing-masing disertai penafsiran singkat.",
+    "catatan": "Paragraf penutup melampaui data. Artikel menganalisis satu video debat, tetapi simpulannya menyatakan \"citizens tend to look at each candidate's performance in a debate; the one who used impoliteness strategies seems to be hated by citizens, and netizens mostly feel sympathetic to the loser in the debate stage\". Reaksi warga dan warganet tidak pernah diteliti dalam artikel ini. Kalimat penutup \"Moreover, hope this research will be helpful as a reference for other researchers\" juga bukan ragam akademik.",
+    "saran": "Hapus atau turunkan klaim tentang reaksi warga dan warganet menjadi saran penelitian lanjutan yang jelas ditandai sebagai dugaan. Ganti kalimat penutup dengan implikasi yang bertumpu pada temuan, misalnya bagi kajian wacana politik atau bagi penelitian respons ketidaksantunan.",
+    "keyakinan": "tinggi"
+  },
+  "G.6": {
+    "ada": "Bahasa Inggris terbaca dan istilah teknis pragmatik dipakai konsisten (Bald on Record, Affective Impoliteness, face attack).",
+    "catatan": "Ada beberapa penyimpangan ragam tulis akademik. Bentuk singkat \"It's the second debate for vice-presidential candidates\" dipakai di badan artikel. Konstruksi \"Three aims of this study; they are:\" tidak gramatikal, dan titik koma dipakai keliru. \"The candidates used to defend their face from the attack\" memakai \"used to\" yang bermakna kebiasaan lampau, padahal maksudnya bukan itu. Kalimat penutup tanpa subjek: \"Moreover, hope this research will be helpful\".",
+    "saran": "Lakukan penyuntingan bahasa terarah pada bagian pendahuluan akhir, metode, dan simpulan. Hindari bentuk singkat, perbaiki keempat kalimat di atas, dan pastikan setiap kalimat bersubjek.",
+    "keyakinan": "tinggi"
+  }
+}

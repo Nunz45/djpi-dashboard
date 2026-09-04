@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"Geographic Information System (GIS) Application to Identify the Distribution of Tourist Attractions and Supporting Facilities Related to the Sustainable Development Goals (SDGs)\". Menyebut alat analisis, objek, dan kaitannya dengan SDGs.",
+    "catatan": "Dua puluh satu kata, terpanjang di antara enam artikel. Dua istilah ditulis lengkap sekaligus disertai akronimnya (Geographic Information System (GIS) dan Sustainable Development Goals (SDGs)), yang menambah panjang tanpa menambah informasi. Lokasi riset, yaitu Kecamatan Lembang, tidak disebut padahal seluruh artikel bertumpu pada satu wilayah itu. Judul juga belum memuat temuan.",
+    "saran": "Pakai akronim saja untuk GIS dan SDGs, dan masukkan lokasi. Misalnya menyebut Lembang dan pola sebarannya, sehingga judul menjadi lebih pendek sekaligus lebih spesifik.",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak 195 kata memuat tujuan, metode (pendekatan kuantitatif, nearest neighbor analysis, GIS), dan hasil berangka: 38 daya tarik wisata terdiri atas 17 alam, 17 buatan, dan 4 budaya, seluruhnya berpola menyebar; 32 hotel berpola acak; 178 restoran berpola mengelompok. Desa yang punya daya tarik tetapi minim fasilitas pendukung disebut satu per satu.",
+    "catatan": "Abstrak kuat pada bagian hasil karena angkanya konkret dan langsung dapat diverifikasi ke Tabel 1 dan 2. Simpulan tentang SDGs disebut di akhir, padahal kaitan sebaran spasial dengan SDGs tidak diukur dalam artikel, melainkan disimpulkan secara naratif.",
+    "saran": "Batasi pernyataan SDGs di abstrak pada apa yang benar-benar dianalisis, yaitu implikasi sebaran terhadap perencanaan, bukan kontribusi terhadap SDGs sebagai temuan.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Empat kata kunci: GIS, Nearest neighbor analysis, SDGs, Tourism attraction.",
+    "catatan": "Keempatnya mencerminkan isi. Yang belum terwakili adalah dua hal yang justru menjadi porsi besar artikel: fasilitas pendukung (hotel dan restoran) dan lokasi riset.",
+    "saran": "Tambahkan kata kunci seperti tourism supporting facilities dan Lembang agar artikel lebih mudah ditemukan oleh pencari yang mengangkat wilayah atau objek serupa.",
+    "keyakinan": "tinggi"
+  },
+  "F.4": {
+    "ada": "Pendahuluan diikuti bagian Literature Review tersendiri yang mengulas penerapan GIS untuk pemetaan pariwisata [12] sampai [16] dan kaitan sebaran fasilitas wisata dengan SDGs. Potensi dan kendala Lembang dinyatakan konkret: alih fungsi lahan pertanian [10] serta keterbatasan sumber daya manusia pada wisata spiritual [11]. Tujuan dinyatakan tegas di akhir pendahuluan, yaitu menelaah pola sebaran daya tarik wisata, akomodasi, dan restoran serta menilai kontribusinya terhadap pencapaian SDGs.",
+    "catatan": "State of the art dan tujuan riset terpenuhi. Justifikasi kebaruan tidak dinyatakan. Kalimat yang mendekati kesenjangan, \"This situation highlights the need for integrated tourism planning\", menerangkan kebutuhan praktis di lapangan, bukan apa yang belum dikerjakan penelitian terdahulu. Bagian Literature Review memerikan banyak riset GIS tetapi tidak ditutup pernyataan tentang celah yang tersisa.",
+    "saran": "Tutup bagian Literature Review dengan satu paragraf yang menyatakan celahnya. Bahannya sudah ada: riset GIS pariwisata terdahulu banyak berhenti pada pemetaan daya tarik, sedangkan sebaran fasilitas pendukung dan keterkaitannya jarang dianalisis bersama dalam satu wilayah kecamatan.",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Metode menyebut lokasi dan waktu (Kecamatan Lembang, Kabupaten Bandung Barat, Januari sampai Mei 2024), teknik pengumpulan (observasi langsung dan data sekunder), data yang dikumpulkan (nama, jenis, dan koordinat daya tarik wisata, hotel, restoran), serta alat analisis (nearest neighbor analysis dengan ArcGIS) berikut rumus NNI pada Persamaan 1. Hasil disajikan dalam empat tabel dan tiga gambar peta, seluruhnya diacu di badan teks, dengan nilai NNI per kategori.",
+    "catatan": "Analisis spasialnya berjalan konsisten dan angkanya dapat ditelusuri. Tiga hal tidak dijelaskan. Pertama, tidak disebut apakah 38 daya tarik, 32 hotel, dan 178 restoran itu populasi menyeluruh atau sampel, padahal penafsiran pola sebaran bergantung pada hal itu. Kedua, sumber data sekunder tidak disebutkan. Ketiga, klaim tentang SDGs pada bagian akhir tidak berasal dari analisis nearest neighbor, melainkan dari penalaran naratif, sehingga tidak setara dengan bukti spasial yang disajikan.",
+    "saran": "Nyatakan cakupan pendataan (sensus atau sampel) dan sebutkan sumber data sekundernya. Untuk bagian SDGs, pisahkan mana yang temuan dan mana yang penafsiran, atau tambahkan indikator yang benar-benar diukur bila kontribusi SDGs ingin dipertahankan sebagai temuan.",
+    "keyakinan": "tinggi"
+  },
+  "F.6": {
+    "ada": "Simpulan mengulang temuan sebaran dengan angka yang konsisten dengan tabel: 17 daya tarik alam, 17 buatan, 4 budaya berpola menyebar; 32 hotel acak; 178 restoran mengelompok di sekitar Desa Lembang mengikuti koridor jalan utama. Penjelasan faktor penyebab diberikan, yaitu topografi berbukit dan pemisahan fisik oleh hutan, lembah, dan sungai.",
+    "catatan": "Paragraf kedua melampaui data. Pernyataan \"Tourism contributes to 14 of the 17 SDGs, particularly SDG 8, SDG 1, and SDG 5\" merupakan klaim umum tentang pariwisata, bukan temuan dari analisis sebaran di Lembang, dan tidak disertai rujukan di tempat itu. Keterbatasan penelitian juga tidak dinyatakan sama sekali.",
+    "saran": "Pindahkan klaim SDGs ke pembahasan disertai rujukan, atau nyatakan tegas sebagai implikasi yang belum diuji. Tambahkan satu paragraf keterbatasan, misalnya cakupan satu kecamatan, periode pendataan lima bulan, dan ketiadaan data kunjungan wisatawan.",
+    "keyakinan": "tinggi"
+  },
+  "G.6": {
+    "ada": "Bahasa Inggris terbaca dan istilah teknis spasial dipakai konsisten (nearest neighbor index, dispersed, clustered, random).",
+    "catatan": "Ada ketidakkonsistenan ejaan varian Inggris: \"analysed\" dan \"neighbour\" dipakai berdampingan dengan \"analyzing\" dan \"neighbor\" di artikel yang sama. Terdapat pula salah ketik kata ganda pada penjelasan rumus: \"n is the the number of objects under examination\".",
+    "saran": "Pilih satu varian ejaan, British atau American, lalu seragamkan seluruh artikel. Perbaiki kata ganda pada penjelasan Persamaan 1.",
+    "keyakinan": "tinggi"
+  }
+}

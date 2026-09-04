@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"Teak Wood (Tectona grandis) Sawdust-Derived Activated Carbon: Optimizing Chemical Activation for Physicochemical Properties and Its Potential Relevance to Medical Textile Applications\". Menyebut prekursor berikut nama ilmiahnya, produk, perlakuan yang dioptimalkan, dan calon penerapannya.",
+    "catatan": "Judul informatif dan tidak berlebihan menjanjikan, karena memakai \"Potential Relevance\" yang sepadan dengan bukti dalam artikel. Panjangnya 21 kata. Temuan intinya, yaitu keunggulan H3PO4, belum masuk judul.",
+    "saran": "Kalau ingin lebih ringkas sekaligus memuat temuan, agen aktivasi terbaik bisa disebut langsung di judul. Bentuk sekarang sudah memadai.",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak 121 kata, ringkas dan utuh. Tujuan disebut (sintesis karbon aktif dari serbuk kayu jati dengan tiga agen aktivasi), metode disebut (H3PO4, HCl, NaOH dievaluasi secara sistematis), hasil berangka (bilangan iodin sekitar 943 mg/g pada H3PO4), penafsiran diberikan (struktur mikropori berkembang baik, luas permukaan tinggi), dan tindak lanjut dinyatakan (\"Further in situ studies are recommended to validate its performance in real wound environments\"). Tanpa rujukan, tabel, maupun gambar.",
+    "catatan": "Salah satu abstrak terbaik pada berkas ini. Klaimnya proporsional terhadap bukti dan keterbatasannya diakui di abstrak itu sendiri. Tidak ada catatan yang perlu diangkat.",
+    "saran": "Pertahankan. Menutup abstrak dengan tindak lanjut yang jujur seperti ini justru menguatkan, bukan melemahkan, karena asesor membandingkan kekuatan klaim dengan buktinya.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Lima kata kunci: Teak wood sawdust (TWS); activated carbon (AC); chemical activation; iodine number; medical textile applications.",
+    "catatan": "Kata kunci paling tepat sasaran di antara enam artikel. Seluruhnya merupakan istilah yang benar-benar dianalisis, mencakup bahan, proses, parameter ukur, dan penerapan. Tidak ada kata kunci yang ditempel dari skop jurnal.",
+    "saran": "Pertahankan pola ini. Menyertakan parameter ukur seperti iodine number membantu artikel ditemukan peneliti yang mencari metode serupa.",
+    "keyakinan": "tinggi"
+  },
+  "F.4": {
+    "ada": "Pendahuluan menerangkan konteks limbah serbuk kayu jati beserta masalah lingkungannya [9] [10], lalu mengulas tiga riset terdahulu dengan temuan masing-masing: Mekibes et al. (2024) untuk H3PO4 [11], Alam et al. (2020) untuk HCl [12], Arman et al. (2024) untuk NaOH [13]. Kesenjangan dinyatakan lugas: \"However, to date, no comprehensive study has directly compared these three chemical agents under identical synthesis conditions to systematically evaluate their effects on AC based TWS production. This represents a critical gap in the literature that must be addressed.\" Tujuan menyusul langsung sesudahnya.",
+    "catatan": "Ketiga unsur yang diminta rubrik terpenuhi, dan kesenjangannya dibangun rapi: tiga riset yang dikutip masing-masing hanya menguji satu agen, sehingga ketiadaan pembandingan pada kondisi sintesis yang sama menjadi celah yang logis. Ini contoh perumusan kesenjangan yang paling jelas di antara enam artikel.",
+    "saran": "Pertahankan. Pola \"kutip riset per variabel, lalu tunjukkan bahwa belum ada yang membandingkannya pada kondisi setara\" layak dijadikan contoh untuk penulis lain.",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Bagian Materials and Methods panjang (sekitar 1.300 kata) dan memerikan protokol secara berurutan: asal bahan (industri mebel di sekitar Karawang), pencucian dan penjemuran tiga hari, prakarbonisasi 400 derajat Celsius selama dua jam, penggerusan dan pengayakan, lalu aktivasi kimia dengan tiga agen yang diberi kode AC-1, AC-2, dan AC-3. Komposisi unsur bahan disajikan pada Tabel 1 dan alur sintesis pada Gambar 1. Tiga tabel dan empat gambar, seluruhnya diacu di badan teks.",
+    "catatan": "Protokol cukup rinci untuk direplikasi. Dua hal melemahkan dasar bukti. Pertama, komposisi unsur pada Tabel 1 dirujuk ke sumber lain [17], bukan hasil pengukuran sampel yang dipakai, padahal komposisi prekursor menentukan hasil aktivasi. Kedua, tidak disebut apakah pengukuran diulang atau berapa kali, sehingga pembaca tidak tahu apakah selisih bilangan iodin antar agen berada di luar rentang kesalahan pengukuran. Untuk artikel yang klaim utamanya adalah pembandingan tiga perlakuan, informasi pengulangan itu penting.",
+    "saran": "Tambahkan jumlah pengulangan tiap perlakuan dan sebutkan simpangannya, walaupun hanya rentang. Kalau komposisi unsur pada Tabel 1 memang dikutip dari pustaka, nyatakan itu di badan tabel agar tidak terbaca sebagai hasil pengukuran sendiri.",
+    "keyakinan": "sedang"
+  },
+  "F.6": {
+    "ada": "Simpulan 124 kata: mengulang perlakuan yang diuji, menyatakan H3PO4 sebagai yang terbaik disertai angka bilangan iodin 943 mg/g, menerangkan artinya (perkembangan mikropori dan potensi adsorpsi), lalu menutup dengan rekomendasi uji in situ pada lingkungan luka nyata.",
+    "catatan": "Menjawab tujuan, tidak memuat pembahasan baru, dan kekuatan klaimnya sepadan dengan bukti. Penerapan pada tekstil medis konsisten disebut sebagai potensi, bukan sebagai temuan. Tidak ada catatan yang perlu diangkat.",
+    "saran": "Pertahankan. Kalau ingin lebih lengkap, satu kalimat keterbatasan bisa ditambahkan, misalnya bahwa pengujian baru pada tingkat sifat fisikokimia dan belum menyentuh uji biologis.",
+    "keyakinan": "tinggi"
+  },
+  "G.6": {
+    "ada": "Istilah teknis dipakai konsisten dan singkatan diperkenalkan lebih dulu (TWS, AC). Ejaan British dipakai pada beberapa kata (valorisation, favourable).",
+    "catatan": "Ada kesalahan gramatika berulang pada konstruksi to + kata kerja: \"to produced AC\" dan \"to reduced its water content\", yang seharusnya memakai bentuk dasar. Yang lebih menonjol, daftar pustaka berbahasa Inggris memakai singkatan Indonesia \"dkk.\" alih-alih \"et al.\", misalnya pada entri [19] Lobato-Peralta, D. R, dkk. (2025), [20] Iwanow, M, dkk. (2020), dan [21] Sujiono, E. H, dkk. (2022). Terdapat pula salah ketik pada judul rujukan [20], \"Precursores\", yang seharusnya \"Precursors\".",
+    "saran": "Perbaiki bentuk kata kerja setelah to. Ganti seluruh \"dkk.\" menjadi \"et al.\" pada daftar pustaka artikel berbahasa Inggris, dan periksa ulang salah ketik pada judul rujukan. Pencampuran singkatan dua bahasa dalam satu daftar pustaka termasuk hal yang mudah terlihat asesor.",
+    "keyakinan": "tinggi"
+  }
+}

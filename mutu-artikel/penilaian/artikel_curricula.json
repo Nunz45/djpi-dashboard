@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"The impact of competency-based education on cognitive improvement and clinical skills in midwifery students\". Lima belas kata, menyebut intervensi (competency-based education), dua luaran yang diukur (cognitive improvement dan clinical skills), dan populasi (mahasiswa kebidanan).",
+    "catatan": "Judul lugas dan seimbang panjangnya. Satu hal yang bisa dipersoalkan: kata \"impact\" mengesankan hubungan sebab-akibat, padahal artikel ini tinjauan pustaka atas 13 studi, bukan penelitian intervensi. Judul juga tidak menandai bahwa ini artikel review, padahal jenis artikel biasanya disebutkan pada judul tinjauan.",
+    "saran": "Pertimbangkan menambahkan penanda jenis artikel, misalnya \"a literature review\", dan mengganti \"impact\" dengan kata yang lebih sepadan dengan desain, misalnya \"contribution\" atau \"outcomes\".",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak berbahasa Inggris 192 kata, dilengkapi ABSTRAK berbahasa Indonesia tersendiri. Memuat konteks, tujuan (\"evaluate the impact of CBE on enhancing the clinical skills and cognitive development of midwifery students\"), metode (penelusuran basis data dengan operator Boolean, seleksi PRISMA, 13 studi terbit 2021 sampai 2026), hasil (perbaikan keterampilan prosedural klinis, berpikir kritis, pengambilan keputusan; pendekatan simulasi dan problem-based learning efektif), serta hambatan implementasi. Tanpa rujukan, tabel, maupun gambar.",
+    "catatan": "Struktur abstrak lengkap. Ada satu ketidakcocokan dengan bagian metode: abstrak menyebut empat basis data (\"PubMed, Google Scholar, Scopus, and ScienceDirect\"), sedangkan bagian Methods menyebut \"three databases: Google Scholar, PubMed, and ScienceDirect\" tanpa Scopus. Selisih ini mudah diperiksa asesor karena keduanya ada dalam satu artikel.",
+    "saran": "Samakan daftar basis data di abstrak dengan yang benar-benar dipakai di metode. Kalau Scopus memang ditelusuri, masukkan ke bagian Methods berikut hasil penelusurannya pada diagram PRISMA.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Tujuh kata kunci, di antaranya clinical skills, cognitive development, competency-based education, dan midwifery students.",
+    "catatan": "Kata kunci mencerminkan variabel dan populasi yang dibahas. Belum ada kata kunci yang menandai jenis artikel, padahal artikel ini tinjauan pustaka dengan protokol PRISMA.",
+    "saran": "Tambahkan literature review atau PRISMA sebagai kata kunci agar artikel ditemukan oleh pencari yang khusus mencari sintesis pustaka.",
+    "keyakinan": "tinggi"
+  },
+  "F.4": {
+    "ada": "Pendahuluan mengulas pergeseran pendidikan kebidanan ke CBE dan kebutuhan penyesuaian institusional (Muraraneza & Mtshali, 2021), didukung bagian Literature Review tersendiri. Kesenjangan dinyatakan tegas: \"While numerous primary studies have evaluated individual CBE interventions in midwifery education, there remains a lack of integrative literature synthesis that simultaneously examines the impact of diverse CBE models on both cognitive and clinical competence domains within a single review framework. Most prior reviews have addressed either clinical skill outcomes or cognitive outcomes separately.\" Tujuan menyusul: menelaah model CBE yang diterapkan dan menganalisis dampaknya pada kompetensi klinis dan kognitif.",
+    "catatan": "Ketiga unsur terpenuhi. Kesenjangannya spesifik karena menunjuk keterbatasan tinjauan terdahulu yang memisahkan dua ranah luaran, lalu menempatkan artikel ini sebagai penyatunya.",
+    "saran": "Pertahankan. Kalau memungkinkan, sebutkan berapa banyak tinjauan terdahulu yang ditelusuri untuk sampai pada simpulan bahwa keduanya belum pernah disatukan, agar klaim kesenjangan itu sendiri berbukti.",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Metode menyebut pendekatan tinjauan pustaka, basis data yang ditelusuri, string pencarian Boolean lengkap dengan kata kuncinya, kepatuhan pada panduan PRISMA disertai diagram alir pada Gambar 1, serta kriteria inklusi (artikel penelitian berbahasa Inggris, terbitan lima tahun terakhir, tersedia teks penuh atau akses terbuka) dan kriteria eksklusi. Hasil penyaringan berupa 13 studi.",
+    "catatan": "Untuk artikel tinjauan, penyebutan string Boolean dan diagram PRISMA sudah tepat dan membuat penelusuran dapat diulang. Tiga hal masih kurang. Pertama, ketidakcocokan jumlah basis data antara abstrak dan metode seperti disebut pada F.2. Kedua, kriteria inklusi menyebut \"last five years\" sedangkan rentang terbitan yang dilaporkan 2021 sampai 2026, yang lebih dari lima tahun. Ketiga, tidak disebut siapa yang menyaring dan apakah penyaringan dilakukan lebih dari satu orang, padahal pada tinjauan sistematis hal itu lazim dilaporkan sebagai penjaga keandalan seleksi. Penilaian mutu studi terpilih juga tidak dibahas, sehingga 13 studi diperlakukan setara tanpa keterangan kekuatan buktinya.",
+    "saran": "Selaraskan jumlah basis data dan rentang tahun antara abstrak, metode, dan diagram PRISMA. Tambahkan keterangan jumlah penyaring dan cara menyelesaikan perbedaan penilaian. Tambahkan penilaian mutu studi terpilih, misalnya dengan instrumen yang lazim di bidang kesehatan, agar simpulan tidak bertumpu pada studi yang mutunya tidak dibedakan.",
+    "keyakinan": "tinggi"
+  },
+  "F.6": {
+    "ada": "Simpulan 210 kata menjawab tujuan: CBE menguatkan kemampuan kognitif dan kompetensi klinis, dengan contoh skenario klinis yang disebut konkret (resusitasi neonatus, perdarahan pascapersalinan, prosedur seksio sesarea). Ditutup dengan relevansi CBE terhadap tuntutan pendidikan kebidanan dan standar internasional.",
+    "catatan": "Isi simpulan sejalan dengan temuan dan tidak memuat pembahasan baru. Yang tidak ada adalah keterbatasan. Untuk tinjauan pustaka berbasis 13 studi, keterbatasan seperti jumlah studi yang sedikit, keragaman desain, dan ketiadaan penilaian mutu semestinya dinyatakan, karena hal itu membatasi seberapa jauh simpulan dapat digeneralisasi. Kata \"significantly\" dipakai untuk sintesis naratif yang tidak melakukan uji statistik.",
+    "saran": "Tambahkan paragraf keterbatasan. Ganti \"significantly enhances\" dengan kata yang sepadan dengan desain tinjauan naratif, misalnya \"consistently reported to enhance\", kecuali memang ada meta-analisis yang mendasarinya.",
+    "keyakinan": "tinggi"
+  },
+  "G.6": {
+    "ada": "Bahasa Inggris akademik terbaca dan istilah dipakai konsisten (CBE, competency attainment, simulation-based approaches). Artikel juga menyediakan abstrak dwibahasa.",
+    "catatan": "Terdapat salah ketik pada bagian AUTHOR'S NOTE: \"No confilct of interest is declared by the authors\", yang seharusnya \"conflict\". Salah ketik pada pernyataan formal seperti ini lebih mengganggu daripada di badan teks karena letaknya pada bagian yang dibaca asesor untuk memeriksa kepatuhan etika.",
+    "saran": "Perbaiki salah ketik tersebut. Periksa juga struktur bagian hasil: artikel memuat heading RESULTS AND DISCUSSION dan DISCUSSION secara terpisah, yang membuat batas antara penyajian temuan dan penafsirannya tidak jelas.",
+    "keyakinan": "tinggi"
+  }
+}

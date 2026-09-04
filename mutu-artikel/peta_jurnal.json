@@ -1,0 +1,10 @@
+{
+  "_catatan": "Memetakan nama berkas PDF ke NAMA JURNAL persis seperti di Sheet1. Nama harus cocok, karena kartu Persiapan Akreditasi menyaring temuan berdasarkan jurnal yang sedang login. Jalankan cekPraAsesmen() dari editor Apps Script untuk memeriksa baris mana yang tidak cocok.",
+
+  "IJAL": "Indonesian Journal of Applied Linguistics",
+  "IJOST": "Indonesian Journal of Science and Technology",
+  "IJOTIS": "Indonesian Journal of Teaching in Science",
+  "PASSAGE": "Passage: Journal of English Language and Literature",
+  "Wafi": "Wahana Fisika",
+  "curricula": "Curricula: Journal of Curriculum Development"
+}

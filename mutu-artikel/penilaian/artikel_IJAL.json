@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"Acoustic analysis of English vowel contrast by age and gender among Mainland Chinese speakers\". Tiga belas kata, menyebut metode (analisis akustik), objek (kontras vokal bahasa Inggris), variabel bebas (usia dan jenis kelamin), dan populasi (penutur Tiongkok daratan).",
+    "catatan": "Judul lugas dan spesifik. Belum memuat temuan, yang pada rubrik menjadi pembeda tingkat tertinggi. Temuan intinya ringkas dan bisa diangkat, yaitu ketiadaan kontras vokal yang konsisten lintas kelompok usia dan jenis kelamin.",
+    "saran": "Kalau ingin mengangkat temuan, kata seperti \"lack of contrast\" atau \"vowel conflation\" bisa masuk judul. Bentuk sekarang sudah baik, jadi ini pilihan.",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak 243 kata, tanpa rujukan, tanpa tabel atau gambar. Lengkap dan berurutan: konteks (pertumbuhan pemelajar bahasa Inggris di Tiongkok), kesenjangan (\"few studies have examined how age and gender affect the production of CE vowels\"), tujuan (\"To address this gap, this quantitative study acoustically examined vowel contrast\"), metode berangka (23 partisipan, dua bacaan, 3.236 monoftong, formant F1 dan F2 serta durasi, Praat dan R), dan hasil (\"a consistent lack of vowel quality and length contrast across age and gender groups for typical vowel pairs\").",
+    "catatan": "Abstrak terbaik di antara enam artikel yang diperiksa. Keempat unsur ada, angkanya konkret, dan tidak ada rujukan yang terbawa. Tidak ada catatan yang perlu diangkat.",
+    "saran": "Pertahankan pola ini. Abstrak yang memuat jumlah partisipan dan jumlah token seperti ini memudahkan asesor memverifikasi klaim ke bagian metode.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Lima kata kunci: Age, Chinese English, gender, monophthongs, dan satu lainnya. Seluruhnya mencerminkan variabel dan objek yang benar-benar dianalisis.",
+    "catatan": "Isi kata kunci tepat. Yang tidak konsisten hanya penggunaan huruf kapital: \"Age\" dan \"Chinese English\" berhuruf besar sedangkan \"gender\" dan \"monophthongs\" berhuruf kecil.",
+    "saran": "Seragamkan kapitalisasi kata kunci mengikuti gaya selingkung jurnal. Ini perbaikan tata letak, bukan isi.",
+    "keyakinan": "tinggi"
+  },
+  "F.4": {
+    "ada": "Pendahuluan menyusun state of the art berlapis: pertumbuhan pemelajar bahasa Inggris di Tiongkok, kedudukan Chinese English dalam kerangka World Englishes, dan temuan lintas varietas bahwa ketiadaan kontras vokal merupakan ciri bersama (Mesthrie & Bhatt, 2008; Loakes et al., 2024). Kesenjangan disusun bertingkat dan ditutup pernyataan tujuan yang tegas: \"To address the gaps noted, the present study aimed to investigate vowel contrast in the production of English monophthongs by Mainland Chinese English speakers, with respect to age and gender.\" Kontribusi dinyatakan pada dua arah sekaligus, yaitu pemahaman produksi vokal CE dan pembandingan dengan varietas lain.",
+    "catatan": "Ketiga unsur yang diminta rubrik terpenuhi kuat. Pendahuluan juga menempatkan riset pada perdebatan yang lebih besar, yaitu pergeseran dari pendekatan berorientasi kekurangan menuju deskripsi varietas. Tidak ada catatan yang perlu diangkat.",
+    "saran": "Pertahankan. Pola \"kesenjangan bertingkat lalu satu kalimat tujuan yang menyebut variabel\" ini layak dipakai sebagai contoh untuk penulis lain di lingkungan UPI.",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Desain kuantitatif dijelaskan berikut alasannya: pengukuran durasi serta formant F1 dan F2 menuntut pembandingan statistik dalam dan antarkelompok. Partisipan dirinci: 23 penutur (12 laki-laki, 11 perempuan), usia 20 sampai 78 tahun dengan rerata 41, direkrut lewat convenience dan snowball sampling di sebuah universitas negeri di Changsha, seluruhnya menyatakan bebas gangguan pendengaran dan wicara. Pembagian dua kelompok usia dijustifikasi konteks kebijakan pendidikan yang berbeda, bukan sekadar dipotong di tengah. Instrumen disebut (Praat untuk pengukuran akustik, R untuk analisis statistik) dengan 3.236 monoftong dari dua bacaan. Tujuh tabel dan sepuluh gambar menyajikan sebaran, seluruhnya diacu di badan teks. Pembahasan membandingkan temuan dengan varietas Inggris lain.",
+    "catatan": "Butir terkuat di antara enam artikel. Keterbatasan tidak disembunyikan: pembatasan pengambilan data akibat COVID-19 disebut di bagian metode maupun simpulan, berikut akibatnya pada ukuran dan keseimbangan sampel. Tidak ada klaim yang melampaui bukti.",
+    "saran": "Pertahankan. Satu hal yang bisa ditambahkan pada terbitan berikutnya adalah pernyataan ketersediaan data, misalnya apakah rekaman atau berkas pengukuran dapat diakses peneliti lain.",
+    "keyakinan": "tinggi"
+  },
+  "F.6": {
+    "ada": "Simpulan menjawab tujuan: konflasi vokal umum terjadi lintas kelompok usia dan jenis kelamin, dengan kecenderungan lebih kuat pada penutur muda. Keterbatasan dinyatakan terbuka dalam dua butir (ukuran sampel kecil akibat pembatasan COVID-19, dan keseimbangan kelompok), disertai penegasan bahwa temuan tidak dapat digeneralisasi ke seluruh penutur Tiongkok daratan. Arah riset lanjutan disebut konkret.",
+    "catatan": "Isi simpulan kuat dan jujur. Satu hal yang menyimpang dari rubrik: paragraf terakhir (\"Beyond internal linguistic factors...\") memperkenalkan penjelasan sosiolinguistik baru, yaitu dugaan bahwa penggunaan bahasa Inggris sebagai lingua franca mendorong sistem fonologis yang lebih sederhana. Argumen ini tidak diuji dalam artikel dan lebih tepat berada di pembahasan. Rubrik meminta simpulan tidak memuat pembahasan baru.",
+    "saran": "Pindahkan paragraf sosiolinguistik itu ke akhir bagian pembahasan, atau pertahankan di simpulan tetapi tandai jelas sebagai dugaan yang perlu diuji, misalnya dengan menyebutnya sebagai hipotesis untuk riset lanjutan.",
+    "keyakinan": "sedang"
+  },
+  "G.6": {
+    "ada": "Bahasa Inggris akademik yang rapi dan konsisten. Ejaan British dipakai taat asas (favour, analysed). Istilah teknis fonetik dipakai seragam (monophthong, formant, vowel conflation, durational contrast), dan singkatan CE diperkenalkan sekali lalu dipakai konsisten.",
+    "catatan": "Tidak ada masalah kebahasaan yang perlu diangkat.",
+    "saran": "Pertahankan. Konsistensi ejaan dan penanganan singkatan pada artikel ini bisa dijadikan acuan gaya selingkung jurnal.",
+    "keyakinan": "tinggi"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "F.1": {
+    "ada": "Judul: \"Principal management in improving student discipline to support science learning effectiveness at SMPN 1 Jatinangor and SMPN 12 Bandung City\". Lugas, spesifik, menyebut variabel (manajemen kepala sekolah, disiplin siswa, efektivitas pembelajaran IPA) dan lokasi riset. Jurnal berbahasa Inggris, jadi ketentuan judul dwibahasa tidak berlaku.",
+    "catatan": "Judul menerangkan topik dan lokasi, tetapi belum memuat temuan penting. Rubrik menempatkan judul yang lugas sekaligus memuat informasi temuan pada tingkat tertinggi. Judul juga panjang (18 kata) karena mencantumkan dua nama sekolah secara utuh.",
+    "saran": "Pertimbangkan memasukkan inti temuan ke judul, misalnya menyebut bahwa manajemen POAC yang konsisten meningkatkan efektivitas pembelajaran IPA. Nama kedua sekolah bisa diringkas menjadi keterangan lokasi yang lebih pendek.",
+    "keyakinan": "tinggi"
+  },
+  "F.2": {
+    "ada": "Abstrak 106 kata, satu paragraf, tanpa rujukan dan tanpa tabel atau gambar. Keempat unsur ada: tujuan (\"This study aims to examine the role of principal management...\"), metode (\"A qualitative approach with a comparative case study design was employed; data were collected through observation, in-depth interviews, and document analysis\"), hasil (\"principals at both schools have implemented discipline management systematically, encompassing the planning, organizing, activating, and evaluating discipline development programs\"), dan simpulan (\"The improvements in student discipline achieved through these efforts contributed directly to the enhanced effectiveness of science learning in both schools\").",
+    "catatan": "Hasil yang dilaporkan masih berupa pernyataan umum. Artikel ini studi kasus komparatif dua sekolah, tetapi abstrak tidak menyebut satu pun perbedaan atau persamaan antara SMPN 1 Jatinangor dan SMPN 12 Bandung. Pembaca tidak mendapat temuan spesifik dari abstrak.",
+    "saran": "Tambahkan satu sampai dua kalimat berisi temuan pembeda antar kedua sekolah, misalnya perbedaan pada fungsi actuating dan controlling, atau temuan soal ketiadaan sistem pencatatan terintegrasi. Panjang 106 kata masih menyisakan ruang.",
+    "keyakinan": "tinggi"
+  },
+  "F.3": {
+    "ada": "Enam kata kunci: Educational Technology, Junior High School, Principal Management, Science Learning, Science Curriculum, Student Discipline.",
+    "catatan": "Principal Management, Student Discipline, Science Learning, dan Junior High School mencerminkan isi artikel. Educational Technology dan Science Curriculum tidak. Artikel hanya menyinggung teknologi lewat rencana sistem e-point di bagian pembahasan, dan tidak membahas kurikulum IPA sebagai variabel. Dua kata kunci ini terbaca sebagai kata kunci skop jurnal, bukan kata kunci artikel.",
+    "saran": "Ganti Educational Technology dan Science Curriculum dengan istilah yang benar-benar dibahas, misalnya POAC management, school-based management, atau comparative case study.",
+    "keyakinan": "tinggi"
+  },
+  "F.4": {
+    "ada": "Pendahuluan membangun state of the art secara berlapis: pembelajaran IPA berbasis inkuiri, kaitan disiplin dengan capaian akademik, School-Based Management, sampai peran kepala sekolah, dengan rujukan mutakhir (Antonio & Prudente, 2024; Morris, 2025; Dah et al., 2024; Anderson et al., 2019; Lumban Gaol, 2023). Masalah lokal dinyatakan konkret: nilai IPA rendah disertai pelanggaran seperti membolos, perkelahian, merokok. Tujuan riset dinyatakan tegas: \"the present study aims to empirically analyze how student discipline management is implemented at SMPN 1 Jatinangor, Sumedang, and SMPN 12 Bandung, and to examine its contribution to enhancing the effectiveness of science learning\". Ada Figure 1 berisi kerangka konseptual.",
+    "catatan": "Dari tiga unsur utama yang diminta rubrik, dua terpenuhi kuat (state of the art dan tujuan riset) sedangkan justifikasi kebaruan atau analisis kesenjangan tidak dinyatakan. Tidak ada kalimat yang menerangkan apa yang belum dikerjakan penelitian terdahulu, atau apa yang membedakan studi ini. Paragraf terakhir pendahuluan langsung meloncat dari definisi pembinaan disiplin ke \"Against this backdrop, the present study aims to...\".",
+    "saran": "Sisipkan satu paragraf sebelum pernyataan tujuan yang menyatakan kesenjangan secara eksplisit. Bahan sudah tersedia di artikel: riset terdahulu membahas disiplin dan capaian akademik secara umum, tetapi belum menautkannya dengan efektivitas pembelajaran IPA yang menuntut keselamatan laboratorium dan integritas data, dan belum membandingkan dua konteks administratif berbeda (kabupaten dan kota).",
+    "keyakinan": "tinggi"
+  },
+  "F.5": {
+    "ada": "Metode diuraikan lengkap dalam enam subbagian: desain studi kasus komparatif, rasional pemilihan sekolah secara purposive, sepuluh partisipan sampai saturasi data, tiga teknik pengumpulan (wawancara semi-terstruktur berbasis kerangka POAC, observasi kelas dan laboratorium, analisis dokumen RKS/RKAS/buku pelanggaran), analisis interaktif kondensasi-penyajian-verifikasi, serta strategi keabsahan data. Pembahasan 3.1 sampai 3.6 menafsirkan temuan dan membandingkannya dengan literatur relevan (Welsh, 2024; McLaughlin et al., 2025; Chow et al., 2024; Cueva et al., 2025).",
+    "catatan": "Metode memadai dan pembandingan dengan riset lain berjalan konsisten. Titik lemahnya ada pada dasar bukti klaim utama. Artikel sendiri menyatakan korelasi antara perbaikan disiplin dan mutu pembelajaran IPA \"has not been systematically quantified\" dan bersandar pada laporan subjektif guru IPA, padahal klaim itulah yang dibawa ke judul, abstrak, dan simpulan.",
+    "saran": "Sajikan bukti pendukung yang sudah tersedia di lapangan, misalnya rekap buku pelanggaran sebelum dan sesudah program, atau kutipan wawancara guru IPA yang menerangkan perubahan konkret pada kegiatan praktikum. Kalau data kuantitatif memang tidak ada, turunkan kekuatan klaim di abstrak dan simpulan agar setara dengan buktinya.",
+    "keyakinan": "sedang"
+  },
+  "F.6": {
+    "ada": "Simpulan menjawab tujuan riset: menyebut empat dimensi POAC, menyatakan kontribusi pada ekosistem belajar IPA, lalu menutup dengan tiga kesenjangan implementasi (ketiadaan sistem evaluasi terintegrasi, rendahnya pelibatan orang tua, inkonsistensi penegakan aturan laboratorium) dan arah transformasi ke manajemen disiplin berbasis data. Tidak ada pembahasan baru yang muncul di simpulan.",
+    "catatan": "Isi simpulan sesuai rubrik. Bentuknya yang jadi masalah: seluruh simpulan ditulis sebagai satu paragraf panjang dengan rantai kalimat bersambung, sehingga temuan, keterbatasan, dan rekomendasi berdesakan dan sulit dipisahkan pembaca.",
+    "saran": "Pecah menjadi dua atau tiga paragraf: temuan utama, keterbatasan, lalu implikasi dan saran lanjut. Isi tidak perlu diubah.",
+    "keyakinan": "tinggi"
+  },
+  "G.6": {
+    "ada": "Bahasa Inggris akademik yang lancar dan konsisten. Istilah kunci dipakai seragam sepanjang artikel (POAC, School-Based Management, inquiry-based science learning). Istilah Indonesia yang perlu dipertahankan diberi padanan, misalnya \"Ilmu Pengetahuan Alam/IPA\" dan \"School Work Plan (RKS)\".",
+    "catatan": "Kualitas kebahasaan tidak bermasalah. Yang mengganggu keterbacaan adalah panjang kalimat: beberapa kalimat di pembahasan dan simpulan melewati 60 kata dengan banyak anak kalimat.",
+    "saran": "Pecah kalimat terpanjang di bagian 3.4, 3.6, dan simpulan menjadi dua kalimat. Tidak perlu penyuntingan bahasa menyeluruh.",
+    "keyakinan": "sedang"
+  }
+}
