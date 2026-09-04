@@ -84,6 +84,7 @@ a{color:var(--red);text-underline-offset:2px}
 .grid-kpi{grid-template-columns:repeat(4,minmax(0,1fr))}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-13{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
 
 /* ===== KPI card — garis aksen tipis di atas + glow radial samar di pojok,
    memanfaatkan position:relative/overflow:hidden yang sudah ada ===== */
@@ -185,7 +186,7 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
 
 /* ===== Overlay & modal ===== */
 .overlay{position:fixed;z-index:60;inset:0;display:flex;justify-content:center;padding:var(--space-6) var(--space-3);overflow-y:auto;background:rgba(20,19,18,.55)}
-.modal{width:100%;max-width:780px;height:max-content;margin:auto 0;border-radius:var(--radius-lg);background:#fff;box-shadow:var(--shadow-xl)}
+.modal{width:100%;max-width:780px;height:max-content;margin:auto 0;border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--shadow-xl)}
 .modal-lg{max-width:940px}
 .modal-head{display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--line)}
 .modal-body{padding:var(--space-5)}
@@ -248,7 +249,7 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
 @media(max-width:1000px){
   .grid-kpi{grid-template-columns:repeat(2,1fr)}
   .priority-strip{grid-template-columns:repeat(2,1fr)}
-  .grid-2,.grid-3{grid-template-columns:1fr}
+  .grid-2,.grid-3,.grid-13{grid-template-columns:1fr}
 }
 @media(max-width:680px){
   .page{padding:var(--space-4) var(--space-4) var(--space-8)}
@@ -323,6 +324,9 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
   :root:not([data-theme="light"]) .badge-bahaya{background:#3a1616;border-color:#5c2626}
   :root:not([data-theme="light"]) .badge-emas{background:#332a10;border-color:#5c4c1e}
   :root:not([data-theme="light"]) .kosong{background:var(--elev-2)}
+  :root:not([data-theme="light"]) .alert-galat{background:#2b1616;color:#f0b8b8;border-color:#5a2a2a}
+  :root:not([data-theme="light"]) .alert-ok{background:#173420;color:#a8d8b4;border-color:#265232}
+  :root:not([data-theme="light"]) .alert-info{background:#152628;color:#9fd0d6;border-color:#27484d}
 }
 :root[data-theme="dark"] .topbar,body.dark .topbar{background:rgba(23,22,20,.9)}
 :root[data-theme="dark"] table.tabel th,body.dark table.tabel th{background:rgba(0,0,0,.55)}
@@ -335,6 +339,9 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 :root[data-theme="dark"] .badge-bahaya,body.dark .badge-bahaya{background:#3a1616;border-color:#5c2626}
 :root[data-theme="dark"] .badge-emas,body.dark .badge-emas{background:#332a10;border-color:#5c4c1e}
 :root[data-theme="dark"] .kosong,body.dark .kosong{background:var(--elev-2)}
+:root[data-theme="dark"] .alert-galat,body.dark .alert-galat{background:#2b1616;color:#f0b8b8;border-color:#5a2a2a}
+:root[data-theme="dark"] .alert-ok,body.dark .alert-ok{background:#173420;color:#a8d8b4;border-color:#265232}
+:root[data-theme="dark"] .alert-info,body.dark .alert-info{background:#152628;color:#9fd0d6;border-color:#27484d}
 
 /* =========================================================================
    SHELL APLIKASI — sidebar gelap "inset" ala litabmas.upi.edu.
