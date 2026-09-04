@@ -1,0 +1,11 @@
+# Artikel terbit yang dipakai menguji ekstraktor mutu artikel.
+# Berhak cipta penerbit, tidak ikut ke repositori.
+PDF_Terbit/
+
+# Paket bukti hasil ekstraksi memuat teks penuh artikel, jadi diperlakukan
+# sama seperti PDF-nya. Regenerasi dengan: python mutu-artikel/ekstrak_artikel.py
+mutu-artikel/bukti/
+
+# Python
+__pycache__/
+*.pyc

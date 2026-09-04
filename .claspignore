@@ -1,0 +1,5 @@
+# rootDir pada .clasp.json menunjuk ke akar repositori, jadi clasp memindai
+# seluruh isinya. Dua folder di bawah ini milik perkakas lokal dan tidak ada
+# hubungannya dengan proyek Apps Script.
+PDF_Terbit/**
+mutu-artikel/**
