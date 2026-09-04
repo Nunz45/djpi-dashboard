@@ -241,7 +241,8 @@
           </button>
         </div>
 
-        <div class="grid grid-2 mb-16">
+        <!-- Baris 1: Kepatuhan terbitan (⅓) sejajar Sebaran jadwal terbitan (⅔) -->
+        <div class="grid grid-13 mb-16">
           <div class="card">
             <div class="card-head">
               <div>
@@ -254,7 +255,7 @@
               <div v-for="(jumlah, kategori) in data.stats.timeliness" :key="kategori" class="flex-antara">
                 <span :class="kelasTimeliness(kategori)">{{ kategori }}</span>
                 <div class="flex-tengah" style="flex:1;justify-content:flex-end">
-                  <div class="bar-track" style="width:130px">
+                  <div class="bar-track" style="flex:1">
                     <div class="bar-fill" :style="{ width: persen(jumlah, data.stats.total) + '%' }"></div>
                   </div>
                   <span class="tabular teks-tebal" style="min-width:34px;text-align:right">{{ jumlah }}</span>
@@ -263,6 +264,28 @@
             </div>
           </div>
 
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Sebaran jadwal terbitan</h2>
+                <p class="card-note">Klik batang untuk membuka daftar jurnal yang memiliki jadwal terbit pada bulan tersebut.</p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporBulanan">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+                Ekspor
+              </button>
+            </div>
+
+            <div class="card-pad">
+              <div class="chart-box">
+                <canvas id="grafikBulanan"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Baris 2: Status migrasi OJS (⅓) sejajar Rekap per kluster (⅔) -->
+        <div class="grid grid-13">
           <div class="card">
             <div class="card-head">
               <div>
@@ -289,36 +312,8 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="card mb-16">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">Sebaran jadwal terbitan</h2>
-              <p class="card-note">Klik batang untuk membuka daftar jurnal yang memiliki jadwal terbit pada bulan tersebut.</p>
-            </div>
-            <button type="button" class="btn btn-sm" @click="eksporBulanan">
-              <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-              Ekspor
-            </button>
-          </div>
-
-          <div class="card-pad">
-            <div class="chart-box">
-              <canvas id="grafikBulanan"></canvas>
-            </div>
-
-            <div class="flex-tengah mt-8 wrap" style="gap:6px">
-              <span class="teks-kecil teks-lembut">Pilih bulan:</span>
-              <button v-for="(bulan, index) in namaBulan" :key="bulan" type="button"
-                class="chip" @click="bukaBulan(index)">
-                {{ bulan }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
+          <div class="card">
           <div class="card-head">
             <div>
               <h2 class="card-title">Rekap per kluster</h2>
@@ -355,7 +350,8 @@
               </tbody>
             </table>
           </div>
-        </div>
+          </div><!-- /card Rekap -->
+        </div><!-- /grid-13 baris 2 -->
       </section>
 
       <!-- Kualitas data — seluruh angka dihitung di Code.gs, di sini hanya ditampilkan -->
@@ -512,6 +508,229 @@
 
         <div v-else class="kosong">
           <div class="kosong-judul">Rekap kualitas data belum tersedia</div>
+          <p class="kosong-teks">Muat ulang dashboard untuk mengambil rekap terbaru dari server.</p>
+        </div>
+      </section>
+
+      <!-- Akreditasi (Grup D — algoritma 9 & 10: waktu reakreditasi + kandidat) -->
+      <section v-show="tab === 'akreditasi'">
+        <template v-if="data.akreditasi">
+          <div class="kpi-eyebrow"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kalender reakreditasi</div>
+          <div class="grid grid-kpi mb-16">
+            <button type="button" class="card kpi kpi-klik" :class="{ 'kpi-aktif': filterAkrBucket === 'lewat' }" @click="bukaAkr('lewat')">
+              <div class="kpi-label">SK terlewat</div>
+              <div class="kpi-value tabular" :style="data.akreditasi.kalender.lewat ? 'color:var(--danger)' : ''">{{ data.akreditasi.kalender.lewat }}</div>
+              <div class="kpi-sub">Reakreditasi belum diproses.</div>
+            </button>
+            <button type="button" class="card kpi kpi-klik" :class="{ 'kpi-aktif': filterAkrBucket === 'kritis' }" @click="bukaAkr('kritis')">
+              <div class="kpi-label">Kedaluwarsa ≤ 3 bulan</div>
+              <div class="kpi-value tabular">{{ data.akreditasi.kalender.kritis }}</div>
+              <div class="kpi-sub">Berkas perlu dimulai sekarang.</div>
+            </button>
+            <button type="button" class="card kpi kpi-klik" :class="{ 'kpi-aktif': filterAkrBucket === 'dekat' }" @click="bukaAkr('dekat')">
+              <div class="kpi-label">Kedaluwarsa ≤ 6 bulan</div>
+              <div class="kpi-value tabular">{{ data.akreditasi.kalender.dekat }}</div>
+              <div class="kpi-sub">Masuk perencanaan.</div>
+            </button>
+            <button type="button" class="card kpi kpi-klik" :class="{ 'kpi-aktif': filterAkrBucket === 'pantau' }" @click="bukaAkr('pantau')">
+              <div class="kpi-label">Kedaluwarsa ≤ 12 bulan</div>
+              <div class="kpi-value tabular">{{ data.akreditasi.kalender.pantau }}</div>
+              <div class="kpi-sub">Pantau kesiapannya.</div>
+            </button>
+          </div>
+
+          <p v-if="data.akreditasi.kalender.takTerbaca + data.akreditasi.kalender.kosong" class="card-note mb-16">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            {{ data.akreditasi.kalender.takTerbaca + data.akreditasi.kalender.kosong }} jurnal terakreditasi
+            belum punya tanggal kedaluwarsa SK yang terbaca. Perbaiki kolom TANGGAL EXPIRED atau
+            MASA BERLAKU SK lewat Sunting Data Jurnal agar masuk kalender.
+          </p>
+
+          <div v-if="data.akreditasi.darurat.length" class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Prioritas darurat</h2>
+                <p class="card-note">Terakreditasi, SK ≤ 6 bulan lagi atau sudah terlewat, dan skor kesiapan di bawah 60.</p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporAkr(data.akreditasi.darurat, 'DJPI-Akreditasi-Darurat')">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Ekspor
+              </button>
+            </div>
+            <div class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Sisa waktu</th>
+                    <th scope="col">Kesiapan</th>
+                    <th scope="col">Penghambat utama</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in data.akreditasi.darurat" :key="r.namaJurnal" class="row-alert row-alert-danger">
+                    <td>
+                      <div class="teks-tebal putus">{{ r.namaJurnal }}</div>
+                      <div class="teks-kecil teks-lembut">{{ r.kluster }} · {{ r.statusAkreditasi }}</div>
+                    </td>
+                    <td><span :class="kelasBucketAkr(r.kedaluwarsa.bucket)">{{ r.kedaluwarsa.label }}</span></td>
+                    <td>
+                      <span :class="kelasSkorAkr(r.skor)">{{ r.skor }}</span>
+                      <div class="bar-track mt-8" style="width:90px"><div class="bar-fill" :style="{ width: r.skor + '%' }"></div></div>
+                    </td>
+                    <td class="teks-kecil">
+                      <div v-for="p in r.penghambat" :key="p">{{ p }}</div>
+                      <span v-if="!r.penghambat.length" class="teks-lembut">—</span>
+                    </td>
+                    <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Jadwal reakreditasi</h2>
+                <p class="card-note">
+                  {{ jadwalAkrTersaring.length }} dari {{ data.akreditasi.kalender.jadwal.length }} jurnal terakreditasi dengan jadwal terbaca.
+                  <template v-if="filterAkrBucket">
+                    · disaring: {{ labelBucketAkr(filterAkrBucket) }}
+                    <button type="button" class="btn btn-sm" @click="filterAkrBucket = ''">Hapus</button>
+                  </template>
+                </p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporAkr(jadwalAkrTersaring, 'DJPI-Jadwal-Reakreditasi')">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Ekspor
+              </button>
+            </div>
+
+            <div v-if="!jadwalAkrTersaring.length" class="card-pad">
+              <div class="alert alert-info">Tidak ada jurnal pada kelompok ini.</div>
+            </div>
+
+            <div v-else class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Kluster</th>
+                    <th scope="col">Sisa waktu</th>
+                    <th scope="col">Kesiapan</th>
+                    <th scope="col">Penghambat</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in jadwalAkrTersaring" :key="r.namaJurnal">
+                    <td>
+                      <div class="teks-tebal putus">{{ r.namaJurnal }}</div>
+                      <div class="teks-kecil teks-lembut">{{ r.statusAkreditasi }}</div>
+                    </td>
+                    <td class="teks-kecil">{{ r.kluster }}</td>
+                    <td><span :class="kelasBucketAkr(r.kedaluwarsa.bucket)">{{ r.kedaluwarsa.label }}</span></td>
+                    <td>
+                      <span :class="kelasSkorAkr(r.skor)">{{ r.skor }}</span>
+                      <span class="teks-kecil teks-lembut"> · {{ r.lulus }}/7<span v-if="r.perluCek"> ({{ r.perluCek }} dicek)</span></span>
+                    </td>
+                    <td class="teks-kecil">
+                      <span v-for="(p, i) in r.penghambat" :key="p">{{ p }}<span v-if="i < r.penghambat.length - 1">, </span></span>
+                      <span v-if="!r.penghambat.length" class="teks-lembut">tidak ada</span>
+                    </td>
+                    <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Kandidat akreditasi baru</h2>
+                <p class="card-note">Jurnal belum terakreditasi, diurutkan menurut skor kesiapan digabung kekuatan sitasi.</p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporAkr(data.akreditasi.kandidatBaru, 'DJPI-Kandidat-Akreditasi')">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Ekspor
+              </button>
+            </div>
+
+            <div v-if="!data.akreditasi.kandidatBaru.length" class="card-pad">
+              <div class="alert alert-info">Semua jurnal pada cakupan Anda sudah terakreditasi.</div>
+            </div>
+
+            <div v-else class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Kluster</th>
+                    <th scope="col" class="td-num">Skor</th>
+                    <th scope="col">Sudah dipenuhi</th>
+                    <th scope="col">Belum</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in data.akreditasi.kandidatBaru.slice(0, 20)" :key="r.namaJurnal">
+                    <td class="teks-tebal putus">{{ r.namaJurnal }}</td>
+                    <td class="teks-kecil">{{ r.kluster }}</td>
+                    <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
+                    <td class="teks-kecil">
+                      <span v-for="(a, i) in r.alasan" :key="a">{{ a }}<span v-if="i < r.alasan.length - 1">, </span></span>
+                      <span v-if="!r.alasan.length" class="teks-lembut">—</span>
+                    </td>
+                    <td class="teks-kecil">
+                      <span v-for="(p, i) in r.penghambat" :key="p">{{ p }}<span v-if="i < r.penghambat.length - 1">, </span></span>
+                      <span v-if="!r.penghambat.length" class="teks-lembut">—</span>
+                    </td>
+                    <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div v-if="data.akreditasi.kandidatNaik.length" class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Kandidat naik peringkat</h2>
+                <p class="card-note">SINTA 3–6 dengan skor kesiapan minimal 70 — potensial diajukan naik tingkat.</p>
+              </div>
+              <button type="button" class="btn btn-sm" @click="eksporAkr(data.akreditasi.kandidatNaik, 'DJPI-Kandidat-Naik-Peringkat')">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Ekspor
+              </button>
+            </div>
+            <div class="tabel-bungkus">
+              <table class="tabel">
+                <thead>
+                  <tr>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Peringkat</th>
+                    <th scope="col" class="td-num">Skor</th>
+                    <th scope="col">Kekuatan</th>
+                    <th scope="col" class="td-num">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in data.akreditasi.kandidatNaik" :key="r.namaJurnal">
+                    <td class="teks-tebal putus">{{ r.namaJurnal }} <span class="teks-kecil teks-lembut">· {{ r.kluster }}</span></td>
+                    <td class="teks-kecil">{{ r.statusAkreditasi }}</td>
+                    <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
+                    <td class="teks-kecil">
+                      <span v-for="(a, i) in r.alasan" :key="a">{{ a }}<span v-if="i < r.alasan.length - 1">, </span></span>
+                    </td>
+                    <td class="td-num"><button type="button" class="btn btn-sm" @click="bukaJurnalNama(r.namaJurnal)">Detail</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <div v-else class="kosong">
+          <div class="kosong-judul">Rekap akreditasi belum tersedia</div>
           <p class="kosong-teks">Muat ulang dashboard untuk mengambil rekap terbaru dari server.</p>
         </div>
       </section>
@@ -1496,6 +1715,38 @@
               </li>
             </ul>
           </template>
+
+          <template v-if="jurnalTerpilih.akreditasi">
+            <div class="card-head mt-16" style="padding-left:0;padding-right:0">
+              <div>
+                <h3 class="card-title" style="font-size:14px">Kesiapan akreditasi</h3>
+                <p class="card-note">
+                  {{ jurnalTerpilih.akreditasi.kesiapan.lulus }} dari 7 kriteria terpenuhi.
+                  <template v-if="jurnalTerpilih.akreditasi.kedaluwarsa.bucket !== 'takRelevan'">
+                    · <span :class="kelasBucketAkr(jurnalTerpilih.akreditasi.kedaluwarsa.bucket)">{{ jurnalTerpilih.akreditasi.kedaluwarsa.label }}</span>
+                  </template>
+                </p>
+              </div>
+              <span :class="kelasSkorAkr(jurnalTerpilih.akreditasi.kesiapan.skor)">Skor {{ jurnalTerpilih.akreditasi.kesiapan.skor }}</span>
+            </div>
+
+            <div class="bar-track mb-8">
+              <div class="bar-fill" :style="{ width: jurnalTerpilih.akreditasi.kesiapan.skor + '%' }"></div>
+            </div>
+
+            <ul class="dq-daftar">
+              <li v-for="c in jurnalTerpilih.akreditasi.kesiapan.checklist" :key="c.k" class="dq-item">
+                <div>
+                  <div class="flex-tengah gap-8">
+                    <i :class="[ikonLulus(c.lulus), kelasLulus(c.lulus)]" aria-hidden="true"></i>
+                    <span class="teks-tebal">{{ c.label }}</span>
+                    <span class="teks-kecil teks-lembut">bobot {{ c.bobot }}</span>
+                  </div>
+                  <div class="teks-kecil teks-lembut putus">{{ c.nilai }}</div>
+                </div>
+              </li>
+            </ul>
+          </template>
         </template>
 
         <form v-else-if="modeSunting" @submit.prevent="simpanSunting">
@@ -1698,8 +1949,10 @@
   font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
 }
 
-/* badge ikon KPI — kotak pastel */
-.kpi-top{display:flex;margin-bottom:-6px}
+/* badge ikon KPI — kotak pastel, dipindah ke pojok kanan-atas supaya
+   label/angka/sub memakai lebar penuh kartu (pola litabmas) */
+.kpi-top{position:absolute;top:16px;right:16px;margin:0;z-index:1}
+.kpi:has(.kpi-top) .kpi-label{padding-right:44px}
 .kpi-icon{width:36px;height:36px;flex:none;border-radius:10px;display:grid;place-items:center}
 .kpi-icon-n{background:var(--elev-4);color:var(--muted)}
 .kpi-icon-r{background:var(--red-soft);color:var(--red)}
@@ -1710,6 +1963,12 @@
 :root[data-theme="dark"] .kpi-icon-b,body.dark .kpi-icon-b{background:#1b2540;color:#8fb0ff}
 :root[data-theme="dark"] .kpi-icon-ok,body.dark .kpi-icon-ok{background:#16301f;color:#6fc586}
 :root[data-theme="dark"] .badge-none,body.dark .badge-none{background:#2b2925;color:var(--muted);border-color:#3f3c36}
+
+/* tab Akreditasi — status ikon checklist & KPI terpilih */
+.lulus-ok{color:var(--ok)}
+.lulus-gagal{color:var(--danger)}
+.lulus-cek{color:var(--warn)}
+.kpi-aktif{border-color:var(--red);box-shadow:inset 0 0 0 1.5px var(--red)}
 </style>
 </body>
 </html>

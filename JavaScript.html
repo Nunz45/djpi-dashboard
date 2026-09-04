@@ -94,6 +94,7 @@ Vue.createApp({
     // baru: filter & paginasi tabel "Riwayat Laporan APC"
     filterBulanApc:'',filterKlusterApc:'',halamanApc:1,
     filterTerbitanStatus:'', // baru: filter status pada tab Progress Terbitan
+    filterAkrBucket:'', // baru: filter bucket kedaluwarsa pada tab Akreditasi
     // baru: state tab Template Email (superadmin-only)
     daftarTemplateEmail:[],templateAktifKunci:'',draftTemplateEmail:{subjek:'',isi:''},
     memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:'',
@@ -135,7 +136,8 @@ Vue.createApp({
         {judul:'Monitoring',item:[
           {k:'ringkasan',label:'Ringkasan',ikon:'fa-solid fa-gauge'},
           {k:'jurnal',label:'Daftar Jurnal',ikon:'fa-solid fa-book-open',badge:d?d.journals.length:0},
-          {k:'kualitas',label:'Kualitas Data',ikon:'fa-solid fa-shield-halved',badge:dq&&dq.bermasalah?dq.bermasalah:0}
+          {k:'kualitas',label:'Kualitas Data',ikon:'fa-solid fa-shield-halved',badge:dq&&dq.bermasalah?dq.bermasalah:0},
+          {k:'akreditasi',label:'Akreditasi',ikon:'fa-solid fa-award',badge:d&&d.akreditasi?(d.akreditasi.kalender.lewat+d.akreditasi.kalender.kritis):0}
         ]},
         {judul:'Operasional',item:[
           {k:'scopus',label:'Pipeline Scopus',ikon:'fa-solid fa-arrow-trend-up'},
@@ -174,6 +176,12 @@ Vue.createApp({
     levelDq:function(){return LEVEL_DQ;}, // baru
     // baru: daftar status tetap & laporan terbitan tersaring untuk tab Progress Terbitan
     statusTerbitanList:function(){return TERBITAN_STATUS_LIST;},
+    // baru: jadwal reakreditasi tersaring menurut bucket yang dipilih di KPI tab Akreditasi
+    jadwalAkrTersaring:function(){
+      if(!this.data||!this.data.akreditasi)return[];
+      var f=this.filterAkrBucket, arr=this.data.akreditasi.kalender.jadwal;
+      return f?arr.filter(function(r){return r.kedaluwarsa.bucket===f;}):arr;
+    },
     terbitanTersaring:function(){
       if(!this.data||!this.data.terbitan)return[];
       var items=this.data.terbitan.items||[];
@@ -600,6 +608,54 @@ Vue.createApp({
     // baru: label & kelas badge untuk tab Progress Terbitan
     labelStatusTerbitan:function(s){ return LABEL_TERBITAN_STATUS[s] || s; },
     kelasStatusTerbitan:function(s){ return KELAS_TERBITAN_STATUS[s] || 'badge badge-none'; },
+
+    // ===== Tab Akreditasi (Grup D) =====
+    kelasBucketAkr:function(b){
+      if(b==='lewat')return'badge badge-bahaya';
+      if(b==='kritis')return'badge badge-bahaya';
+      if(b==='dekat')return'badge badge-warn';
+      if(b==='pantau')return'badge badge-emas';
+      if(b==='aman')return'badge badge-ok';
+      return'badge badge-none';
+    },
+    labelBucketAkr:function(b){
+      return{lewat:'SK terlewat',kritis:'≤ 3 bulan',dekat:'≤ 6 bulan',pantau:'≤ 12 bulan',
+             aman:'Aman',takTerbaca:'Tak terbaca',kosong:'Belum tercatat',takRelevan:'—'}[b]||b;
+    },
+    kelasSkorAkr:function(s){
+      if(s>=80)return'badge badge-ok';
+      if(s>=60)return'badge badge-emas';
+      if(s>=40)return'badge badge-warn';
+      return'badge badge-bahaya';
+    },
+    // ikon status per item checklist: true=lulus, false=gagal, null=perlu dicek
+    ikonLulus:function(v){
+      if(v===true)return'fa-solid fa-circle-check';
+      if(v===false)return'fa-solid fa-circle-xmark';
+      return'fa-solid fa-circle-question';
+    },
+    kelasLulus:function(v){
+      if(v===true)return'lulus-ok';
+      if(v===false)return'lulus-gagal';
+      return'lulus-cek';
+    },
+    bukaAkr:function(bucket){
+      this.filterAkrBucket=(this.filterAkrBucket===bucket?'':bucket);
+    },
+    bukaJurnalNama:function(nama){
+      var j=(this.data&&this.data.journals||[]).find(function(x){return x.namaJurnal===nama;});
+      if(j)this.bukaJurnal(j);
+      else this.tampilkanToast('Detail jurnal "'+nama+'" tidak ada di cakupan Anda.');
+    },
+    eksporAkr:function(rows,namaFile){
+      this.unduhExcel(rows.map(function(r){return{
+        'Nama Jurnal':r.namaJurnal,Kluster:r.kluster,Akreditasi:r.statusAkreditasi,
+        'Sisa Waktu':r.kedaluwarsa.label,
+        'Skor Kesiapan':r.skor,'Kriteria Lulus':r.lulus,'Kriteria Gagal':r.gagal,'Perlu Dicek':r.perluCek,
+        'Skor Kandidat':r.skorKandidat||'',
+        Penghambat:(r.penghambat||[]).join('; '),Kekuatan:(r.alasan||[]).join('; ')
+      };}),'Akreditasi',namaFile);
+    },
 
     // baru: dipakai untuk menampilkan peringatan bila admin mencoba pindah ke
     // SIAP_DIPROSES padahal ISSN jurnal belum sah — server juga menolaknya,
