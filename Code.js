@@ -38,7 +38,8 @@ var SHEET = {
   ARTIKEL_BERPENGARUH: 'Artikel_Berpengaruh', // artikel dengan sitasi tertinggi
   TEMPLATE_EMAIL: 'Template_Email',           // subjek & isi email otomatis ke pengelola, bisa diedit admin
   VERIFIKASI_DOAJ: 'Verifikasi_DOAJ',         // snapshot hasil pengecekan DOAJ per jurnal (lihat section 22)
-  PENGATURAN_LANDING: 'Pengaturan_Landing'    // aktif/urutan section & tab Landing publik (lihat section 26)
+  PENGATURAN_LANDING: 'Pengaturan_Landing',   // aktif/urutan section & tab Landing publik (lihat section 26)
+  PRA_ASESMEN: 'Pra_Asesmen_Artikel'          // temuan pra-asesmen Tahap 3.2 per artikel (lihat section 29)
 };
 
 var CACHE = {
@@ -1629,6 +1630,8 @@ function getDashboardDataForAdmin(token) {
       return bolehAksesKluster_(profile, j.kluster);
     });
 
+    lekatkanAkreditasi_(terlihat); // section 27 — melekatkan j.akreditasi (kedaluwarsa SK + checklist kesiapan)
+
     return {
       ok: true,
       profile: { email: profile.email, isSuperadmin: profile.isSuperadmin, aksesKluster: profile.aksesKluster },
@@ -1639,6 +1642,7 @@ function getDashboardDataForAdmin(token) {
       apc: rekapApc_(terlihat, profile),
       terbitan: rekapProgressTerbitan_(terlihat, profile), // rekap progres terbitan untuk tab Progress Terbitan
       dataQuality: rekapKualitas_(terlihat), // rekap kualitas data untuk tab Kualitas Data
+      akreditasi: rekapAkreditasi_(terlihat), // rekap tab Akreditasi (Grup D — algoritma 9 & 10)
       journals: terlihat,
       generatedAt: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')
     };
@@ -6212,4 +6216,1108 @@ function imporCoverDraftBatch3() {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ==========================================================================
+   27. MODUL KESIAPAN AKREDITASI (Grup D — algoritma 9 & 10)
+   --------------------------------------------------------------------------
+   Semua dihitung di server dari data yang SUDAH ada:
+     - Sheet1  : statusAkreditasi, masaBerlakuSk, tanggalExpired, timeliness,
+                 issue, artikelPerIssue, artikelPerTahun, statusOjs,
+                 eIssn/pIssn/issn, coverUrl, scope
+     - j.doajStatus    : hasil Verifikasi_DOAJ (sudah menempel di bacaDataJurnal_)
+     - Jurnal_Unggulan : rata-rata sitasi/artikel OpenAlex -> percentil di antara jurnal UPI
+     - Usulan_DOI      : nama jurnal dengan status BERHASIL -> penanda DOI aktif
+
+   Keluaran per jurnal (dilekatkan di getDashboardDataForAdmin):
+     j.akreditasi = {
+       kedaluwarsa : { sumber, tanggalIso, tahun, bulanTersisa, bucket, label },
+       kesiapan    : { skor, checklist:[{k,label,lulus,nilai,bobot}], lulus, gagal, perluCek },
+       kandidat    : { relevan, jenis:'baru'|'naik'|'', skor, alasan:[], penghambat:[] }
+     }
+   Ubah bobot checklist di BOBOT_KESIAPAN; ambang bucket di AKR_BUCKET.
+   ========================================================================== */
+
+var BOBOT_KESIAPAN = {
+  terbitTepatWaktu: 25,
+  volumeArtikel:    20,
+  ojsModern:        15,
+  doiAktif:         12,
+  issnSah:          10,
+  terindeksDoaj:    10,
+  profilPublik:      8
+};
+
+/** Ambang bucket kedaluwarsa SK, dalam bulan tersisa. */
+var AKR_BUCKET = { kritis: 3, dekat: 6, pantau: 12 };
+
+/** Selisih bulan dari a ke b (b - a), dibulatkan ke bawah; bisa negatif. */
+function selisihBulan_(a, b) {
+  var m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) m -= 1;
+  return m;
+}
+
+function tanggalSah_(y, mo, d) {
+  if (!y || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  var t = new Date(y, mo - 1, d);
+  return isNaN(t.getTime()) ? null : t;
+}
+
+/**
+ * Parser tanggal toleran: Date asli dari sheet, ISO (yyyy-mm-dd),
+ * dd/mm/yyyy, dd-mm-yyyy, atau "30 November 2026" / "30 Nov 2026".
+ */
+function bacaTanggalLonggar_(nilai) {
+  if (nilai instanceof Date && !isNaN(nilai.getTime())) return nilai;
+  var s = String(nilai == null ? '' : nilai).trim();
+  if (!s || placeholder_(s)) return null;
+
+  var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return tanggalSah_(+m[1], +m[2], +m[3]);
+
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (m) return tanggalSah_(+m[3], +m[2], +m[1]);
+
+  m = norm_(s).match(/\b(\d{1,2})\s+([A-Z]+)\s+((?:19|20)\d{2})\b/);
+  if (m) {
+    for (var i = 0; i < BULAN.length; i++) {
+      if (BULAN[i].pola.test(m[2])) return tanggalSah_(+m[3], i + 1, +m[1]);
+    }
+  }
+  return null;
+}
+
+/**
+ * Menafsirkan kedaluwarsa SK akreditasi.
+ * Prioritas TANGGAL EXPIRED bila memuat tanggal sah -> hitung mundur bulanan.
+ * Jatuh ke tahun 4-digit dari MASA BERLAKU SK -> anggap berakhir 31 Des tahun itu.
+ */
+function parseKedaluwarsaSk_(tanggalExpired, masaBerlakuSk) {
+  var hasil = { sumber: '', tanggalIso: '', tahun: null, bulanTersisa: null, bucket: 'takTerbaca', label: '' };
+  var sekarang = new Date();
+
+  var tgl = bacaTanggalLonggar_(tanggalExpired);
+  if (tgl) {
+    hasil.sumber = 'tanggal';
+    hasil.tanggalIso = Utilities.formatDate(tgl, TZ, 'yyyy-MM-dd');
+    hasil.tahun = tgl.getFullYear();
+    hasil.bulanTersisa = selisihBulan_(sekarang, tgl);
+  } else if (placeholder_(masaBerlakuSk)) {
+    hasil.bucket = 'kosong';
+    hasil.label = 'Masa berlaku SK belum tercatat';
+    return hasil;
+  } else {
+    var thn = (norm_(masaBerlakuSk).match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);
+    if (!thn.length) {
+      hasil.label = 'Masa berlaku SK tidak terbaca sebagai tahun';
+      return hasil;
+    }
+    hasil.sumber = 'tahun';
+    hasil.tahun = Math.max.apply(null, thn);
+    hasil.bulanTersisa = selisihBulan_(sekarang, new Date(hasil.tahun, 11, 31));
+  }
+
+  var b = hasil.bulanTersisa;
+  var kapan = hasil.tanggalIso || String(hasil.tahun);
+  if (b < 0)                       { hasil.bucket = 'lewat';  hasil.label = 'SK terlewat ' + Math.abs(b) + ' bulan lalu'; }
+  else if (b <= AKR_BUCKET.kritis) { hasil.bucket = 'kritis'; hasil.label = 'Kedaluwarsa dalam ' + b + ' bulan'; }
+  else if (b <= AKR_BUCKET.dekat)  { hasil.bucket = 'dekat';  hasil.label = 'Kedaluwarsa dalam ' + b + ' bulan'; }
+  else if (b <= AKR_BUCKET.pantau) { hasil.bucket = 'pantau'; hasil.label = 'Kedaluwarsa dalam ' + b + ' bulan'; }
+  else                             { hasil.bucket = 'aman';   hasil.label = 'Masih ' + b + ' bulan (' + kapan + ')'; }
+  return hasil;
+}
+
+/** Jumlah issue per tahun dari kolom "ISSUE" (frekuensi terbit). */
+function issuePerTahun_(issue) {
+  var s = norm_(issue);
+  if (!s || placeholder_(s)) return null;
+  if (/BULANAN|MONTHLY/.test(s)) return 12;
+  if (/DWI\s*BULAN|BIMONTH/.test(s)) return 6;
+  if (/TRIWULAN|KUARTAL|QUARTER/.test(s)) return 4;
+  if (/TENGAH\s*TAHUN|SEMESTER|SEMIANNUAL|DUA\s*KALI|2\s*KALI/.test(s)) return 2;
+  if (/TAHUNAN|ANNUAL|SEKALI\s*SETAHUN|SETAHUN\s*SEKALI/.test(s)) return 1;
+  var n = parseInt(s.replace(/[^0-9]/g, ''), 10);
+  return (n >= 1 && n <= 24) ? n : null;
+}
+
+/** Set nama jurnal (ternormalisasi) yang punya minimal satu usulan DOI BERHASIL. */
+function bacaJurnalPunyaDoi_() {
+  try {
+    var sh = sheetOpsional_(DOI_SHEET_NAME);
+    if (!sh) return {};
+    var nilai = sh.getDataRange().getValues();
+    if (nilai.length < 2) return {};
+    var header = nilai[0].map(function (h) { return String(h).trim(); });
+    var iNama = header.indexOf('nama_jurnal');
+    var iStatus = header.indexOf('status');
+    if (iNama === -1 || iStatus === -1) return {};
+    var set = {};
+    for (var r = 1; r < nilai.length; r++) {
+      if (String(nilai[r][iStatus]).trim().toUpperCase() === 'BERHASIL') set[norm_(nilai[r][iNama])] = true;
+    }
+    return set;
+  } catch (e) { return {}; }
+}
+
+function petaUnggulan_(topJournals) {
+  var peta = {};
+  (topJournals || []).forEach(function (t) { if (t.namaJurnal) peta[norm_(t.namaJurnal)] = t; });
+  return peta;
+}
+
+/** Percentil (0..1) rata-rata sitasi/artikel OpenAlex di antara jurnal yang punya data. */
+function percentilSitasi_(topJournals) {
+  var arr = (topJournals || [])
+    .map(function (t) { return { nama: norm_(t.namaJurnal), v: angka_(t.rataSitasiPerArtikel_OpenAlex) }; })
+    .filter(function (x) { return x.nama; });
+  arr.sort(function (a, b) { return a.v - b.v; });
+  var peta = {}, n = arr.length;
+  arr.forEach(function (x, i) { peta[x.nama] = n > 1 ? i / (n - 1) : 1; });
+  return peta;
+}
+
+/** Checklist kesiapan akreditasi satu jurnal + skor berbobot 0..100. */
+function nilaiKesiapanAkreditasi_(j, ctx) {
+  ctx = ctx || {};
+  var checklist = [];
+  function item(k, label, lulus, nilai) {
+    checklist.push({ k: k, label: label, lulus: lulus, nilai: String(nilai == null ? '' : nilai), bobot: BOBOT_KESIAPAN[k] || 0 });
+  }
+
+  // 1. Terbit tepat waktu (Belum Dinilai -> perlu dicek)
+  var kt = j.kategoriTimeliness;
+  item('terbitTepatWaktu', 'Terbit tepat waktu',
+    kt === 'Tepat Waktu' ? true : (kt === 'Belum Dinilai' ? null : false), kt);
+
+  // 2. Volume artikel memadai: realisasi/terdaftar >= kapasitas (artikelPerIssue x issue/tahun)
+  var perIssue = angka_(j.artikelPerIssue);
+  var perTahun = angka_(j.artikelPerTahun);
+  var ipt = issuePerTahun_(j.issue);
+  var kapasitas = (perIssue && ipt) ? perIssue * ipt : null;
+  var vLulus, vNilai;
+  if (!perTahun && !kapasitas) { vLulus = null; vNilai = 'jumlah artikel & frekuensi belum tercatat'; }
+  else if (kapasitas) {
+    var acuan = perTahun || kapasitas;
+    vLulus = acuan >= Math.ceil(kapasitas * 0.8);
+    vNilai = acuan + '/tahun vs kapasitas ' + perIssue + ' x ' + ipt + ' = ' + kapasitas;
+  } else {
+    vLulus = perTahun >= 20;
+    vNilai = perTahun + '/tahun (frekuensi terbit belum tercatat)';
+  }
+  item('volumeArtikel', 'Volume artikel memadai', vLulus, vNilai);
+
+  // 3. OJS 3.x
+  item('ojsModern', 'Sudah OJS 3.x', !!j.sudahMigrasi, j.statusOjs || 'status OJS belum tercatat');
+
+  // 4. DOI aktif
+  var namaN = norm_(j.namaJurnal);
+  var punyaDoi = !!(ctx.doiSet && ctx.doiSet[namaN]);
+  var unggul = ctx.unggulanMap && ctx.unggulanMap[namaN];
+  if (!punyaDoi && unggul && angka_(unggul.totalArtikel) > 0) punyaDoi = true;
+  item('doiAktif', 'DOI aktif',
+    punyaDoi ? true : ((ctx.doiSet || ctx.unggulanMap) ? false : null),
+    punyaDoi ? 'terdaftar di Crossref / usulan DOI berhasil' : 'belum terdeteksi ber-DOI');
+
+  // 5. ISSN sah
+  var issnOk = j.eIssnValid || j.issnValid || (j.pIssnValid && !placeholder_(j.pIssn));
+  item('issnSah', 'ISSN sah', !!issnOk, j.eIssn || j.issn || j.pIssn || '—');
+
+  // 6. Terindeks DOAJ
+  var dj = j.doajStatus;
+  item('terindeksDoaj', 'Terindeks DOAJ',
+    dj === 'TERINDEKS' ? true : (dj === 'TIDAK DITEMUKAN' ? false : (j.terindeksDoaj ? true : null)),
+    dj === 'TERINDEKS' ? (j.doajJudul || 'terverifikasi DOAJ')
+      : (dj === 'TIDAK DITEMUKAN' ? 'ISSN tidak ditemukan di DOAJ'
+      : (j.terindeksDoaj ? 'ada tautan DOAJ (belum diverifikasi)' : 'belum dicek')));
+
+  // 7. Profil publik lengkap (scope + cover)
+  var adaScope = !placeholder_(j.scope);
+  var adaCover = urlValid_(j.coverUrl) || String(j.coverUrl || '').indexOf('data:image') === 0;
+  item('profilPublik', 'Profil publik lengkap',
+    (adaScope && adaCover) ? true : ((adaScope || adaCover) ? null : false),
+    (adaScope ? 'scope ada' : 'scope kosong') + ' + ' + (adaCover ? 'cover ada' : 'cover kosong'));
+
+  var totBobot = 0, dapat = 0, lulus = 0, gagal = 0, perluCek = 0;
+  checklist.forEach(function (c) {
+    totBobot += c.bobot;
+    if (c.lulus === true) { dapat += c.bobot; lulus++; }
+    else if (c.lulus === null) { dapat += c.bobot * 0.5; perluCek++; }
+    else gagal++;
+  });
+
+  return {
+    skor: totBobot ? Math.round((dapat / totBobot) * 100) : 0,
+    checklist: checklist,
+    lulus: lulus, gagal: gagal, perluCek: perluCek
+  };
+}
+
+/** Objek akreditasi lengkap satu jurnal: kedaluwarsa + kesiapan + kandidat. */
+function akreditasiJurnal_(j, ctx) {
+  var kedaluwarsa = j.terakreditasi
+    ? parseKedaluwarsaSk_(j.tanggalExpired, j.masaBerlakuSk)
+    : { sumber: '', tanggalIso: '', tahun: null, bulanTersisa: null, bucket: 'takRelevan', label: 'Belum terakreditasi' };
+
+  var kesiapan = nilaiKesiapanAkreditasi_(j, ctx);
+
+  var kandidat = { relevan: false, jenis: '', skor: 0, alasan: [], penghambat: [] };
+  kesiapan.checklist.forEach(function (c) {
+    if (c.lulus === true) kandidat.alasan.push(c.label);
+    else if (c.lulus === false) kandidat.penghambat.push(c.label);
+  });
+  var sitP = (ctx.percentilSitasi && ctx.percentilSitasi[norm_(j.namaJurnal)]) || 0;
+  var skorGabung = Math.round(kesiapan.skor * 0.7 + sitP * 100 * 0.3);
+
+  if (!j.terakreditasi) {
+    kandidat.relevan = true; kandidat.jenis = 'baru'; kandidat.skor = skorGabung;
+  } else if (j.peringkatSinta >= 3 && j.peringkatSinta <= 6 && kesiapan.skor >= 70) {
+    kandidat.relevan = true; kandidat.jenis = 'naik'; kandidat.skor = skorGabung;
+  }
+
+  return { kedaluwarsa: kedaluwarsa, kesiapan: kesiapan, kandidat: kandidat };
+}
+
+/** Rekap tab Akreditasi: kalender reakreditasi, prioritas darurat, kandidat. */
+function rekapAkreditasi_(daftar) {
+  function ringkas(j) {
+    return {
+      namaJurnal: j.namaJurnal, kluster: j.kluster,
+      statusAkreditasi: j.statusAkreditasi, peringkatSinta: j.peringkatSinta,
+      kedaluwarsa: j.akreditasi.kedaluwarsa,
+      skor: j.akreditasi.kesiapan.skor,
+      lulus: j.akreditasi.kesiapan.lulus,
+      gagal: j.akreditasi.kesiapan.gagal,
+      perluCek: j.akreditasi.kesiapan.perluCek,
+      alasan: j.akreditasi.kandidat.alasan.slice(0, 4),
+      penghambat: j.akreditasi.kandidat.penghambat.slice(0, 4),
+      jenisKandidat: j.akreditasi.kandidat.jenis,
+      skorKandidat: j.akreditasi.kandidat.skor
+    };
+  }
+  function byBulan(a, b) {
+    return (a.kedaluwarsa.bulanTersisa == null ? 999 : a.kedaluwarsa.bulanTersisa) -
+           (b.kedaluwarsa.bulanTersisa == null ? 999 : b.kedaluwarsa.bulanTersisa);
+  }
+
+  var terakreditasi = daftar.filter(function (j) { return j.terakreditasi; });
+
+  var kalender = { jadwal: [], lewat: 0, kritis: 0, dekat: 0, pantau: 0, takTerbaca: 0, kosong: 0,
+                   totalTerakreditasi: terakreditasi.length };
+  terakreditasi.forEach(function (j) {
+    var b = j.akreditasi.kedaluwarsa.bucket;
+    if (b === 'lewat' || b === 'kritis' || b === 'dekat' || b === 'pantau') {
+      kalender[b]++;
+      kalender.jadwal.push(ringkas(j));
+    } else if (b === 'takTerbaca') kalender.takTerbaca++;
+    else if (b === 'kosong') kalender.kosong++;
+  });
+  kalender.jadwal.sort(byBulan);
+
+  var darurat = terakreditasi.filter(function (j) {
+    var b = j.akreditasi.kedaluwarsa.bucket;
+    return (b === 'lewat' || b === 'kritis' || b === 'dekat') && j.akreditasi.kesiapan.skor < 60;
+  }).map(ringkas).sort(function (x, y) { return byBulan(x, y) || (x.skor - y.skor); });
+
+  var kandidatBaru = daftar.filter(function (j) { return j.akreditasi.kandidat.jenis === 'baru'; })
+    .map(ringkas).sort(function (x, y) { return y.skorKandidat - x.skorKandidat; });
+  var kandidatNaik = daftar.filter(function (j) { return j.akreditasi.kandidat.jenis === 'naik'; })
+    .map(ringkas).sort(function (x, y) { return y.skorKandidat - x.skorKandidat; });
+
+  var distribusi = { '0-39': 0, '40-59': 0, '60-79': 0, '80-100': 0 };
+  terakreditasi.forEach(function (j) {
+    var s = j.akreditasi.kesiapan.skor;
+    if (s < 40) distribusi['0-39']++;
+    else if (s < 60) distribusi['40-59']++;
+    else if (s < 80) distribusi['60-79']++;
+    else distribusi['80-100']++;
+  });
+
+  return {
+    kalender: kalender,
+    darurat: darurat,
+    kandidatBaru: kandidatBaru,
+    kandidatNaik: kandidatNaik,
+    distribusi: distribusi,
+    bobot: BOBOT_KESIAPAN
+  };
+}
+
+/** Melekatkan j.akreditasi ke setiap jurnal terlihat. Dipanggil dari getDashboardDataForAdmin. */
+function lekatkanAkreditasi_(terlihat) {
+  var sitasi = {};
+  try { sitasi = bacaDataSitasi_() || {}; } catch (e) { sitasi = {}; }
+  var ctx = {
+    doiSet: bacaJurnalPunyaDoi_(),
+    unggulanMap: petaUnggulan_(sitasi.topJournals),
+    percentilSitasi: percentilSitasi_(sitasi.topJournals)
+  };
+  terlihat.forEach(function (j) { j.akreditasi = akreditasiJurnal_(j, ctx); });
+}
+
+
+/* ==========================================================================
+   28. PERSIAPAN AKREDITASI PENGELOLA (Kepdirjen 374/2026)
+   --------------------------------------------------------------------------
+   Alat swa-penilaian untuk pengelola jurnal, selaras Petunjuk Teknis
+   Akreditasi Jurnal Ilmiah (Kepdirjen 374/DST/D.D1/HM.01.01/2026, penjabaran
+   Permendiktisaintek No. 9 Tahun 2026).
+
+   n total = 0-100 = Tata Kelola (0-46) + Mutu Artikel (0-54).
+   Peringkat: 1 (90-100) . 2 (80-<90) . 3 (70-<80) . 4 (60-<70) . <60 tidak
+   terakreditasi. Masa berlaku 5 tahun; akreditasi ulang wajib diajukan paling
+   lambat 6 bulan sebelum masa berlaku berakhir.
+
+   RUANG LINGKUP:
+     - Syarat Tahap 1 (8 butir gerbang, Ya/Tidak).
+     - Seluruh unit Tata Kelola A-E dengan rubrik resmi -> proyeksi progres /46.
+     - Mutu Artikel F/G: panduan + checklist "sudah dicek", TIDAK diskor
+       (dinilai asesor per-artikel pada sampel).
+   Output hanya PERSENTASE KESIAPAN, tidak dikonversi ke Peringkat/nilai n.
+
+   Sumber data: input mandiri pengelola. Prefill ringan dari direktori DJPI,
+   Crossref/OpenAlex, dan DOAJ (UrlFetchApp ke *.upi.edu diblokir Cloudflare -
+   lihat section 24 - jadi tidak ada penarikan data OJS otomatis).
+
+   Endpoint (token wajib 'edit_', terikat satu nama jurnal):
+     gs('getPersiapanAkreditasi', token)
+     gs('simpanPersiapanAkreditasi', token, payload)
+   ========================================================================== */
+
+var SHEET_PERSIAPAN_AKREDITASI = 'Persiapan_Akreditasi';
+
+var PERSIAPAN_AKR_HEADER = [
+  'Nama Jurnal', 'Email Pengelola', 'Jenis Pengajuan', 'Tanggal Berakhir SK',
+  'Jawaban (JSON)', 'Kesiapan Tata Kelola (%)', 'Syarat Gerbang Terpenuhi', 'Terakhir Disimpan'
+];
+
+/* -- Syarat Tahap 1: gerbang, semua wajib "ya" --------------------------- */
+var AKR_SYARAT_TAHAP1 = [
+  { k: 's1', berlaku: 'semua', label: 'e-ISSN valid & identitas ilmiah',
+    deskripsi: 'Nama jurnal dan penerbit bersifat ilmiah serta identik dengan data pada Portal ISSN.' },
+  { k: 's2b', berlaku: 'baru', label: 'Terbit minimal 3 tahun berturut-turut',
+    deskripsi: 'Jurnal telah terbit sekurang-kurangnya 3 tahun berturut-turut, dihitung mundur dari tanggal pengajuan.' },
+  { k: 's2u', berlaku: 'ulang', label: 'Terbitan 3 tahun terakhir lengkap',
+    deskripsi: 'Seluruh nomor terbitan dalam rentang 3 tahun terakhir tersedia dan dapat diakses.' },
+  { k: 's3', berlaku: 'semua', label: 'Frekuensi & isi terbitan',
+    deskripsi: 'Frekuensi sesuai e-ISSN, terbit sedikitnya 2 kali setahun, dan setiap terbitan memuat sedikitnya 5 artikel.' },
+  { k: 's4', berlaku: 'semua', label: 'Laman editor & mitra bestari',
+    deskripsi: 'Laman editor dan laman mitra bestari tersedia terpisah; editor dari minimal 2 afiliasi berbeda, reviewer dari minimal 4 afiliasi berbeda.' },
+  { k: 's5', berlaku: 'semua', label: 'Kebijakan etika publikasi (COPE)',
+    deskripsi: 'Laman jurnal mencantumkan kebijakan etika publikasi yang mengacu pada COPE.' },
+  { k: 's6', berlaku: 'semua', label: 'Informasi biaya penulis (APC)',
+    deskripsi: 'Kebijakan biaya penulis / APC disajikan di laman jurnal, walaupun nol.' },
+  { k: 's7', berlaku: 'semua', label: 'Akun editor dapat diakses',
+    deskripsi: 'Username dan password akun editor dapat login dan memiliki peran editor (untuk verifikasi asesor).' },
+  { k: 's8', berlaku: 'semua', label: 'DOI aktif & full text',
+    deskripsi: 'DOI aktif dan setiap artikel tersedia lengkap dengan berkas PDF yang dapat diakses.' }
+];
+
+/* -- Tata Kelola: 14 unit, maks 46 -------------------------------------- */
+var AKR_TATA_KELOLA = [
+  { k: 'A', nama: 'Konsistensi Identitas Jurnal', maks: 2,
+    levels: [
+      { n: 2, l: 'Unik & spesifik sesuai bidang ilmu; konsisten di laman, metadata artikel, dan galley PDF; sesuai data ISSN.' },
+      { n: 1, l: 'Kurang unik / kurang spesifik; masih umum; konsistensi belum penuh.' },
+      { n: 0, l: 'Tidak unik / mirip jurnal lain / memakai nama institusi atau lokasi / tidak sesuai ISSN.' }
+    ] },
+  { k: 'B.1', nama: 'Komposisi, rekam jejak, & keberagaman asal Mitra Bestari', maks: 6,
+    catatan: 'Dinilai pada 3 tahun terakhir. Editor & reviewer tidak boleh rangkap jabatan. AI dilarang untuk proses review.',
+    levels: [
+      { n: 6, l: 'Reviewer dari >= 5 negara, >= 3 reviewer per naskah, ada bukti telaah.' },
+      { n: 4, l: 'Reviewer dari >= 6 institusi di 3 negara atau >= 8 institusi, >= 2 reviewer per naskah, ada bukti telaah.' },
+      { n: 2, l: 'Rekam jejak nasional, >= 6 institusi, >= 2 reviewer per naskah.' },
+      { n: 1, l: 'Rekam jejak nasional, >= 4 institusi, >= 2 reviewer per naskah.' },
+      { n: 0, l: 'Reviewer tidak aktif dan/atau tidak ada bukti telaah substantif.' }
+    ] },
+  { k: 'B.2', nama: 'Mutu penyuntingan substansi oleh Mitra Bestari', maks: 4,
+    catatan: 'Dinilai pada terbitan 3 tahun terakhir. Fokus pada isi, bukan bahasa. Tanpa bukti = tanpa review.',
+    levels: [
+      { n: 4, l: 'Komentar substantif & signifikan, saran perbaikan nyata, mutu isi terjaga, konsisten 3 tahun terakhir.' },
+      { n: 2, l: 'Komentar kurang substantif, saran perbaikan terbatas, dampak kurang signifikan.' },
+      { n: 0, l: 'Komentar hanya menyangkut tata bahasa / layout, tidak menyentuh substansi artikel.' }
+    ] },
+  { k: 'B.3', nama: 'Pelibatan, komposisi, rekam jejak, & keberagaman asal Tim Penyunting', maks: 5,
+    catatan: 'EIC wajib berafiliasi di Indonesia. Nama & afiliasi harus valid & terverifikasi; identitas fiktif / pencatutan -> nilai terendah. Struktur berbasis kualifikasi, bukan ex-officio.',
+    levels: [
+      { n: 5, l: 'Rekam jejak publikasi internasional & editor dari >= 5 negara.' },
+      { n: 3, l: 'Rekam jejak internasional & editor dari >= 2 negara atau >= 6 institusi.' },
+      { n: 2, l: 'Rekam jejak nasional & editor dari >= 4 institusi.' },
+      { n: 1, l: 'Rekam jejak nasional & editor dari >= 2 institusi.' }
+    ] },
+  { k: 'B.4', nama: 'Keberagaman asal Penulis', maks: 6,
+    catatan: 'Dilihat per nomor terbitan, 3 tahun terakhir. Afiliasi penulis wajib valid & terverifikasi. Penambahan penulis pasca-accepted tanpa alasan jelas tidak diakui.',
+    levels: [
+      { n: 6, l: 'Penulis dari >= 5 negara.' },
+      { n: 4, l: 'Penulis dari >= 2 negara atau >= 8 institusi.' },
+      { n: 2, l: 'Penulis dari >= 4 institusi.' },
+      { n: 1, l: 'Penulis dari >= 2 institusi.' },
+      { n: 0, l: 'Penulis hanya dari 1 institusi.' }
+    ] },
+  { k: 'B.5', nama: 'Pengelolaan artikel', maks: 1,
+    catatan: 'Metadata harus ramah pengindeks (terbaca mesin). Pengelolaan manual & log aktivitas tak wajar menurunkan penilaian.',
+    levels: [
+      { n: 1, l: 'Sistem manajemen jurnal daring penuh (submit, review, edit, terbit lewat sistem).' },
+      { n: 0.5, l: 'Kombinasi sistem daring + email.' },
+      { n: 0, l: 'Pengelolaan via email saja.' }
+    ] },
+  { k: 'C.1', nama: 'Kejelasan kebijakan proses penelaahan (peer-review)', maks: 2,
+    catatan: 'Tautan kebijakan tersedia publik di laman depan. Fast-track yang menjanjikan accepted dilarang; LOA tidak boleh sebelum accepted. Ikuti prinsip COPE.',
+    levels: [
+      { n: 2, l: 'Semua proses peer-review dijelaskan dengan jelas (tipe review, tahapan, kriteria & kualifikasi reviewer, jumlah reviewer & batas waktu, cek similaritas, keputusan editorial).' },
+      { n: 1, l: 'Sebagian proses peer-review dijelaskan.' },
+      { n: 0, l: 'Kebijakan tidak tersedia atau prinsip dasarnya tidak dijelaskan.' }
+    ] },
+  { k: 'C.2', nama: 'Kejelasan petunjuk penulisan bagi penulis (author guidelines)', maks: 1,
+    levels: [
+      { n: 1, l: 'Rinci, lengkap, jelas, substansif & sistematis; ada di laman jurnal; disertai contoh / template artikel.' },
+      { n: 0.5, l: 'Rinci, lengkap, jelas; ada di laman jurnal; tanpa contoh / template.' },
+      { n: 0, l: 'Kurang lengkap / kurang jelas; atau template ada tetapi guideline tidak ada.' }
+    ] },
+  { k: 'C.3', nama: 'Kebijakan penggunaan kecerdasan artifisial (AI)', maks: 1,
+    catatan: 'Naskah tidak boleh diunggah ke aplikasi AI. AI bukan penulis. Reviewer dilarang menggunakan AI. Keputusan editorial tetap oleh manusia.',
+    levels: [
+      { n: 1, l: 'Kebijakan AI tersedia; mewajibkan pengungkapan AI oleh penulis dan oleh tim editor; melarang AI bagi mitra bestari.' },
+      { n: 0.5, l: 'Kebijakan tersedia tetapi belum lengkap / hanya mengatur sebagian.' },
+      { n: 0, l: 'Kebijakan tidak tersedia atau hanya pernyataan umum tanpa ketentuan AI yang jelas.' }
+    ] },
+  { k: 'C.4', nama: 'Kelengkapan laman jurnal (16 klausul COPE)', maks: 3, cope: true,
+    catatan: 'Dinilai dari persentase pemenuhan 16 klausul COPE Principles of Transparency & Best Practice. Satu tampilan laman tidak boleh bilingual; desain sampul harus khas.',
+    levels: [
+      { n: 3, l: '100% klausul terpenuhi.' },
+      { n: 2, l: '>= 75% dan < 100% klausul terpenuhi.' },
+      { n: 1, l: '>= 50% dan < 75% klausul terpenuhi.' },
+      { n: 0, l: '< 50% klausul terpenuhi.' }
+    ] },
+  { k: 'D.1', nama: 'Jadwal penerbitan', maks: 2,
+    catatan: 'DILARANG menyisipkan artikel ke nomor terbitan yang sudah resmi terbit (back issue). Naskah diproses berkelanjutan; pra-publikasi (Issue in Progress / Article in Press) diperbolehkan, Abstract Only tidak. Dinilai 3 tahun terakhir.',
+    levels: [
+      { n: 2, l: 'Memakai Article in Press dan/atau Issue in Progress; seluruh terbitan sesuai periode.' },
+      { n: 1.5, l: '> 75% terbitan sesuai periode.' },
+      { n: 1, l: '> 25% - 75% terbitan sesuai periode.' },
+      { n: 0.5, l: '<= 25% terbitan sesuai periode.' },
+      { n: 0, l: 'Abstract only dan/atau menyisipkan artikel ke back issue.' }
+    ] },
+  { k: 'D.2', nama: 'Sistem penomoran volume, nomor terbitan, & halaman / identitas artikel', maks: 1,
+    catatan: 'Angka Arab, bukan Romawi. Volume baru diawali halaman 1. Identitas artikel (article ID) boleh menggantikan nomor halaman. Dinilai 3 tahun terakhir.',
+    levels: [
+      { n: 1, l: 'Bersistem baik dan konsisten.' },
+      { n: 0.5, l: 'Cukup baik dan/atau cukup konsisten.' },
+      { n: 0, l: 'Kurang baik dan/atau kurang konsisten.' }
+    ] },
+  { k: 'E.1', nama: 'Dampak ilmiah - jumlah sitasi', maks: 6,
+    catatan: 'Data sitasi dari pengindeks internasional atau basis data DOI (Crossref/OpenAlex), 3 tahun terakhir. Pola sitasi tak wajar atau permintaan sitasi oleh editor -> nilai terendah.',
+    levels: [
+      { n: 6, l: '> 25 sitasi (pengindeks internasional) dan/atau > 75 sitasi (basis data DOI).' },
+      { n: 4, l: '20-25 sitasi (pengindeks internasional) dan/atau 31-75 sitasi (basis data DOI).' },
+      { n: 3, l: '10-19 sitasi (pengindeks internasional) dan/atau 11-30 sitasi (basis data DOI).' },
+      { n: 2, l: '5-9 sitasi (pengindeks internasional) dan/atau 5-10 sitasi (basis data DOI).' },
+      { n: 1, l: '< 5 sitasi (pengindeks internasional) dan/atau < 5 sitasi (basis data DOI).' },
+      { n: 0, l: 'Jumlah sitasi 3 tahun terakhir tidak dapat diverifikasi memadai.' }
+    ] },
+  { k: 'E.2', nama: 'Visibilitas - indeksasi', maks: 6,
+    catatan: 'Metadata wajib konsisten diunggah. Metadata belum terindeks -> nilai lebih rendah.',
+    levels: [
+      { n: 6, l: 'Tercantum + metadata terindeks di pengindeks bereputasi internasional (mis. Scopus, Web of Science).' },
+      { n: 4, l: 'Tercantum, tetapi metadata belum terindeks di pengindeks bereputasi internasional.' },
+      { n: 3, l: 'Tercantum + metadata terindeks di pengindeks internasional/nasional bersistem seleksi (mis. DOAJ).' },
+      { n: 2, l: 'Tercantum, tetapi metadata belum terindeks di pengindeks bersistem seleksi.' },
+      { n: 1, l: 'Tercantum + metadata terindeks di pengindeks tanpa sistem seleksi (mis. Google Scholar).' }
+    ] }
+];
+
+/* -- Tahap 2: apa yang diperiksa ARJUNA (paparan Kepdirjen 374/2026) ----
+   Tahap ini dikerjakan ARJUNA, bukan pengelola, jadi tidak ada isian. Butir
+   2.1 sudah dijawab pengelola di Tahap 1; butir 2.2 tidak tercakup di sana
+   dan perlu diketahui sebelum mengajukan.                                */
+var AKR_TAHAP2 = [
+  { k: '2.1', nama: 'Pemeriksaan Awal',
+    tujuan: 'Memastikan prasyarat formal jurnal terpenuhi.',
+    catatan: 'Butir di bawah sudah Anda jawab di Tahap 1.',
+    butir: [
+      'Validitas laman jurnal, nama jurnal, dan penerbit sesuai ISSN.',
+      'Kesesuaian jenis usulan dan waktu pengajuan.',
+      'Frekuensi terbit, keberkalaan 3 tahun terakhir, serta pencantuman peringkat dan masa berlaku.',
+      'Laman etika publikasi dan informasi biaya pemrosesan artikel.',
+      'DOI aktif dan ketersediaan full text setiap artikel.',
+      'Keberagaman afiliasi editor dan mitra bestari.',
+      'Validitas username/password serta ketersediaan peran editor.'
+    ] },
+  { k: '2.2', nama: 'Pemeriksaan Kelayakan',
+    tujuan: 'Memastikan jurnal layak dinilai akreditasi.',
+    catatan: 'Butir ini tidak ada di Tahap 1 dan diperiksa langsung oleh ARJUNA.',
+    butir: [
+      'Kecukupan penelaahan artikel oleh mitra bestari.',
+      'Validitas dan integritas penerbit.',
+      'Rekam jejak penerbit serta kepatuhan terhadap etika publikasi dan integritas akademik.',
+      'Temuan pelanggaran integritas pada tahap penilaian dapat menjadi dasar untuk meninjau kembali hasil Pemeriksaan Kelayakan.'
+    ] }
+];
+
+/* -- 16 klausul COPE untuk sub-checklist unit C.4 ---------------------- */
+var AKR_COPE = [
+  { k: 'a', l: 'ISSN (cetak dan/atau elektronik)' },
+  { k: 'b', l: 'Fokus & ruang lingkup (Aim & Scope)' },
+  { k: 'c', l: 'Jenis manuskrip yang diterima' },
+  { k: 'd', l: 'Jadwal penerbitan' },
+  { k: 'e', l: 'Kebijakan akses (open access / lainnya)' },
+  { k: 'f', l: 'Informasi kontak redaksi' },
+  { k: 'g', l: 'Hak cipta' },
+  { k: 'h', l: 'Lisensi' },
+  { k: 'i', l: 'Kepemilikan & pengelolaan jurnal' },
+  { k: 'j', l: 'Kriteria kepengarangan (authorship)' },
+  { k: 'k', l: 'Penanganan pelanggaran riset (research misconduct)' },
+  { k: 'l', l: 'Diskusi & koreksi pasca-publikasi' },
+  { k: 'm', l: 'Kebijakan koreksi & retraksi' },
+  { k: 'n', l: 'Pengarsipan elektronik' },
+  { k: 'o', l: 'Kebijakan konflik kepentingan' },
+  { k: 'p', l: 'Kebijakan deteksi plagiasi' }
+];
+
+/* -- Mutu Artikel: 16 butir panduan, TANPA nilai --------------------- */
+var AKR_MUTU_ARTIKEL = [
+  { k: 'F.1', nama: 'Judul artikel',
+    rubrik: 'Lugas, spesifik, informatif; memuat temuan penting; menggambarkan isi. Artikel berbahasa Indonesia: judul Bahasa Indonesia + Inggris. Lokasi riset dicantumkan bila relevan.' },
+  { k: 'F.2', nama: 'Abstrak',
+    rubrik: 'Ringkas, jelas, utuh; memuat tujuan, metode, hasil, dan simpulan; tanpa rujukan, gambar, atau tabel. Artikel berbahasa Indonesia: abstrak Bahasa Indonesia + Inggris.' },
+  { k: 'F.3', nama: 'Kata kunci',
+    rubrik: 'Kata atau frasa yang mencerminkan konsep penting isi artikel, dipilih cermat dan baku, memudahkan penelusuran mesin pencari.' },
+  { k: 'F.4', nama: 'Kepioniran ilmiah, orisinalitas, kontribusi kebaruan & analisis kesenjangan',
+    rubrik: 'Pendahuluan memuat state of the art memadai, justifikasi kebaruan / research gap yang jelas, dan tujuan riset dinyatakan tegas. Original research diutamakan.' },
+  { k: 'F.5', nama: 'Analisis & sintesis',
+    rubrik: 'Metode sesuai & mencukupi; temuan penting dijelaskan tajam dengan data jelas; interpretasi pembahasan mendalam & akurat; dibandingkan kritis dengan teori / riset lain yang relevan & mutakhir.' },
+  { k: 'F.6', nama: 'Penyimpulan',
+    rubrik: 'Simpulan menjawab tujuan riset, mempertegas temuan penting, dapat memuat implikasi / rekomendasi / saran lanjut; hindari pembahasan baru di simpulan.' },
+  { k: 'F.7', nama: 'Nisbah sumber acuan primer',
+    rubrik: 'Minimal 15 rujukan per artikel; sebagian besar (idealnya > 80%) acuan primer: jurnal, prosiding, tesis/disertasi/skripsi, manuskrip, monograf riset.' },
+  { k: 'F.8', nama: 'Derajat kemutakhiran pustaka acuan',
+    rubrik: 'Idealnya > 80% rujukan terbit dalam 10 tahun terakhir. Pustaka klasik boleh untuk sumber masalah / keterkaitan teori, bukan untuk pembandingan utama hasil atau justifikasi kebaruan.' },
+  { k: 'F.9', nama: 'Cakupan keilmuan',
+    rubrik: 'Idealnya >= 90% artikel sesuai fokus & skop jurnal secara konsisten. Pendekatan antardisiplin yang terfokus tetap baik; hindari "bunga rampai" (artikel dari bidang yang tidak berkaitan).' },
+  { k: 'G.1', nama: 'Kelengkapan galley / PDF artikel',
+    rubrik: 'Target 8-9 dari 9 unsur. First page: judul sirahan (nama jurnal, volume, nomor, tahun, halaman/ID artikel), lisensi akses, hak cipta, riwayat naskah (received, revised, accepted, available online), DOI. Declaration: pernyataan penggunaan AI, kontribusi penulis, pernyataan pendanaan, konflik kepentingan.' },
+  { k: 'G.2', nama: 'Pencantuman nama & afiliasi penulis',
+    rubrik: 'Metadata nama penulis minimal 2 kata (nama 1 kata diulang pada first name & last name); nama belakang tidak disingkat 1 huruf; tanpa gelar / jabatan; afiliasi utuh (institusi, kota, negara); e-mail corresponding author ada & jelas.' },
+  { k: 'G.3', nama: 'Sistematika penulisan artikel',
+    rubrik: 'Empiris: pendahuluan, metode, hasil-pembahasan, simpulan. Review: pendahuluan, pembahasan, simpulan. Sesuai author guidelines dan konsisten antar artikel & terbitan.' },
+  { k: 'G.4', nama: 'Pemanfaatan instrumen pendukung',
+    rubrik: 'Tabel, gambar/grafik, persamaan, simbol, singkatan, tipografi dipakai bila relevan, efektif & komplementer; setiap instrumen diacu di dalam teks; jelas, baku, konsisten.' },
+  { k: 'G.5', nama: 'Sistem pengacuan pustaka & konsistensi daftar pustaka',
+    rubrik: 'Sitasi dalam teks dan daftar pustaka baku & saling cocok; sistem nama-tahun / nomor / catatan kaki konsisten; gunakan aplikasi manajer referensi. Sitasi body & daftar pustaka tidak cocok -> nilai terendah.' },
+  { k: 'G.6', nama: 'Gaya penulisan & kualitas kebahasaan',
+    rubrik: 'Gunakan istilah baku; kalimat baik & benar; sesuai bidang ilmu; konsisten antar artikel. Bahasa ilmiah: baik, jelas, ringkas.' },
+  { k: 'G.7', nama: 'Mutu penyuntingan substansi, gaya selingkung, & format tata letak',
+    rubrik: 'Substansi, gaya selingkung, dan layout konsisten & sesuai standar artikel ilmiah; tabel tidak terpotong; gambar tidak stretched / blur; tipografi konsisten (font, ukuran, spasi baris, alignment).' }
+];
+
+var AKR_DISINSENTIF =
+  'Dinilai asesor per-artikel pada sampel terbitan 3 tahun terakhir. Pelanggaran ' +
+  'integritas akademik (fabrikasi, falsifikasi, plagiat, kepengarangan tidak sah, ' +
+  'konflik kepentingan, pengajuan jamak) menjadi dasar penyesuaian nilai (disinsentif) ' +
+  'dan tindakan korektif (koreksi/erratum, retraksi, withdrawal). Riset yang melibatkan ' +
+  'manusia/hewan wajib mencantumkan nomor & tahun dokumen persetujuan etik (ethical clearance). ' +
+  'Pemantauan sewaktu-waktu dapat berujung penurunan peringkat, pembekuan (discontinued), ' +
+  'atau pencabutan (delisting).';
+
+var AKR_TATA_KELOLA_MAKS = 46;
+var AKR_MUTU_ARTIKEL_MAKS = 54;
+
+/* -- Helper sheet & rubrik -------------------------------------------- */
+
+function getPersiapanAkreditasiSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_PERSIAPAN_AKREDITASI);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_PERSIAPAN_AKREDITASI);
+    sh.getRange(1, 1, 1, PERSIAPAN_AKR_HEADER.length)
+      .setValues([PERSIAPAN_AKR_HEADER])
+      .setFontWeight('bold').setBackground('#7f0000').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function rubrikAkreditasi_() {
+  return {
+    syaratTahap1: AKR_SYARAT_TAHAP1,
+    tahap2: AKR_TAHAP2,
+    tataKelola: AKR_TATA_KELOLA,
+    cope: AKR_COPE,
+    mutuArtikel: AKR_MUTU_ARTIKEL,
+    disinsentif: AKR_DISINSENTIF,
+    tataKelolaMaks: AKR_TATA_KELOLA_MAKS,
+    mutuArtikelMaks: AKR_MUTU_ARTIKEL_MAKS,
+    peringkat: [
+      { p: 1, min: 90 }, { p: 2, min: 80 }, { p: 3, min: 70 }, { p: 4, min: 60 }
+    ]
+  };
+}
+
+/** Cari nomor baris berdasar nama jurnal di kolom A. 0 bila tidak ada. */
+function cariBarisPersiapanAkr_(sh, namaJurnal) {
+  var last = sh.getLastRow();
+  if (last < 2) return 0;
+  var kolomA = sh.getRange(2, 1, last - 1, 1).getValues();
+  var target = norm_(namaJurnal);
+  for (var i = 0; i < kolomA.length; i++) {
+    if (norm_(kolomA[i][0]) === target) return i + 2;
+  }
+  return 0;
+}
+
+/**
+ * Prefill jawaban dari data DJPI yang sudah ada. Semua bisa dikoreksi pengelola.
+ *
+ * Mengembalikan dua hal berdampingan:
+ *   prefill  nilai awal per kunci jawaban
+ *   sumber   { status, teks, data[] } per kunci, untuk penanda di UI.
+ *            status 'otomatis'  = data DJPI cukup untuk menjawab
+ *                   'verifikasi' = data ada tetapi belum tentu mutakhir/setara
+ *                                  definisi rubrik, jadi minta pengelola menegaskan
+ *            data   pasangan { label, isi } berisi angka/teks yang dipakai
+ *                   sebagai dasar jawaban, supaya pengelola bisa mencocokkannya
+ *                   sendiri tanpa membuka direktori
+ * Kalimat sumber TIDAK disimpan ke kolom catatan; catatan milik pengelola.
+ */
+function prefillAkreditasi_(namaJurnal) {
+  var jurnal = null;
+  try { jurnal = cariJurnal_(bacaDataJurnal_(), namaJurnal)[0] || null; } catch (e) { jurnal = null; }
+  if (!jurnal) return { prefill: {}, sumber: {}, jurnal: null };
+
+  var pre = {}, src = {};
+  /** data = [{ label, isi }] nilai yang jadi dasar jawaban; boleh dikosongkan. */
+  function tandai(k, status, teks, data) {
+    src[k] = { status: status, teks: teks, data: (data || []).filter(function (d) { return d.isi; }) };
+  }
+
+  if (jurnal.eIssnValid) {
+    pre.s1 = 'ya';
+    tandai('s1', 'otomatis', 'Format e-ISSN jurnal Anda di direktori DJPI sudah valid. ' +
+      'Pastikan nama jurnal dan penerbit juga sama persis dengan data di Portal ISSN.', [
+        { label: 'e-ISSN', isi: jurnal.eIssn },
+        { label: 'p-ISSN', isi: jurnal.pIssnValid ? jurnal.pIssn : '' },
+        { label: 'Nama jurnal', isi: jurnal.namaJurnal }
+      ]);
+  }
+
+  var perIssue = angka_(jurnal.artikelPerIssue);
+  var ipt = issuePerTahun_(jurnal.issue);
+  if (perIssue >= 5 && ipt && ipt >= 2) {
+    pre.s3 = 'ya';
+    tandai('s3', 'verifikasi', 'Angka di atas diambil dari direktori DJPI dan keduanya ' +
+      'di atas syarat minimum. Periksa lagi bila sudah berubah tahun ini.', [
+        { label: 'Frekuensi terbit', isi: ipt + ' nomor per tahun (syarat: minimal 2)' },
+        { label: 'Artikel per nomor', isi: perIssue + ' artikel (syarat: minimal 5)' },
+        { label: 'Jadwal terbitan', isi: jurnal.jadwalTerbitan },
+        { label: 'Artikel per tahun', isi: jurnal.artikelPerTahun }
+      ]);
+  }
+
+  var punyaDoi = false;
+  try {
+    var set = bacaJurnalPunyaDoi_();
+    if (set && set[norm_(namaJurnal)]) punyaDoi = true;
+  } catch (e) {}
+
+  var refSit = null;
+  try {
+    var sit = bacaDataSitasi_() || {};
+    var u = petaUnggulan_(sit.topJournals)[norm_(namaJurnal)];
+    if (u) {
+      if (angka_(u.totalArtikel) > 0) punyaDoi = true;
+      refSit = { crossref: angka_(u.totalSitasiCrossref), openalex: angka_(u.totalSitasiOpenAlex),
+                 artikel: angka_(u.totalArtikel) };
+    }
+  } catch (e) {}
+  if (punyaDoi) {
+    pre.s8 = 'ya';
+    tandai('s8', 'otomatis', 'DOI jurnal Anda terdeteksi aktif di Crossref. ' +
+      'Pastikan juga setiap artikel punya berkas PDF yang bisa diunduh.', [
+        { label: 'Status DOI', isi: 'Aktif di Crossref' },
+        { label: 'Artikel ber-DOI terdata', isi: refSit ? refSit.artikel + ' artikel' : '' },
+        { label: 'Laman OJS', isi: jurnal.linkOjsValid ? jurnal.linkOjs : '' }
+      ]);
+  }
+
+  // E.1 dampak ilmiah. Sitasi DJPI dihitung sepanjang waktu, sedangkan rubrik
+  // meminta 3 tahun terakhir, jadi nilainya selalu berstatus perlu verifikasi.
+  if (refSit) {
+    var doiSit = Math.max(angka_(refSit.crossref), angka_(refSit.openalex));
+    var lvE1 = doiSit > 75 ? 6 : doiSit >= 31 ? 4 : doiSit >= 11 ? 3 : doiSit >= 5 ? 2 : doiSit >= 1 ? 1 : null;
+    if (lvE1 !== null) {
+      pre['E.1'] = lvE1;
+      tandai('E.1', 'verifikasi', 'Angka di atas dihitung untuk seluruh tahun terbit, ' +
+        'sedangkan rubrik menghitung 3 tahun terakhir saja. Angka sebenarnya bisa lebih ' +
+        'rendah, jadi sesuaikan setelah Anda memeriksanya.', [
+          { label: 'Sitasi Crossref', isi: refSit.crossref },
+          { label: 'Sitasi OpenAlex', isi: refSit.openalex },
+          { label: 'Dipakai untuk level', isi: doiSit + ' sitasi basis data DOI' },
+          { label: 'Artikel terdata', isi: refSit.artikel + ' artikel' }
+        ]);
+    }
+  }
+
+  if (jurnal.bereputasi) {
+    pre['E.2'] = 6;
+    tandai('E.2', 'otomatis', 'Ubah bila kondisi sekarang berbeda.', [
+      { label: 'Kuartil', isi: jurnal.kuartil },
+      { label: 'Status', isi: 'Terindeks pengindeks bereputasi internasional' },
+      { label: 'DOAJ', isi: jurnal.terindeksDoaj ? 'Terindeks' : '' }
+    ]);
+  } else if (jurnal.doajStatus === 'TERINDEKS') {
+    pre['E.2'] = 3;
+    tandai('E.2', 'otomatis', 'Naikkan ke 4 atau 6 bila sudah tercantum di Scopus atau ' +
+      'Web of Science.', [
+        { label: 'DOAJ', isi: 'Terindeks' + (jurnal.doajDicek ? ', dicek ' + jurnal.doajDicek : '') },
+        { label: 'Judul di DOAJ', isi: jurnal.doajJudul },
+        { label: 'Garuda', isi: jurnal.terindeksGaruda ? 'Terindeks' : '' }
+      ]);
+  }
+
+  var ked = parseKedaluwarsaSk_(jurnal.tanggalExpired, jurnal.masaBerlakuSk);
+  var tglIso = ked.tanggalIso || (ked.tahun ? (ked.tahun + '-12-31') : '');
+  if (tglIso) {
+    tandai('tglBerakhirSk', 'verifikasi', 'Kalau di SK Anda tertulis tanggal yang lebih tepat, ' +
+      'silakan koreksi.', [
+        { label: 'Masa berlaku SK', isi: jurnal.masaBerlakuSk },
+        { label: 'Tanggal kedaluwarsa', isi: jurnal.tanggalExpired }
+      ]);
+  }
+  if (jurnal.statusAkreditasi) {
+    tandai('jenis', 'otomatis', 'Ubah bila tidak sesuai.', [
+      { label: 'Status akreditasi', isi: jurnal.statusAkreditasi },
+      { label: 'Kluster', isi: jurnal.kluster }
+    ]);
+  }
+
+  return {
+    prefill: pre,
+    sumber: src,
+    jurnal: {
+      namaJurnal: jurnal.namaJurnal,
+      kluster: jurnal.kluster,
+      statusAkreditasi: jurnal.statusAkreditasi,
+      terakreditasi: jurnal.terakreditasi,
+      masaBerlakuSk: jurnal.masaBerlakuSk,
+      tanggalExpired: jurnal.tanggalExpired,
+      tglBerakhirIso: tglIso,
+      sitasiReferensi: refSit
+    }
+  };
+}
+
+/* -- Endpoint ------------------------------------------------------- */
+
+function getPersiapanAkreditasi(token) {
+  var muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+
+  try {
+    var pf = prefillAkreditasi_(muatan.namaJurnal);
+
+    var tersimpan = null;
+    var sh = getPersiapanAkreditasiSheet_();
+    var baris = cariBarisPersiapanAkr_(sh, muatan.namaJurnal);
+    if (baris) {
+      var nilai = sh.getRange(baris, 1, 1, PERSIAPAN_AKR_HEADER.length).getValues()[0];
+      var jawaban = {};
+      try { jawaban = JSON.parse(nilai[4] || '{}'); } catch (e) { jawaban = {}; }
+      tersimpan = {
+        jenis: (str_(nilai[2]) === 'baru') ? 'baru' : 'ulang',
+        tglBerakhirSk: (nilai[3] instanceof Date)
+          ? Utilities.formatDate(nilai[3], TZ, 'yyyy-MM-dd') : str_(nilai[3]),
+        jawaban: jawaban,
+        kesiapan: angka_(nilai[5]),
+        gerbang: str_(nilai[6]),
+        terakhirDisimpan: (nilai[7] instanceof Date)
+          ? Utilities.formatDate(nilai[7], TZ, 'yyyy-MM-dd HH:mm') : str_(nilai[7])
+      };
+    }
+
+    // Temuan pra-asesmen Tahap 3.2 milik jurnal ini (section 29). Sheet boleh
+    // belum ada; kartu Mutu Artikel tetap tampil, hanya tanpa daftar temuan.
+    var praAsesmen = { artikel: [], totalArtikel: 0, totalPerluPerbaikan: 0, terakhirDiperbarui: '' };
+    try { praAsesmen = praAsesmenJurnal_(muatan.namaJurnal); } catch (e) { /* opsional */ }
+
+    return {
+      ok: true,
+      rubrik: rubrikAkreditasi_(),
+      prefill: pf.prefill,
+      sumber: pf.sumber || {},
+      jurnal: pf.jurnal,
+      tersimpan: tersimpan,
+      praAsesmen: praAsesmen
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal memuat data persiapan akreditasi: ' + err.message };
+  }
+}
+
+function simpanPersiapanAkreditasi(token, payload) {
+  var muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+  if (!payload || typeof payload !== 'object') return { ok: false, message: 'Data kosong.' };
+
+  var jenis = (str_(payload.jenis) === 'baru') ? 'baru' : 'ulang';
+  var tglBerakhir = str_(payload.tglBerakhirSk).substring(0, 10);
+  var jawaban = (payload.jawaban && typeof payload.jawaban === 'object') ? payload.jawaban : {};
+
+  // Kesiapan Tata Kelola = sum(nilai level terpilih) / 46
+  var tk = jawaban.tataKelola || {};
+  var total = 0;
+  AKR_TATA_KELOLA.forEach(function (u) {
+    var v = tk[u.k];
+    var n = (v && typeof v === 'object') ? Number(v.nilai) : Number(v);
+    if (!isNaN(n)) total += Math.max(0, Math.min(n, u.maks));
+  });
+  var kesiapan = Math.round((total / AKR_TATA_KELOLA_MAKS) * 100);
+
+  // Syarat gerbang: hitung yang "ya" dari syarat yang berlaku untuk jenis pengajuan
+  var t1 = jawaban.tahap1 || {};
+  var berlaku = AKR_SYARAT_TAHAP1.filter(function (s) {
+    return s.berlaku === 'semua' || s.berlaku === jenis;
+  });
+  var lolos = 0;
+  berlaku.forEach(function (s) {
+    var v = t1[s.k];
+    var j = (v && typeof v === 'object') ? v.jawab : v;
+    if (j === 'ya') lolos++;
+  });
+  var gerbang = lolos + '/' + berlaku.length;
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi.' };
+
+  try {
+    var jsonJawab = JSON.stringify(jawaban);
+    if (jsonJawab.length > 45000) {
+      return { ok: false, message: 'Isian terlalu panjang. Persingkat catatan / bukti.' };
+    }
+
+    var sh = getPersiapanAkreditasiSheet_();
+    var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    var barisData = [
+      aman_(muatan.namaJurnal), aman_(muatan.email), jenis, aman_(tglBerakhir),
+      jsonJawab, kesiapan, gerbang, stempel
+    ];
+
+    var baris = cariBarisPersiapanAkr_(sh, muatan.namaJurnal);
+    if (baris) sh.getRange(baris, 1, 1, barisData.length).setValues([barisData]);
+    else sh.appendRow(barisData);
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(muatan.email, muatan.namaJurnal, 'PERSIAPAN_AKREDITASI',
+      JSON.stringify({ jenis: jenis, kesiapan: kesiapan, gerbang: gerbang }));
+
+    return { ok: true, message: 'Isian persiapan akreditasi tersimpan.',
+             kesiapan: kesiapan, gerbang: gerbang, terakhirDisimpan: stempel };
+  } catch (err) {
+    return { ok: false, message: 'Gagal menyimpan: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+/* ==========================================================================
+   29. PRA-ASESMEN MUTU ARTIKEL (Tahap 3.2) -- jembatan ke menu Pengelola
+   --------------------------------------------------------------------------
+   Temuan per artikel dihasilkan perkakas lokal di folder mutu-artikel/ (Python,
+   di luar Apps Script). Keluarannya berupa berkas TSV yang ditempel ke sheet
+   Pra_Asesmen_Artikel. Bagian ini hanya MEMBACA sheet itu dan menyodorkannya ke
+   kartu Tahap 3.2 pada menu Persiapan Akreditasi, disaring untuk jurnal yang
+   sedang login.
+
+   Alur kerja:
+     1. python mutu-artikel/ekstrak_artikel.py
+     2. python mutu-artikel/susun_laporan.py
+        -> mutu-artikel/laporan/Pra_Asesmen_Artikel.tsv
+     3. buatSheetPraAsesmen() dari editor (sekali saja, membuat sheet + header)
+     4. Tempel isi TSV mulai baris 2. Google Sheets memecah kolom otomatis.
+     5. cekPraAsesmen() dari editor untuk memastikan seluruh baris cocok ke jurnal.
+
+   Kolom sheet:
+     Nama Jurnal | Judul Artikel | DOI | Tanggal Asesmen | Butir | Nama Butir |
+     Status | Temuan | Saran
+
+   Status yang dikenali: "perlu perbaikan", "baik", "perlu dicek",
+   "di luar jangkauan". Nilai lain tetap ditampilkan apa adanya.
+
+   Laporan ini berisi temuan dan saran, bukan penilaian. Tidak ada skor.
+   ========================================================================== */
+
+var PRA_ASESMEN_HEADER = [
+  'Nama Jurnal', 'Judul Artikel', 'DOI', 'Tanggal Asesmen',
+  'Butir', 'Nama Butir', 'Status', 'Temuan', 'Saran'
+];
+
+var CACHE_PRA_ASESMEN = 'pra_asesmen_v1';
+var CACHE_PRA_ASESMEN_TTL = 900;
+
+/** Membuat sheet Pra_Asesmen_Artikel beserta headernya. Aman dipanggil berulang. */
+function buatSheetPraAsesmen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET.PRA_ASESMEN);
+  if (sh) return 'Sheet "' + SHEET.PRA_ASESMEN + '" sudah ada, tidak diubah.';
+
+  sh = ss.insertSheet(SHEET.PRA_ASESMEN);
+  sh.getRange(1, 1, 1, PRA_ASESMEN_HEADER.length)
+    .setValues([PRA_ASESMEN_HEADER])
+    .setFontWeight('bold').setBackground('#7f0000').setFontColor('#ffffff');
+  sh.setFrozenRows(1);
+  sh.setColumnWidth(2, 320);
+  sh.setColumnWidth(8, 460);
+  sh.setColumnWidth(9, 460);
+  return 'Sheet "' + SHEET.PRA_ASESMEN + '" dibuat. Tempel isi Pra_Asesmen_Artikel.tsv mulai baris 2.';
+}
+
+/** Membaca seluruh baris pra-asesmen. Di-cache; sheet ini jarang berubah. */
+function bacaPraAsesmen_() {
+  var cache = CacheService.getScriptCache();
+  var tersimpan = cache.get(CACHE_PRA_ASESMEN);
+  if (tersimpan) {
+    try { return JSON.parse(tersimpan); } catch (err) { /* cache rusak, baca ulang */ }
+  }
+
+  var sh = sheetOpsional_(SHEET.PRA_ASESMEN);
+  if (!sh) return [];
+  var nilai = sh.getDataRange().getValues();
+  if (nilai.length < 2) return [];
+
+  var header = nilai[0].map(norm_);
+  function kolom(nama) { return header.indexOf(norm_(nama)); }
+  var idx = {
+    jurnal: kolom('Nama Jurnal'), judul: kolom('Judul Artikel'), doi: kolom('DOI'),
+    tanggal: kolom('Tanggal Asesmen'), butir: kolom('Butir'), namaButir: kolom('Nama Butir'),
+    status: kolom('Status'), temuan: kolom('Temuan'), saran: kolom('Saran')
+  };
+  if (idx.jurnal === -1 || idx.butir === -1) return [];
+
+  function sel(row, i) {
+    if (i === -1) return '';
+    var v = row[i];
+    if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+    return str_(v);
+  }
+
+  var baris = [];
+  for (var r = 1; r < nilai.length; r++) {
+    var jurnal = sel(nilai[r], idx.jurnal);
+    if (!jurnal) continue;
+    baris.push({
+      namaJurnal: jurnal,
+      judul: sel(nilai[r], idx.judul),
+      doi: sel(nilai[r], idx.doi),
+      tanggal: sel(nilai[r], idx.tanggal),
+      butir: sel(nilai[r], idx.butir),
+      namaButir: sel(nilai[r], idx.namaButir),
+      status: sel(nilai[r], idx.status).toLowerCase(),
+      temuan: sel(nilai[r], idx.temuan),
+      saran: sel(nilai[r], idx.saran)
+    });
+  }
+
+  try {
+    var json = JSON.stringify(baris);
+    if (json.length < CACHE.MAX_VALUE_BYTES) cache.put(CACHE_PRA_ASESMEN, json, CACHE_PRA_ASESMEN_TTL);
+  } catch (err) { /* cache opsional */ }
+
+  return baris;
+}
+
+function bersihkanCachePraAsesmen_() {
+  CacheService.getScriptCache().remove(CACHE_PRA_ASESMEN);
+}
+
+/** Cocokkan nama jurnal secara toleran: sama persis, atau salah satu memuat yang lain. */
+function cocokJurnal_(a, b) {
+  var x = norm_(a), y = norm_(b);
+  if (!x || !y) return false;
+  return x === y || x.indexOf(y) !== -1 || y.indexOf(x) !== -1;
+}
+
+/**
+ * Temuan pra-asesmen milik SATU jurnal, dikelompokkan per artikel.
+ * Bentuk: { artikel: [...], totalArtikel, totalPerluPerbaikan, terakhirDiperbarui }
+ */
+function praAsesmenJurnal_(namaJurnal) {
+  var semua = bacaPraAsesmen_();
+  var milik = semua.filter(function (b) { return cocokJurnal_(b.namaJurnal, namaJurnal); });
+  if (!milik.length) {
+    return { artikel: [], totalArtikel: 0, totalPerluPerbaikan: 0, terakhirDiperbarui: '' };
+  }
+
+  var peta = {}, urutan = [], terakhir = '';
+  milik.forEach(function (b) {
+    var kunci = (b.doi || b.judul || '(tanpa judul)');
+    if (!peta[kunci]) {
+      peta[kunci] = { judul: b.judul || '(judul tidak terbaca)', doi: b.doi, tanggal: b.tanggal, butir: [] };
+      urutan.push(kunci);
+    }
+    peta[kunci].butir.push({
+      kode: b.butir, nama: b.namaButir, status: b.status,
+      temuan: b.temuan, saran: b.saran
+    });
+    if (b.tanggal > terakhir) terakhir = b.tanggal;
+  });
+
+  var artikel = urutan.map(function (k) {
+    var a = peta[k];
+    a.butir.sort(function (x, y) { return String(x.kode).localeCompare(String(y.kode)); });
+    a.perluPerbaikan = a.butir.filter(function (x) { return x.status === 'perlu perbaikan'; }).length;
+    a.baik = a.butir.filter(function (x) { return x.status === 'baik'; }).length;
+    a.perluDicek = a.butir.filter(function (x) { return x.status === 'perlu dicek'; }).length;
+    a.jumlahButir = a.butir.length;
+    return a;
+  });
+
+  return {
+    artikel: artikel,
+    totalArtikel: artikel.length,
+    totalPerluPerbaikan: artikel.reduce(function (n, a) { return n + a.perluPerbaikan; }, 0),
+    terakhirDiperbarui: terakhir
+  };
+}
+
+/**
+ * Diagnostik untuk dijalankan dari editor Apps Script setelah menempel TSV.
+ * Melaporkan berapa baris yang cocok ke jurnal di Sheet1 dan mana yang tidak,
+ * karena nama jurnal yang tidak cocok membuat temuan tidak pernah tampil ke pengelola.
+ */
+function cekPraAsesmen() {
+  var baris = bacaPraAsesmen_();
+  if (!baris.length) {
+    var pesan = 'Sheet "' + SHEET.PRA_ASESMEN + '" kosong atau belum ada. ' +
+      'Jalankan buatSheetPraAsesmen() lalu tempel isi Pra_Asesmen_Artikel.tsv.';
+    console.log(pesan);
+    return pesan;
+  }
+
+  var jurnal = bacaDataJurnal_().map(function (j) { return j.namaJurnal; });
+  var cocok = {}, tidakCocok = {};
+  baris.forEach(function (b) {
+    var ada = jurnal.some(function (n) { return cocokJurnal_(n, b.namaJurnal); });
+    var wadah = ada ? cocok : tidakCocok;
+    wadah[b.namaJurnal] = (wadah[b.namaJurnal] || 0) + 1;
+  });
+
+  var garis = [];
+  garis.push(baris.length + ' baris terbaca dari sheet ' + SHEET.PRA_ASESMEN + '.');
+  garis.push('Cocok ke Sheet1: ' + Object.keys(cocok).length + ' jurnal.');
+  Object.keys(cocok).forEach(function (k) { garis.push('  OK   ' + k + ' (' + cocok[k] + ' baris)'); });
+  if (Object.keys(tidakCocok).length) {
+    garis.push('TIDAK cocok ke jurnal mana pun di Sheet1:');
+    Object.keys(tidakCocok).forEach(function (k) {
+      garis.push('  MISS ' + k + ' (' + tidakCocok[k] + ' baris) -- temuan ini tidak akan tampil ke pengelola');
+    });
+    garis.push('Perbaiki kolom "Nama Jurnal" di sheet, atau perbarui mutu-artikel/peta_jurnal.json lalu susun ulang TSV.');
+  } else {
+    garis.push('Seluruh baris cocok. Temuan akan tampil di menu Persiapan Akreditasi masing-masing jurnal.');
+  }
+
+  var ringkas = garis.join(String.fromCharCode(10));
+  console.log(ringkas);
+  catatAktivitas_('SISTEM', '-', 'CEK_PRA_ASESMEN', baris.length + ' baris, ' +
+    Object.keys(tidakCocok).length + ' nama jurnal tidak cocok');
+  return ringkas;
 }
