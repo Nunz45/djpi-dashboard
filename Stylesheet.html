@@ -345,9 +345,9 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 
 /* =========================================================================
    SHELL APLIKASI — sidebar gelap "inset" ala litabmas.upi.edu.
-   Dipakai Dashboard.html (admin) & Pengelola.html; Landing.html memakai
-   .shell sendiri sehingga tidak terpengaruh. Font Archivo di-scope ke
-   .app-shell agar halaman publik tetap Inter.
+   Dipakai Dashboard.html (admin) & Pengelola.html. Font Archivo di-scope
+   ke .app-shell, sisa dari masa halaman publik masih ada; scope-nya
+   dipertahankan supaya komponen di luar shell tidak ikut berubah.
    ========================================================================= */
 .app-shell{
   --font-body:'Archivo','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;

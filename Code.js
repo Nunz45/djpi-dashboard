@@ -9,7 +9,7 @@
  *  - performa / va / timeliness tidak pernah masuk payload publik.
  *
  * CATATAN OPTIMASI (lihat komentar "OPTIMASI:" di badan kode):
- *  1. getPublicData() dulu memanggil 4 pembacaan sheet mentah (Sitasi_Ringkasan,
+ *  1. Pembacaan data sitasi dulu memanggil 4 pembacaan sheet mentah (Sitasi_Ringkasan,
  *     Sitasi_Tren, Jurnal_Unggulan, Artikel_Berpengaruh) di SETIAP kunjungan
  *     publik, tanpa cache. Sekarang keempatnya digabung dalam satu cache
  *     (CACHE.CITATION) karena datanya snapshot yang jarang berubah.
@@ -38,7 +38,6 @@ var SHEET = {
   ARTIKEL_BERPENGARUH: 'Artikel_Berpengaruh', // artikel dengan sitasi tertinggi
   TEMPLATE_EMAIL: 'Template_Email',           // subjek & isi email otomatis ke pengelola, bisa diedit admin
   VERIFIKASI_DOAJ: 'Verifikasi_DOAJ',         // snapshot hasil pengecekan DOAJ per jurnal (lihat section 22)
-  PENGATURAN_LANDING: 'Pengaturan_Landing',   // aktif/urutan section & tab Landing publik (lihat section 26)
   PRA_ASESMEN: 'Pra_Asesmen_Artikel'          // temuan pra-asesmen Tahap 3.2 per artikel (lihat section 29)
 };
 
@@ -151,15 +150,16 @@ var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
    ========================================================================== */
 
 function doGet(e) {
-  var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page) : 'landing';
-  var isDashboard = (page === 'dashboard');
+  // Direktori publik dipindahkan ke Litabmas, sehingga halaman Landing dihapus
+  // dan bawaan rute sekarang dashboard. Akses web app juga dibatasi DOMAIN di
+  // appsscript.json; itulah yang benar-benar menutup akses anonim, bukan
+  // hilangnya rute ini.
+  var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page) : 'dashboard';
   var isPengelola = (page === 'pengelola');
-  var berkas = isPengelola ? 'Pengelola' : (isDashboard ? 'Dashboard' : 'Landing');
+  var berkas = isPengelola ? 'Pengelola' : 'Dashboard';
   var judul = isPengelola
     ? 'Dashboard Pengelola Jurnal — DJPI UPI'
-    : (isDashboard
-      ? 'DJPI Dashboard — Divisi Jurnal dan Publikasi Ilmiah UPI'
-      : 'Direktori Jurnal Ilmiah UPI');
+    : 'DJPI Dashboard — Divisi Jurnal dan Publikasi Ilmiah UPI';
 
   var t = HtmlService.createTemplateFromFile(berkas);
 
@@ -169,7 +169,6 @@ function doGet(e) {
   // memakai URL absolut web app.
   var urlDasar = '';
   try { urlDasar = ScriptApp.getService().getUrl() || ''; } catch (err) { urlDasar = ''; }
-  t.urlLanding = urlDasar ? (urlDasar + '?page=landing') : '?page=landing';
   t.urlDashboard = urlDasar ? (urlDasar + '?page=dashboard') : '?page=dashboard';
   t.urlPengelola = urlDasar ? (urlDasar + '?page=pengelola') : '?page=pengelola';
 
@@ -947,12 +946,12 @@ function cariJurnal_(daftar, nama) {
    snapshot yang sudah ditulis ke sheet.
 
    Sengaja TIDAK memakai sheetWajib_/buatHeaderMap_: bagian ini boleh tidak
-   ada tanpa membuat getPublicData() gagal total. Setiap fungsi menangkap
+   ada tanpa membuat pemanggilnya gagal total. Setiap fungsi menangkap
    galatnya sendiri dan mengembalikan null/[] bila sheet tidak ada, kosong,
    atau strukturnya rusak, sehingga journals/stats/dll tetap tampil normal.
 
    OPTIMASI 1: keempat fungsi bacaX_() di bawah ini TIDAK dipanggil langsung
-   dari getPublicData() lagi. Dulu setiap kunjungan publik memicu 4 kali
+   lagi dari satu endpoint. Dulu setiap kunjungan memicu 4 kali
    getDataRange().getValues() tanpa cache. Sekarang seluruhnya dibungkus satu
    kali oleh bacaDataSitasi_() yang di-cache (lihat CACHE.CITATION).
    ========================================================================== */
@@ -1133,7 +1132,7 @@ function bacaArtikelBerpengaruh_() {
 
 /**
  * OPTIMASI 1: satu titik masuk untuk seluruh data snapshot sitasi, di-cache
- * sebagai satu nilai gabungan. Sebelumnya getPublicData() memanggil 4 fungsi
+ * sebagai satu nilai gabungan. Sebelumnya endpoint publik memanggil 4 fungsi
  * bacaX_() di atas secara langsung tanpa cache sama sekali, sehingga setiap
  * kunjungan Landing menghasilkan 4 pembacaan sheet tambahan. Data ini adalah
  * snapshot yang diupdate manual/berkala, jadi TTL 1 jam aman dipakai.
@@ -1167,63 +1166,7 @@ function bacaDataSitasi_() {
    6. PAYLOAD PUBLIK
    ========================================================================== */
 
-/**
- * Menyusun objek BARU berisi field yang diizinkan saja. Penyaringan terjadi
- * di server, bukan di frontend.
- */
-function keJurnalPublik_(j) {
-  return {
-    namaJurnal: j.namaJurnal,
-    kluster: j.kluster,
-    unitPengelola: j.unitPengelola,
-    // tautan invalid/placeholder dikosongkan agar publik tidak melihat tautan mati
-    linkOjs: j.linkOjsValid ? j.linkOjs : '',
-    // dihapus: statusOjs & sudahMigrasi (info migrasi internal DJPI, tidak untuk publik)
-    statusAkreditasi: akreditasiValid_(j.statusAkreditasi) ? j.statusAkreditasi : 'Belum Akreditasi',
-    peringkatSinta: j.peringkatSinta,
-    terakreditasi: j.terakreditasi,
-    apc: apcValid_(j.apc) ? j.apc : '',
-    linkApc: j.linkApcValid ? j.linkApc : '',
-    issn: j.issnValid ? j.issn : '',
-    eIssn: j.eIssnValid ? j.eIssn : '',
-    pIssn: j.pIssnValid ? j.pIssn : '',
-    linkGaruda: j.terindeksGaruda ? j.linkGaruda : '',
-    linkDoaj: j.terindeksDoaj ? j.linkDoaj : '',
-    terindeksGaruda: j.terindeksGaruda,
-    terindeksDoaj: j.terindeksDoaj,
-    kuartil: j.bereputasi ? j.kuartil : '',
-    bereputasi: j.bereputasi,
-    punyaEmail: j.punyaEmail,
-    inisial: j.inisial,
-    jadwalTerbitan: j.jadwalTerbitan, // teks jadwal terbit asli, untuk kartu/modal Landing
-    bulanTerbit: j.bulanTerbit || [],  // array bulan (1-12), untuk fitur kartu bulan
-    coverUrl: (urlValid_(j.coverUrl) || coverDataUriValid_(j.coverUrl)) ? j.coverUrl : '',
-    scope: j.scope || ''
-  };
-}
 
-function getPublicData() {
-  try {
-    var semua = bacaDataJurnal_();
-    var sitasi = bacaDataSitasi_(); // OPTIMASI 1: 1 cache hit, bukan 4 pembacaan sheet per kunjungan
-
-    return {
-      ok: true,
-      journals: semua.map(keJurnalPublik_),
-      stats: statistikPublik_(semua),
-      clusters: rekapKluster_(semua),
-      months: rekapBulan_(semua), // dipakai grid 12 kartu bulan di Landing
-      citationStats: sitasi.citationStats,
-      trend: sitasi.trend,
-      topJournals: sitasi.topJournals,
-      topArticles: sitasi.topArticles,
-      layout: bacaPengaturanLandingPublik_(),
-      generatedAt: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')
-    };
-  } catch (err) {
-    return { ok: false, message: err.message };
-  }
-}
 
 function statistikPublik_(daftar) {
   var s = { total: daftar.length, terakreditasi: 0, belum: 0, bereputasi: 0, doaj: 0, garuda: 0, sinta: {} };
@@ -1237,14 +1180,6 @@ function statistikPublik_(daftar) {
   return s;
 }
 
-function rekapBulan_(daftar) { // rekap jumlah jurnal per bulan terbit, untuk kartu bulan di Landing
-  var hasil = [];
-  for (var b = 0; b < 12; b++) hasil.push({ bulan: b, nama: BULAN[b].nama, total: 0 });
-  daftar.forEach(function (j) {
-    (j.bulanTerbit || []).forEach(function (b) { if (hasil[b]) hasil[b].total++; });
-  });
-  return hasil;
-}
 
 function rekapKluster_(daftar) {
   var peta = {};
@@ -4378,7 +4313,7 @@ function bacaVerifikasiDoaj_() {
   }
 
   // sheetOpsional_: modul ini boleh belum pernah dijalankan tanpa membuat
-  // getDashboardDataForAdmin/getPublicData gagal total.
+  // getDashboardDataForAdmin gagal total.
   var sh = sheetOpsional_(SHEET.VERIFIKASI_DOAJ);
   if (!sh) return {};
 
@@ -5049,164 +4984,6 @@ function tolakDraftProfilJurnal(token, namaJurnal, catatan) {
     return { ok: true, message: 'Draft profil "' + namaJurnal + '" ditolak.' };
   } catch (err) {
     return { ok: false, message: 'Gagal menolak draft: ' + err.message };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/* ==========================================================================
-   26. PENGATURAN LAYOUT LANDING (aktif/urutan section & tab)
-   --------------------------------------------------------------------------
-   Sheet Pengaturan_Landing: satu baris per unit yang bisa di-toggle admin.
-   Jenis 'section' = blok besar halaman (kartu statistik, tab-direktori,
-   dst), jenis 'tab' = salah satu dari 5 tab direktori jurnal. Label tab
-   TIDAK disimpan di sini — tetap di kode (Landing.html) supaya admin tidak
-   perlu jaga konsistensi teks bebas, yang diatur cuma tampil/tidak (aktif)
-   dan urutan render (urutan).
-   ========================================================================== */
-
-var PENGATURAN_LANDING_HEADER = ['Kunci', 'Jenis', 'Aktif', 'Urutan'];
-var PENGATURAN_LANDING_DEFAULT = [
-  ['stat_grid', 'section', true, 1],
-  ['info_callout', 'section', true, 2],
-  ['tab_directory', 'section', true, 3],
-  ['citation_impact', 'section', true, 4],
-  ['sinta_link', 'section', true, 5],
-  ['subject_grid', 'section', true, 6],
-  ['bereputasi', 'tab', true, 1],
-  ['terakreditasi', 'tab', true, 2],
-  ['doaj', 'tab', true, 3],
-  ['kluster', 'tab', true, 4],
-  ['semua', 'tab', true, 5]
-];
-
-function getPengaturanLandingSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(SHEET.PENGATURAN_LANDING);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET.PENGATURAN_LANDING);
-    sh.appendRow(PENGATURAN_LANDING_HEADER);
-    sh.setFrozenRows(1);
-    sh.getRange(2, 1, PENGATURAN_LANDING_DEFAULT.length, PENGATURAN_LANDING_HEADER.length)
-      .setValues(PENGATURAN_LANDING_DEFAULT);
-    return sh;
-  }
-
-  // Migrasi lunak: baris baru yang ditambahkan ke PENGATURAN_LANDING_DEFAULT
-  // (mis. section baru) belum tentu ada di sheet lama yang sudah terlanjur
-  // dibuat — tambahkan yang belum ada TANPA menyentuh baris yang sudah ada,
-  // supaya aktif/urutan yang sudah diatur admin sebelumnya tidak berubah.
-  var kunciAda = {};
-  var nilai = sh.getDataRange().getValues();
-  for (var r = 1; r < nilai.length; r++) {
-    var k = str_(nilai[r][0]);
-    if (k) kunciAda[k] = true;
-  }
-  var kurang = PENGATURAN_LANDING_DEFAULT.filter(function (row) { return !kunciAda[row[0]]; });
-  if (kurang.length) {
-    sh.getRange(sh.getLastRow() + 1, 1, kurang.length, PENGATURAN_LANDING_HEADER.length).setValues(kurang);
-  }
-
-  return sh;
-}
-
-/** Baca semua baris jadi array {kunci, jenis, aktif, urutan}. */
-function bacaPengaturanLandingBaris_() {
-  var sh = getPengaturanLandingSheet_();
-  var nilai = sh.getDataRange().getValues();
-  var hasil = [];
-  for (var r = 1; r < nilai.length; r++) {
-    var kunci = str_(nilai[r][0]);
-    if (!kunci) continue;
-    hasil.push({
-      kunci: kunci,
-      jenis: str_(nilai[r][1]),
-      aktif: nilai[r][2] === true || norm_(nilai[r][2]) === 'TRUE',
-      urutan: angka_(nilai[r][3])
-    });
-  }
-  return hasil;
-}
-
-/**
- * Bentuk ringkas untuk payload publik (getPublicData) — dipisah section/tab,
- * diurutkan, cuma field yang benar-benar dipakai Landing.html. Dibaca tanpa
- * token karena ini memang bagian dari data publik (aktif/urutan bukan info
- * sensitif), fallback ke default bawaan kalau sheet belum sempat dibuat.
- */
-function bacaPengaturanLandingPublik_() {
-  try {
-    var baris = bacaPengaturanLandingBaris_();
-    var ringkas = function (jenis) {
-      return baris.filter(function (b) { return b.jenis === jenis; })
-        .sort(function (a, b) { return a.urutan - b.urutan; })
-        .map(function (b) { return { kunci: b.kunci, aktif: b.aktif, urutan: b.urutan }; });
-    };
-    return { sections: ringkas('section'), tabs: ringkas('tab') };
-  } catch (err) {
-    // Gagal baca sheet TIDAK BOLEH menjatuhkan getPublicData() — jatuh ke
-    // bawaan (semua aktif, urutan bawaan) supaya Landing tetap tampil normal.
-    return {
-      sections: PENGATURAN_LANDING_DEFAULT.filter(function (r) { return r[1] === 'section'; })
-        .map(function (r) { return { kunci: r[0], aktif: true, urutan: r[3] }; }),
-      tabs: PENGATURAN_LANDING_DEFAULT.filter(function (r) { return r[1] === 'tab'; })
-        .map(function (r) { return { kunci: r[0], aktif: true, urutan: r[3] }; })
-    };
-  }
-}
-
-/** Daftar pengaturan layout untuk panel admin. WAJIB token 'session_' DAN superadmin. */
-function getPengaturanLanding(token) {
-  var profile = bacaToken_(token, 'session_');
-  if (!profile) return sesiHabis_();
-  if (!profile.isSuperadmin) return { ok: false, message: 'Hanya superadmin yang dapat mengatur layout Landing.' };
-
-  try {
-    return { ok: true, items: bacaPengaturanLandingBaris_() };
-  } catch (err) {
-    return { ok: false, message: 'Gagal memuat pengaturan layout: ' + err.message };
-  }
-}
-
-/**
- * Simpan perubahan aktif/urutan. WAJIB token 'session_' DAN superadmin.
- * `perubahan`: array [{kunci, aktif, urutan}, ...] — hanya baris yang
- * kunci-nya cocok dengan baris sheet yang ditulis, sisanya diabaikan.
- */
-function simpanPengaturanLanding(token, perubahan) {
-  var profile = bacaToken_(token, 'session_');
-  if (!profile) return sesiHabis_();
-  if (!profile.isSuperadmin) return { ok: false, message: 'Hanya superadmin yang dapat mengatur layout Landing.' };
-  if (!Array.isArray(perubahan)) return { ok: false, message: 'Data pengaturan tidak valid.' };
-
-  var lock = LockService.getScriptLock();
-  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
-
-  try {
-    var sh = getPengaturanLandingSheet_();
-    var nilai = sh.getDataRange().getValues();
-    var baris = {};
-    for (var r = 1; r < nilai.length; r++) {
-      var kunci = str_(nilai[r][0]);
-      if (kunci) baris[kunci] = r + 1; // 1-based row number
-    }
-
-    var diterapkan = 0;
-    perubahan.forEach(function (p) {
-      var b = baris[str_(p && p.kunci)];
-      if (!b) return;
-      sh.getRange(b, 3).setValue(!!(p.aktif));
-      sh.getRange(b, 4).setValue(angka_(p.urutan));
-      diterapkan++;
-    });
-    SpreadsheetApp.flush();
-
-    catatAktivitas_(profile.email, '-', 'SIMPAN_PENGATURAN_LANDING', diterapkan + ' baris diperbarui');
-    bersihkanCacheJurnal_(); // paksa getPublicData baca ulang layout terbaru
-
-    return { ok: true, message: diterapkan + ' pengaturan disimpan.' };
-  } catch (err) {
-    return { ok: false, message: 'Gagal menyimpan pengaturan: ' + err.message };
   } finally {
     lock.releaseLock();
   }

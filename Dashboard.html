@@ -29,11 +29,6 @@
         <div class="brand-title">DJPI Dashboard</div>
         <div class="brand-sub">Divisi Jurnal dan Publikasi Ilmiah · Universitas Pendidikan Indonesia</div>
       </div>
-
-      <a class="btn btn-sm" href="<?= urlLanding ?>" target="_top">
-        <i class="fa-solid fa-globe" aria-hidden="true"></i>
-        Halaman publik
-      </a>
     </div>
   </header>
 
@@ -1466,50 +1461,6 @@
       </section>
 
       <!-- Layout Landing — superadmin saja, aktif/urutan section & tab direktori publik -->
-      <section v-if="profile && profile.isSuperadmin" v-show="tab === 'layoutLanding'">
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">Layout Landing Publik</h2>
-              <p class="card-note">Atur section &amp; tab mana yang tampil di direktori publik, dan urutannya. Angka lebih kecil tampil lebih dulu.</p>
-            </div>
-            <button type="button" class="btn btn-sm" @click="muatPengaturanLanding" :disabled="memuatPengaturanLanding">
-              <span v-if="memuatPengaturanLanding" class="spinner spinner-gelap" aria-hidden="true"></span>
-              <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i>
-              Muat ulang
-            </button>
-          </div>
-
-          <div class="card-pad">
-            <div v-if="galatPengaturanLanding" class="alert alert-galat mb-8" role="alert">{{ galatPengaturanLanding }}</div>
-
-            <template v-if="pengaturanLanding.length">
-              <h3 class="teks-kecil teks-lembut mb-8">Section halaman</h3>
-              <div v-for="p in pengaturanLandingSections" :key="p.kunci" class="flex-tengah gap-8 mb-8">
-                <input type="checkbox" v-model="p.aktif" :id="'ll-' + p.kunci">
-                <label :for="'ll-' + p.kunci" style="flex:1">{{ labelLayoutLanding(p.kunci) }}</label>
-                <input type="number" v-model.number="p.urutan" class="input" style="width:70px">
-              </div>
-
-              <h3 class="teks-kecil teks-lembut mb-8 mt-16">Tab direktori jurnal</h3>
-              <div v-for="p in pengaturanLandingTabs" :key="p.kunci" class="flex-tengah gap-8 mb-8">
-                <input type="checkbox" v-model="p.aktif" :id="'ll-' + p.kunci">
-                <label :for="'ll-' + p.kunci" style="flex:1">{{ labelLayoutLanding(p.kunci) }}</label>
-                <input type="number" v-model.number="p.urutan" class="input" style="width:70px">
-              </div>
-
-              <button type="button" class="btn btn-primer mt-16" :disabled="menyimpanPengaturanLanding" @click="simpanPengaturanLandingKlik">
-                <span v-if="menyimpanPengaturanLanding" class="spinner" aria-hidden="true"></span>
-                {{ menyimpanPengaturanLanding ? 'Menyimpan…' : 'Simpan pengaturan' }}
-              </button>
-            </template>
-            <div v-else-if="!memuatPengaturanLanding" class="kosong">
-              <div class="kosong-judul">Belum ada data</div>
-              <p class="kosong-teks">Klik "Muat ulang" untuk mengambil pengaturan layout dari server.</p>
-            </div>
-          </div>
-        </div>
-      </section>
     </template>
         </div><!-- /konten-utama -->
         </main>
