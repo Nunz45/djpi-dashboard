@@ -440,7 +440,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel tabel-aksi">
+              <table class="tabel tabel-nama tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -530,7 +530,7 @@
               </button>
             </div>
             <div class="tabel-bungkus">
-              <table class="tabel tabel-aksi">
+              <table class="tabel tabel-nama tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -543,7 +543,7 @@
                 <tbody>
                   <tr v-for="r in data.akreditasi.darurat" :key="r.namaJurnal" class="row-alert row-alert-danger">
                     <td>
-                      <div class="teks-tebal putus">{{ r.namaJurnal }}</div>
+                      <div class="teks-tebal putus-kata">{{ r.namaJurnal }}</div>
                       <div class="teks-kecil teks-lembut">{{ r.kluster }} · {{ r.statusAkreditasi }}</div>
                     </td>
                     <td><span :class="kelasBucketAkr(r.kedaluwarsa.bucket)">{{ r.kedaluwarsa.label }}</span></td>
@@ -583,7 +583,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel tabel-aksi">
+              <table class="tabel tabel-nama tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -597,7 +597,7 @@
                 <tbody>
                   <tr v-for="r in jadwalAkrTersaring" :key="r.namaJurnal">
                     <td>
-                      <div class="teks-tebal putus">{{ r.namaJurnal }}</div>
+                      <div class="teks-tebal putus-kata">{{ r.namaJurnal }}</div>
                       <div class="teks-kecil teks-lembut">{{ r.statusAkreditasi }}</div>
                     </td>
                     <td class="teks-kecil">{{ r.kluster }}</td>
@@ -632,7 +632,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel tabel-aksi">
+              <table class="tabel tabel-nama tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -645,7 +645,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="r in data.akreditasi.kandidatBaru.slice(0, 20)" :key="r.namaJurnal">
-                    <td class="teks-tebal putus">{{ r.namaJurnal }}</td>
+                    <td class="teks-tebal putus-kata">{{ r.namaJurnal }}</td>
                     <td class="teks-kecil">{{ r.kluster }}</td>
                     <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
                     <td class="teks-kecil">
@@ -672,7 +672,7 @@
               </button>
             </div>
             <div class="tabel-bungkus">
-              <table class="tabel tabel-aksi">
+              <table class="tabel tabel-nama tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -684,7 +684,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="r in data.akreditasi.kandidatNaik" :key="r.namaJurnal">
-                    <td class="teks-tebal putus">{{ r.namaJurnal }} <span class="teks-kecil teks-lembut">· {{ r.kluster }}</span></td>
+                    <td class="teks-tebal putus-kata">{{ r.namaJurnal }} <span class="teks-kecil teks-lembut">· {{ r.kluster }}</span></td>
                     <td class="teks-kecil">{{ r.statusAkreditasi }}</td>
                     <td class="td-num"><span :class="kelasSkorAkr(r.skorKandidat)">{{ r.skorKandidat }}</span></td>
                     <td class="teks-kecil">
@@ -813,7 +813,7 @@
 
         <div v-else class="card">
           <div class="tabel-bungkus">
-            <table class="tabel tabel-aksi tabel-jurnal">
+            <table class="tabel tabel-nama tabel-aksi tabel-jurnal">
               <thead>
                 <tr>
                   <th scope="col">Jurnal</th>
@@ -828,7 +828,7 @@
               <tbody>
                 <tr v-for="j in jurnalHalamanIni" :key="j.namaJurnal" :class="kelasBaris(j)">
                   <td>
-                    <div class="teks-tebal putus">{{ j.namaJurnal }}</div>
+                    <div class="teks-tebal putus-kata">{{ j.namaJurnal }}</div>
                     <div class="teks-kecil teks-lembut">
                       {{ j.eIssn || j.pIssn || 'ISSN belum sah' }}
                       <span v-if="!j.punyaEmail"> · email pengelola belum dapat dipakai</span>
@@ -900,7 +900,7 @@
               <div v-else class="flex-kolom gap-10">
                 <article v-for="s in data.scopus[tahap.key]" :key="s.namaJurnal"
                   style="border:1px solid var(--garis);border-radius:10px;padding:12px">
-                  <div class="teks-tebal putus">{{ s.namaJurnal }}</div>
+                  <div class="teks-tebal putus-kata">{{ s.namaJurnal }}</div>
                   <div v-if="s.pic" class="teks-kecil teks-lembut">PIC: {{ s.pic }}</div>
                   <div v-if="s.target" class="mt-8">
                     <span class="badge badge-emas">Target: {{ s.target }}</span>
@@ -985,7 +985,7 @@
             <div class="card">
               <div class="card-head"><h2 class="card-title">Jurnal dengan pemasukan tertinggi</h2></div>
               <div class="tabel-bungkus">
-                <table class="tabel">
+                <table class="tabel tabel-nama">
                   <thead><tr><th>Jurnal</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
                   <tbody>
                     <tr v-for="j in data.apc.topJurnal" :key="j.namaJurnal">
@@ -1036,7 +1036,7 @@
 
             <template v-else>
               <div class="tabel-bungkus">
-                <table class="tabel">
+                <table class="tabel tabel-nama">
                   <thead>
                     <tr>
                       <th scope="col">Tanggal</th>
@@ -1050,7 +1050,7 @@
                   <tbody>
                     <tr v-for="(r, idx) in riwayatApcHalamanIni" :key="r.namaJurnal + r.timestamp + idx">
                       <td class="teks-kecil teks-lembut">{{ r.timestamp }}</td>
-                      <td class="teks-tebal putus">{{ r.namaJurnal }}</td>
+                      <td class="teks-tebal putus-kata">{{ r.namaJurnal }}</td>
                       <td class="teks-kecil">{{ r.kluster }}</td>
                       <td class="teks-kecil putus">{{ r.edisi }}</td>
                       <td class="td-num tabular">{{ r.jumlahArtikel }}</td>
@@ -1158,7 +1158,7 @@
           </div>
 
           <div v-else class="tabel-bungkus">
-            <table class="tabel">
+            <table class="tabel tabel-nama">
               <thead>
                 <tr>
                   <th scope="col">Jurnal</th>
@@ -1171,7 +1171,7 @@
               <tbody>
                 <tr v-for="t in terbitanTersaring" :key="t.namaJurnal + t.edisi + t.timestamp">
                   <td>
-                    <div class="teks-tebal putus">{{ t.namaJurnal }}</div>
+                    <div class="teks-tebal putus-kata">{{ t.namaJurnal }}</div>
                     <div class="teks-kecil teks-lembut">{{ t.kluster }}</div>
                   </td>
                   <td class="teks-kecil putus">{{ t.edisi }}</td>
@@ -1248,7 +1248,7 @@
           </div>
 
           <div v-else class="tabel-bungkus">
-            <table class="tabel tabel-aksi">
+            <table class="tabel tabel-nama tabel-aksi">
               <thead>
                 <tr>
                   <th scope="col">Jurnal</th>
@@ -1262,7 +1262,7 @@
               <tbody>
                 <tr v-for="d in usulanDoiTersaring" :key="d.id_usulan">
                   <td>
-                    <div class="teks-tebal putus">{{ d.nama_jurnal }}</div>
+                    <div class="teks-tebal putus-kata">{{ d.nama_jurnal }}</div>
                     <div class="teks-kecil teks-lembut putus">{{ d.judul_artikel }}</div>
                   </td>
                   <td class="teks-kecil">
@@ -1495,7 +1495,7 @@
           </div>
 
           <div class="tabel-bungkus">
-            <table class="tabel">
+            <table class="tabel tabel-nama">
               <thead><tr><th aria-label="Pilih jurnal untuk dikirimi pengingat"></th><th>Jurnal</th><th>Kluster</th><th>Status</th></tr></thead>
               <tbody>
                 <tr v-for="j in modalBulan.daftar" :key="j.namaJurnal">

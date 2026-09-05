@@ -248,6 +248,16 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
    jurnal, yang selama ini jadi kolom paling rela mengalah. */
 .putus-kata{overflow-wrap:break-word}
 
+/* Kolom pertama tabel yang berisi nama jurnal diberi lantai lebar. Bersama
+   .putus-kata ini menghentikan kolom nama jadi kolom yang paling rela mengalah
+   terhadap enam kolom lain yang terkunci white-space:nowrap. min-width bekerja
+   pada auto-layout karena ikut menaikkan kontribusi min-content kolomnya, jadi
+   tidak perlu table-layout:fixed dan aman untuk tabel 4 sampai 7 kolom. */
+.tabel-nama td:first-child,.tabel-nama th:first-child{min-width:180px}
+@media(min-width:900px){
+  .tabel-nama td:first-child,.tabel-nama th:first-child{min-width:260px}
+}
+
 /* Alokasi lebar kolom tabel Daftar Jurnal. Di-scope ke satu tabel karena ada 15
    tabel memakai .tabel dengan 3-7 kolom, salah satunya di dalam modal.
    Digerbangi 900px: di bawah itu table-layout:fixed memeras badge ber-nowrap
@@ -565,6 +575,6 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
   .app-nav-grup{font-size:11px}
   .app-nav-user-email{font-size:12px}
 }
-</style>
 /* dipasang ke <body> selama salah satu modal terbuka; lihat watcher adaModalTerbuka */
 body.modal-terbuka{overflow:hidden}
+</style>
