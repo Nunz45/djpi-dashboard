@@ -247,9 +247,9 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
 
 /* ===== Responsif ===== */
 @media(max-width:1000px){
-  .grid-kpi{grid-template-columns:repeat(2,1fr)}
-  .priority-strip{grid-template-columns:repeat(2,1fr)}
-  .grid-2,.grid-3,.grid-13{grid-template-columns:1fr}
+  .grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .priority-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-2,.grid-3,.grid-13{grid-template-columns:minmax(0,1fr)}
 }
 @media(max-width:680px){
   .page{padding:var(--space-4) var(--space-4) var(--space-8)}
@@ -257,8 +257,12 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
   .brand-sub{display:none}
   .workspace-title{font-size:24px}
   .workspace-meta{text-align:left}
-  .grid-kpi{grid-template-columns:1fr 1fr}
-  .priority-strip{grid-template-columns:1fr 1fr}
+  .grid-kpi{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  /* 16px adalah ambang di mana Safari iOS berhenti memperbesar halaman saat
+     fokus masuk ke input. Di bawah itu setiap ketukan field memicu zoom yang
+     tidak pernah dikembalikan sendiri. Angka ini dari perilaku WebKit, bukan WCAG. */
+  .input,.select,textarea.input,.app-nav-cari input{font-size:16px}
+  .priority-strip{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .kpi{padding:var(--space-4)}
   .desktop-table{display:none}
   .list-mobile{display:block}
@@ -342,6 +346,40 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 :root[data-theme="dark"] .alert-galat,body.dark .alert-galat{background:#2b1616;color:#f0b8b8;border-color:#5a2a2a}
 :root[data-theme="dark"] .alert-ok,body.dark .alert-ok{background:#173420;color:#a8d8b4;border-color:#265232}
 :root[data-theme="dark"] .alert-info,body.dark .alert-info{background:#152628;color:#9fd0d6;border-color:#27484d}
+
+/* ===== Mode gelap untuk warna berstatus yang dulu hardcoded terang =====
+   .row-alert*, .input-galat, .kpi-icon-w/-g, dan .kpi-gold memakai latar terang
+   tetap tanpa padanan gelap, sehingga teks --text di atasnya hanya mencapai
+   1,00-2,54:1 di mode gelap -- justru pada baris jurnal berstatus kritis dan
+   pada field yang gagal validasi.
+
+   Ditulis DUA jalur: prefers-color-scheme untuk tema "auto" yang tidak memasang
+   atribut apa pun (ini bawaan aplikasi), dan [data-theme="dark"] untuk pilihan
+   manual. Menguji lewat tombol toggle saja tidak memunculkan bug jalur pertama.
+   Aturan .kpi-icon-b/-ok dan .badge-none dipindah ke sini dari Dashboard.html
+   yang dulu hanya menulis jalur kedua.                                       */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .row-alert{background:#2a2620}
+  :root:not([data-theme="light"]) .row-alert-danger{background:#2f1b1b}
+  :root:not([data-theme="light"]) .row-alert-warning{background:#2f2617}
+  :root:not([data-theme="light"]) .input-galat{background:#2b1d1d}
+  :root:not([data-theme="light"]) .kpi-icon-w{background:#2f2617;color:#e0a13f}
+  :root:not([data-theme="light"]) .kpi-icon-g{background:#2e2814;color:#e6c563}
+  :root:not([data-theme="light"]) .kpi-icon-b{background:#1b2540;color:#8fb0ff}
+  :root:not([data-theme="light"]) .kpi-icon-ok{background:#16301f;color:#6fc586}
+  :root:not([data-theme="light"]) .kpi-gold{color:#e6c563}
+  :root:not([data-theme="light"]) .badge-none{background:#2b2925;color:var(--muted);border-color:#3f3c36}
+}
+:root[data-theme="dark"] .row-alert,body.dark .row-alert{background:#2a2620}
+:root[data-theme="dark"] .row-alert-danger,body.dark .row-alert-danger{background:#2f1b1b}
+:root[data-theme="dark"] .row-alert-warning,body.dark .row-alert-warning{background:#2f2617}
+:root[data-theme="dark"] .input-galat,body.dark .input-galat{background:#2b1d1d}
+:root[data-theme="dark"] .kpi-icon-w,body.dark .kpi-icon-w{background:#2f2617;color:#e0a13f}
+:root[data-theme="dark"] .kpi-icon-g,body.dark .kpi-icon-g{background:#2e2814;color:#e6c563}
+:root[data-theme="dark"] .kpi-icon-b,body.dark .kpi-icon-b{background:#1b2540;color:#8fb0ff}
+:root[data-theme="dark"] .kpi-icon-ok,body.dark .kpi-icon-ok{background:#16301f;color:#6fc586}
+:root[data-theme="dark"] .kpi-gold,body.dark .kpi-gold{color:#e6c563}
+:root[data-theme="dark"] .badge-none,body.dark .badge-none{background:#2b2925;color:var(--muted);border-color:#3f3c36}
 
 /* =========================================================================
    SHELL APLIKASI — sidebar gelap "inset" ala litabmas.upi.edu.
