@@ -286,6 +286,19 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
   table.tabel td:last-child{position:sticky;right:0;z-index:2;background:inherit;
     box-shadow:-10px 0 10px -10px rgba(0,0,0,.35)}
   table.tabel th:last-child{position:sticky;right:0;z-index:3}
+
+  /* Ukuran teks terkecil dinaikkan untuk layar sempit. Tidak ada kriteria WCAG
+     tentang ukuran font minimum, jadi ini keputusan keterbacaan, bukan kepatuhan:
+     mayoritas pengelola jurnal berusia 40+, dan presbiopia membuat mereka
+     menjauhkan layar, yang justru memperkecil sudut pandang teks.
+
+     Membuang text-transform:uppercase pada th dan .kpi-label berefek lebih besar
+     daripada menaikkan ukurannya. Uppercase menghapus siluet ascender-descender
+     yang dipakai mata mengenali bentuk kata. */
+  table.tabel{font-size:14px}
+  table.tabel th{font-size:12px;text-transform:none;letter-spacing:.02em}
+  .kpi-label{font-size:12px;text-transform:none;letter-spacing:.02em}
+  .badge{font-size:11.5px}
   .priority-strip{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .kpi{padding:var(--space-4)}
   .desktop-table{display:none}
@@ -496,5 +509,9 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
   .app-isi{padding:14px}
   .app-atas{padding:10px 14px}
   .app-atas-meta{display:none}
+  /* ukuran teks nav dinaikkan di sini, bukan di blok media atas, karena
+     definisi .app-nav-* berada setelahnya dan menang kaskade */
+  .app-nav-grup{font-size:11px}
+  .app-nav-user-email{font-size:12px}
 }
 </style>
