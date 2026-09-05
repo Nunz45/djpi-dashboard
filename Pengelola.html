@@ -1111,8 +1111,11 @@
 
             <!-- ---------- navigasi bawah ---------- -->
             <div class="akr-nav">
-              <span class="akr-nav-status">
-                <template v-if="persiapanAkr.menyimpan">Menyimpan…</template>
+              <span class="akr-nav-status" :class="{ 'teks-kurang': akrGalatSimpan }" role="status">
+                <template v-if="akrGalatSimpan">
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> {{ akrGalatSimpan }}
+                </template>
+                <template v-else-if="persiapanAkr.menyimpan">Menyimpan…</template>
                 <template v-else-if="persiapanAkr.terakhirDisimpan">Tersimpan otomatis {{ persiapanAkr.terakhirDisimpan }}</template>
                 <template v-else>Belum pernah disimpan</template>
               </span>
@@ -1247,7 +1250,11 @@ const appPengelola = createApp({
       akrLangkah: 1,
       akrDariTinjauan: false,
       akrGrupBuka: 'A',
-      akrTimerSimpan: null
+      akrTimerSimpan: null,
+      // simpan otomatis: penanda antrean saat satu simpan masih berjalan, dan
+      // pesan galat supaya kegagalan tidak lewat tanpa terlihat
+      akrSimpanTertunda: false,
+      akrGalatSimpan: ''
     };
   },
 
@@ -2060,18 +2067,45 @@ const appPengelola = createApp({
       if (this.akrTimerSimpan) clearTimeout(this.akrTimerSimpan);
       this.akrTimerSimpan = setTimeout(() => { this.simpanDiam(); }, 3000);
     },
-    /** Simpan tanpa pesan sukses; dipakai saat berpindah langkah dan saat jeda mengetik. */
+    /**
+     * Simpan tanpa pesan sukses; dipakai saat berpindah langkah dan saat jeda mengetik.
+     *
+     * Panggilan google.script.run makan 1-3 detik, lebih lama di seluler. Perubahan yang
+     * dibuat selama satu simpan berjalan TIDAK boleh dibuang: ia diantrekan lewat
+     * akrSimpanTertunda dan dijalankan sekali lagi begitu simpan berjalan selesai.
+     * Kegagalan wajib terlihat, dan cap waktu lama tidak boleh ikut diperbarui supaya
+     * indikator tidak menyatakan tersimpan padahal tidak.
+     */
     simpanDiam() {
       var a = this.persiapanAkr;
-      if (!a.dimuat || a.menyimpan) return;
+      if (!a.dimuat) return;
+      if (a.menyimpan) { this.akrSimpanTertunda = true; return; }
       if (this.akrTimerSimpan) { clearTimeout(this.akrTimerSimpan); this.akrTimerSimpan = null; }
       a.menyimpan = true;
+
+      var selesai = () => {
+        a.menyimpan = false;
+        if (this.akrSimpanTertunda) {
+          this.akrSimpanTertunda = false;
+          this.simpanDiam();
+        }
+      };
+
       google.script.run
         .withSuccessHandler((res) => {
-          a.menyimpan = false;
-          if (res && res.ok) a.terakhirDisimpan = res.terakhirDisimpan || a.terakhirDisimpan;
+          if (res && res.ok) {
+            this.akrGalatSimpan = '';
+            a.terakhirDisimpan = res.terakhirDisimpan || a.terakhirDisimpan;
+          } else {
+            this.akrGalatSimpan = (res && res.message) || 'Perubahan terakhir belum tersimpan.';
+          }
+          selesai();
         })
-        .withFailureHandler(() => { a.menyimpan = false; })
+        .withFailureHandler((err) => {
+          this.akrGalatSimpan = 'Perubahan terakhir belum tersimpan: ' +
+            ((err && err.message) || 'sambungan terputus') + '. Tekan Simpan di langkah terakhir.';
+          selesai();
+        })
         .simpanPersiapanAkreditasi(this.token, {
           jenis: a.jenis, tglBerakhirSk: a.tglBerakhirSk, jawaban: a.jawaban
         });
