@@ -155,7 +155,20 @@ a{color:var(--red);text-underline-offset:2px}
 .input-pin{padding:var(--space-3);letter-spacing:.45em;text-align:center;font-size:21px;font-weight:800;font-family:var(--font-mono)}
 
 /* ===== Tabel — header lebih kontras, sel numerik lebih lega, sticky opsional ===== */
+/* Header lengket butuh pembungkus yang benar-benar bergulir vertikal. Dengan
+   overflow-x saja, pembungkus jadi scroll container tanpa batas tinggi sehingga
+   guliran vertikal terjadi di halaman, bukan di sini, dan th sticky tidak pernah
+   aktif.
+
+   Batas tinggi itu HANYA dipasang di layar lebar. Di HP, memberi tiap tabel
+   guliran vertikal sendiri menciptakan jebakan gulir: halaman berhenti bergulir
+   begitu jari melewati tabel, dan pengguna harus mencari tepi sempit di luar
+   tabel untuk melanjutkan. Header lengket tidak sepadan dengan itu, apalagi di
+   layar sempit tabelnya toh sudah digulir mendatar. */
 .tabel-bungkus{overflow-x:auto}
+@media(min-width:681px){
+  .tabel-bungkus{overflow-y:auto;max-height:70vh}
+}
 table.tabel{width:100%;border-collapse:collapse;font-size:12.5px}
 table.tabel th{position:sticky;top:0;z-index:1;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--line-strong);background:rgba(36,35,33,.94);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-align:left;text-transform:uppercase;white-space:nowrap;backdrop-filter:blur(6px)}
 table.tabel td{padding:var(--space-3) var(--space-4);border-bottom:1px solid #f0efec;vertical-align:top}
@@ -262,6 +275,17 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
      fokus masuk ke input. Di bawah itu setiap ketukan field memicu zoom yang
      tidak pernah dikembalikan sendiri. Angka ini dari perilaku WebKit, bukan WCAG. */
   .input,.select,textarea.input,.app-nav-cari input{font-size:16px}
+
+  /* Kolom Aksi selalu terakhir dan rata kanan, sehingga pada tabel selebar 738px
+     di layar 362px tombolnya berada ~376px di luar layar tanpa petunjuk apa pun.
+     Barisnya sendiri tidak bisa diketuk, jadi tombol itu satu-satunya jalan masuk.
+     Melengketkannya membuat tombol selalu terlihat tanpa mengubah markup dan tanpa
+     merusak semantik tabel. background:inherit mengambil warna dari <tr>, sehingga
+     .row-alert* ikut terbawa dengan benar. */
+  table.tabel tbody tr{background:var(--surface)}
+  table.tabel td:last-child{position:sticky;right:0;z-index:2;background:inherit;
+    box-shadow:-10px 0 10px -10px rgba(0,0,0,.35)}
+  table.tabel th:last-child{position:sticky;right:0;z-index:3}
   .priority-strip{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .kpi{padding:var(--space-4)}
   .desktop-table{display:none}
