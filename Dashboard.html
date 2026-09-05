@@ -407,7 +407,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Field</th>
@@ -440,7 +440,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -453,7 +453,7 @@
                 <tbody>
                   <tr v-for="j in antreanKualitas.slice(0, 20)" :key="j.namaJurnal" :class="kelasBaris(j)">
                     <td>
-                      <div class="teks-tebal putus">{{ j.namaJurnal }}</div>
+                      <div class="teks-tebal putus-kata">{{ j.namaJurnal }}</div>
                       <div class="teks-kecil teks-lembut">{{ j.kluster }}</div>
                     </td>
                     <td>
@@ -530,7 +530,7 @@
               </button>
             </div>
             <div class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -583,7 +583,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -632,7 +632,7 @@
             </div>
 
             <div v-else class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -672,7 +672,7 @@
               </button>
             </div>
             <div class="tabel-bungkus">
-              <table class="tabel">
+              <table class="tabel tabel-aksi">
                 <thead>
                   <tr>
                     <th scope="col">Jurnal</th>
@@ -813,7 +813,7 @@
 
         <div v-else class="card">
           <div class="tabel-bungkus">
-            <table class="tabel">
+            <table class="tabel tabel-aksi tabel-jurnal">
               <thead>
                 <tr>
                   <th scope="col">Jurnal</th>
@@ -1248,7 +1248,7 @@
           </div>
 
           <div v-else class="tabel-bungkus">
-            <table class="tabel">
+            <table class="tabel tabel-aksi">
               <thead>
                 <tr>
                   <th scope="col">Jurnal</th>

@@ -92,6 +92,9 @@ var appDjpi = Vue.createApp({
     draftProfilTerpilih:null,memprosesDraftProfil:false,catatanTolakDraftInput:''
   };},
   computed:{
+    adaModalTerbuka:function(){
+      return !!(this.jurnalTerpilih || this.modalBulan || this.doiTerpilih || this.draftProfilTerpilih);
+    },
     // baru: sapaan topbar mengikuti jam perangkat, dan inisial avatar dari email admin
     sapaan:function(){
       var h=new Date().getHours();
@@ -276,6 +279,12 @@ var appDjpi = Vue.createApp({
     }
   },
   watch:{
+    // U18: selama salah satu modal terbuka, halaman di belakangnya dikunci. Tanpa ini
+    // guliran modal menyambung ke daftar di belakangnya dan posisi baca pengguna
+    // hilang begitu modal ditutup -- terasa terutama di HP pada tabel berpaginasi.
+    adaModalTerbuka:function(buka){
+      try{ document.body.classList.toggle('modal-terbuka', !!buka); }catch(e){}
+    },
     cari:function(){this.halaman=1;},filterKluster:function(){this.halaman=1;},filterSinta:function(){this.halaman=1;},
     filterTimeliness:function(){this.halaman=1;},filterMigrasi:function(){this.halaman=1;},filterScopus:function(){this.halaman=1;},
     filterKualitas:function(){this.halaman=1;},filterMasalah:function(){this.halaman=1;}, // baru

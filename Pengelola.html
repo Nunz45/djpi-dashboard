@@ -217,7 +217,10 @@
             <form class="card-pad" @submit.prevent="simpanSuntingJurnal">
               <div v-for="f in fieldSuntingPengelolaGenerik" :key="f.k" class="field">
                 <label class="label" :for="'s-' + f.k">{{ f.l }}<span v-if="f.wajib" class="wajib"> *</span></label>
-                <input :id="'s-' + f.k" v-model="draftSunting[f.k]" type="text" class="input"
+                <input :id="'s-' + f.k" v-model="draftSunting[f.k]" class="input"
+                  :type="atribInput(f).type" :inputmode="atribInput(f).inputmode"
+                  :autocapitalize="atribInput(f).autocapitalize" :autocorrect="atribInput(f).autocorrect"
+                  :spellcheck="atribInput(f).spellcheck" :autocomplete="atribInput(f).autocomplete"
                   :class="{ 'input-galat': galatFieldSunting[f.k] }">
                 <p v-if="galatFieldSunting[f.k]" class="hint hint-galat">{{ galatFieldSunting[f.k] }}</p>
               </div>
@@ -653,6 +656,8 @@
 
           <!-- ---------- isi langkah ---------- -->
           <div class="akr-panel">
+            <p class="akr-posisi">Langkah {{ akrLangkah }} dari {{ akrLangkahDaftar.length }} — {{ (akrLangkahDaftar[akrLangkah - 1] || {}).nama }}</p>
+
             <div v-if="akrDariTinjauan" class="alert alert-info mb-16 flex-antara wrap gap-8">
               <span>Anda sedang mengubah isian dari halaman tinjauan.</span>
               <button type="button" class="btn btn-sm" @click="kembaliKeTinjauan">Kembali ke tinjauan</button>
@@ -1196,19 +1201,19 @@ const appPengelola = createApp({
       // nilai kosong (lihat catatan di atas form). 4 field tanpa wajib cuma kena pengecekan
       // placeholder generik, bukan aturan format spesifik.
       fieldSuntingPengelola: [
-        { k: 'linkOjs', l: 'Link OJS', wajib: true },
-        { k: 'eIssn', l: 'E-ISSN', wajib: true },
-        { k: 'pIssn', l: 'P-ISSN', wajib: true },
-        { k: 'linkGaruda', l: 'Link Garuda', wajib: true },
-        { k: 'linkDoaj', l: 'Link DOAJ', wajib: true },
+        { k: 'linkOjs', l: 'Link OJS', wajib: true , tipe: 'url' },
+        { k: 'eIssn', l: 'E-ISSN', wajib: true , tipe: 'issn' },
+        { k: 'pIssn', l: 'P-ISSN', wajib: true , tipe: 'issn' },
+        { k: 'linkGaruda', l: 'Link Garuda', wajib: true , tipe: 'url' },
+        { k: 'linkDoaj', l: 'Link DOAJ', wajib: true , tipe: 'url' },
         { k: 'apc', l: 'Informasi APC' },
-        { k: 'linkApc', l: 'Tautan informasi APC', wajib: true },
+        { k: 'linkApc', l: 'Tautan informasi APC', wajib: true , tipe: 'url' },
         { k: 'namaPengelola', l: 'Nama pengelola' },
-        { k: 'email', l: 'Email pengelola', wajib: true },
+        { k: 'email', l: 'Email pengelola', wajib: true , tipe: 'email' },
         { k: 'jadwalTerbitan', l: 'Jadwal terbitan' },
         { k: 'issue', l: 'Issue berjalan' },
-        { k: 'artikelPerIssue', l: 'Jumlah artikel per issue', wajib: true },
-        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun', wajib: true },
+        { k: 'artikelPerIssue', l: 'Jumlah artikel per issue', wajib: true , tipe: 'angka' },
+        { k: 'artikelPerTahun', l: 'Jumlah artikel per tahun', wajib: true , tipe: 'angka' },
         // Dua field ini SENGAJA tidak dirender lewat v-for generik di atas
         // (butuh widget upload/textarea, bukan <input type=text>) -- tetap
         // didaftarkan di sini supaya ikut logika diff simpanSuntingJurnal().
@@ -1989,8 +1994,23 @@ const appPengelola = createApp({
     langkahMundur() { if (this.akrLangkah > 1) this.keLangkah(this.akrLangkah - 1); },
     ubahDariTinjauan(n) { this.akrDariTinjauan = true; this.keLangkah(n); },
     kembaliKeTinjauan() { this.akrDariTinjauan = false; this.keLangkah(6); },
+    /**
+     * Halaman ini disajikan HtmlService di dalam iframe sandbox, dan dokumen
+     * iframe sering tidak punya guliran sendiri -- yang bergulir adalah halaman
+     * induk. window.scrollTo saja karena itu bisa tidak melakukan apa pun, dan
+     * pengguna mendarat di tengah langkah berikutnya tanpa tahu sudah berpindah.
+     * Jadi: gulir dokumen ini, lalu bawa kepala panel ke dalam pandangan sebagai
+     * cadangan yang bekerja di kedua keadaan.
+     */
     keAtas() {
       try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+      this.$nextTick(() => {
+        var panel = document.querySelector('.akr-panel');
+        if (panel && panel.scrollIntoView) {
+          try { panel.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+          catch (e) { panel.scrollIntoView(); }
+        }
+      });
     },
 
     // ---- penanda field yang terisi dari data DJPI ----
@@ -2046,6 +2066,34 @@ const appPengelola = createApp({
       else if (a.jawaban.tataKelola[kunci]) a.jawaban.tataKelola[kunci].nilai = asal;
       this.jadwalkanSimpan();
     },
+    /**
+     * Atribut papan ketik per jenis field. Di HP, type/inputmode yang benar
+     * memunculkan papan ketik yang sesuai, dan mematikan autocapitalize mencegah
+     * huruf pertama URL dikapitalkan lalu ditolak validator.
+     */
+    atribInput(f) {
+      var t = f && f.tipe;
+      if (t === 'url') {
+        return { type: 'url', inputmode: 'url', autocapitalize: 'off',
+                 autocorrect: 'off', spellcheck: 'false', autocomplete: 'url' };
+      }
+      if (t === 'email') {
+        return { type: 'email', inputmode: 'email', autocapitalize: 'off',
+                 autocorrect: 'off', spellcheck: 'false', autocomplete: 'email' };
+      }
+      if (t === 'angka') {
+        return { type: 'text', inputmode: 'numeric', autocapitalize: 'off',
+                 autocorrect: 'off', spellcheck: 'false', autocomplete: 'off' };
+      }
+      // ISSN memuat tanda hubung, jadi tetap teks tetapi dengan papan ketik angka
+      if (t === 'issn') {
+        return { type: 'text', inputmode: 'numeric', autocapitalize: 'off',
+                 autocorrect: 'off', spellcheck: 'false', autocomplete: 'off' };
+      }
+      return { type: 'text', inputmode: null, autocapitalize: null,
+               autocorrect: null, spellcheck: null, autocomplete: null };
+    },
+
     /** Jawaban satu syarat Tahap 1 untuk halaman tinjauan. */
     akrJawabanSyarat(k) {
       var jw = (this.persiapanAkr.jawaban.tahap1[k] || {}).jawab;
@@ -2199,6 +2247,10 @@ appPengelola.mount('#app');
 
 /* alur enam langkah: stepper menempel di kiri, isi langkah di kanan */
 .akr-alur { display: grid; grid-template-columns: 262px minmax(0, 1fr); gap: 18px; align-items: start; }
+.akr-posisi { display: none; }
+@media (max-width: 900px) {
+  .akr-posisi { display: block; margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+}
 .akr-stepper {
   position: sticky; top: 16px; display: flex; flex-direction: column;
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface);
@@ -2327,7 +2379,10 @@ body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
   gap: 4px 16px; margin: 8px 0 10px;
   padding: 10px 12px; border-radius: 8px; background: var(--surface-soft);
 }
-.akr-cope-item { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; cursor: pointer; }
+/* padding menaikkan jarak antar-pusat target dari 22,6px ke atas 24px,
+   ambang SC 2.5.8 Level AA */
+.akr-cope-item { display: flex; gap: 7px; align-items: flex-start; font-size: 12px;
+  cursor: pointer; padding: 4px 0; }
 .akr-cope-item input { margin-top: 2px; flex: none; }
 .akr-cope .hint { grid-column: 1 / -1; margin: 4px 0 0; }
 
@@ -2376,7 +2431,15 @@ body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
 /* Di layar sempit stepper jadi bilah horizontal yang bisa digulir */
 @media (max-width: 900px) {
   .akr-alur { grid-template-columns: minmax(0, 1fr); }
-  .akr-stepper { flex-direction: row; overflow-x: auto; position: static; }
+  /* Enam langkah x 172px = 1032px di dalam ~362px, jadi hanya 2 langkah terlihat.
+     Bayangan tepi kanan memberi tanda masih ada lanjutannya, scroll-snap membuat
+     tiap langkah berhenti rapi, dan penanda "n dari 6" di kepala panel memberi
+     posisi absolut yang tidak bisa disimpulkan dari bilah yang terpotong. */
+  .akr-stepper { flex-direction: row; overflow-x: auto; position: static;
+    scroll-snap-type: x proximity; scroll-padding-left: 8px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+  .akr-st { scroll-snap-align: start; }
   .akr-st { flex: none; width: 172px; border-bottom: 0; border-right: 1px solid var(--line); }
   .akr-st:last-child { border-right: 0; }
 }
