@@ -89,7 +89,7 @@ var appDjpi = Vue.createApp({
     memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:'',
     // baru: state tab Review Profil Jurnal (draft cover/scope, superadmin-only)
     draftProfilJurnal:[],memuatDraftProfil:false,galatDraftProfil:'',
-    membukaAtasNama:false,
+    membukaAtasNama:false, urlAtasNama:'', popupGagal:false,
     draftProfilTerpilih:null,memprosesDraftProfil:false,catatanTolakDraftInput:''
   };},
   computed:{
@@ -370,7 +370,16 @@ var appDjpi = Vue.createApp({
         .then(function(r){
           if(!r || !r.ok){ alert((r&&r.message)||'Gagal membuka panel pengelola.'); return; }
           var url=URL_PENGELOLA+(URL_PENGELOLA.indexOf('?')===-1?'?':'&')+'t='+encodeURIComponent(r.token)+'&atasnama=1';
-          window.open(url,'_blank','noopener');
+          // Simpan URL-nya di state, JANGAN andalkan window.open saja. Kalau URL
+          // dasar bermasalah -- getUrl() Apps Script bisa menghasilkan halaman
+          // "tidak dapat membuka file" -- popup gagal tanpa pesan dan pengguna
+          // tidak punya cara melihat apa yang salah. Dengan tautan yang tampil,
+          // kegagalan jadi terlihat dan URL-nya bisa diperiksa atau disalin.
+          s.urlAtasNama=url;
+          s.popupGagal=false;
+          var w=null;
+          try{ w=window.open(url,'_blank','noopener'); }catch(e){ w=null; }
+          if(!w) s.popupGagal=true;
         })
         .catch(function(err){ alert('Gagal membuka panel pengelola: '+((err&&err.message)||err)); })
         .finally(function(){ s.membukaAtasNama=false; });
@@ -482,7 +491,8 @@ var appDjpi = Vue.createApp({
     persen:function(a,b){return b?Math.round((Number(a)||0)/b*100):0;},rupiah:rupiah,
     gantiHalaman:function(d){this.halaman=Math.min(this.totalHalaman,Math.max(1,this.halaman+d));},
     bukaJurnal:function(j){this.jurnalTerpilih=j;this.modeSunting=false;this.panelApc=false;this.pesanModal='';this.galatField={};},
-    tutupModal:function(){this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
+    tutupModal:function(){
+      this.urlAtasNama=''; this.popupGagal=false;this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
     // baru: tutup modal yang sedang terbuka saat tombol Esc ditekan (jadwal terbit > detail jurnal > detail DOI)
     tutupModalEsc:function(e){
       if(e.key!=='Escape')return;

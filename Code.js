@@ -159,6 +159,75 @@ var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
    1. ROUTING
    ========================================================================== */
 
+/**
+ * URL dasar web app.
+ *
+ * ScriptApp.getService().getUrl() TIDAK BISA DIPERCAYA. Ia mengembalikan URL
+ * yang saat dibuka menghasilkan "Maaf, saat ini tidak dapat membuka file"
+ * ("Sorry, unable to open the file at this time"). Ini bug Google yang sudah
+ * dilaporkan berkali-kali dan tidak diperbaiki:
+ *   https://issuetracker.google.com/issues/235862472
+ *   https://issuetracker.google.com/issues/170799249
+ * Perilakunya juga pernah berubah diam-diam antara /exec dan /dev lintas versi
+ * runtime, jadi tidak ada satu bentuk pun yang bisa diandalkan.
+ *
+ * Solusinya: simpan URL /exec yang sebenarnya sekali lewat setUrlWebApp_(),
+ * dan pakai getUrl() hanya sebagai cadangan supaya aplikasi tetap jalan sebelum
+ * disetel.
+ */
+function urlWebApp_() {
+  try {
+    var tersimpan = PropertiesService.getScriptProperties().getProperty('URL_WEBAPP');
+    if (tersimpan) return String(tersimpan).trim();
+  } catch (err) { /* properti tidak terbaca, jatuh ke cadangan */ }
+  try { return ScriptApp.getService().getUrl() || ''; } catch (err) { return ''; }
+}
+
+/**
+ * Setel URL web app sekali dari editor Apps Script.
+ *
+ * Cara memakai:
+ *   1. Deploy > Kelola deployment, salin URL yang berakhiran /exec
+ *   2. Tempel ke dalam tanda kutip di bawah, jalankan fungsi ini sekali
+ *   3. Kembalikan tanda kutipnya jadi kosong supaya tidak ikut ter-commit
+ *
+ * Jalankan cekUrlWebApp_() untuk melihat nilai yang sedang dipakai.
+ */
+function setUrlWebApp_() {
+  var url = '';   // <-- tempel URL /exec di sini
+
+  url = String(url).trim();
+  if (!url) return 'Isi dulu variabel url di dalam fungsi ini dengan URL /exec.';
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+    return 'URL harus berupa https://script.google.com/.../exec tanpa parameter.';
+  }
+  PropertiesService.getScriptProperties().setProperty('URL_WEBAPP', url);
+  catatAktivitas_('SISTEM', '-', 'SETEL_URL_WEBAPP', url);
+  return 'Tersimpan: ' + url;
+}
+
+/** Menampilkan URL yang sedang dipakai dan dari mana asalnya. */
+function cekUrlWebApp_() {
+  var tersimpan = '';
+  try { tersimpan = PropertiesService.getScriptProperties().getProperty('URL_WEBAPP') || ''; } catch (e) {}
+  var bawaan = '';
+  try { bawaan = ScriptApp.getService().getUrl() || ''; } catch (e) {}
+  var pesan = [
+    'URL tersimpan (dipakai)   : ' + (tersimpan || '(belum disetel)'),
+    'getUrl() bawaan (cadangan): ' + (bawaan || '(kosong)'),
+    'Yang sedang dipakai       : ' + urlWebApp_()
+  ];
+  if (!tersimpan) {
+    pesan.push('');
+    pesan.push('BELUM DISETEL. Selama ini aplikasi bergantung pada getUrl(), yang');
+    pesan.push('bisa menghasilkan halaman "tidak dapat membuka file". Jalankan');
+    pesan.push('setUrlWebApp_() setelah menempelkan URL /exec di dalamnya.');
+  }
+  var ringkas = pesan.join(String.fromCharCode(10));
+  console.log(ringkas);
+  return ringkas;
+}
+
 function doGet(e) {
   // Direktori publik dipindahkan ke Litabmas, sehingga halaman Landing dihapus.
   // Bawaan rute kini halaman Masuk, yang cuma menawarkan dua pilihan peran.
@@ -180,8 +249,7 @@ function doGet(e) {
   // sehingga href relatif seperti "?page=dashboard" akan mengarah ke origin
   // sandbox dan menghasilkan halaman kosong. Seluruh tautan antar-halaman wajib
   // memakai URL absolut web app.
-  var urlDasar = '';
-  try { urlDasar = ScriptApp.getService().getUrl() || ''; } catch (err) { urlDasar = ''; }
+  var urlDasar = urlWebApp_();
   t.urlMasuk = urlDasar ? (urlDasar + '?page=masuk') : '?page=masuk';
   t.urlDashboard = urlDasar ? (urlDasar + '?page=dashboard') : '?page=dashboard';
   t.urlPengelola = urlDasar ? (urlDasar + '?page=pengelola') : '?page=pengelola';

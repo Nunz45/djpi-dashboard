@@ -1693,11 +1693,19 @@
           <button type="button" class="btn" @click="tutupModal">Tutup</button>
           <!-- Superadmin saja. Dibuka di tab baru supaya tab Dashboard beserta
                token adminnya yang hanya ada di memori tetap hidup. -->
-          <button v-if="profile && profile.isSuperadmin" type="button" class="btn"
+          <button v-if="profile && profile.isSuperadmin && !urlAtasNama" type="button" class="btn"
             :disabled="membukaAtasNama" @click="bukaAtasNamaPengelola">
             <span v-if="membukaAtasNama" class="spinner spinner-gelap" aria-hidden="true"></span>
             {{ membukaAtasNama ? 'Membuka…' : 'Bertindak atas nama pengelola' }}
           </button>
+          <!-- Tautan sungguhan, bukan hanya window.open. Klik langsung pengguna
+               pada elemen <a> adalah jalur paling permisif dari dalam iframe
+               sandbox, dan kalau URL dasarnya bermasalah pengguna bisa melihat
+               serta menyalinnya, bukan menghadapi popup yang gagal diam-diam. -->
+          <a v-if="urlAtasNama" class="btn btn-primer" :href="urlAtasNama"
+            target="_blank" rel="noopener">
+            {{ popupGagal ? 'Klik untuk membuka panel pengelola' : 'Buka lagi di tab baru' }}
+          </a>
           <button type="button" class="btn btn-emas" @click="bukaFormApc">Catat APC</button>
           <button type="button" class="btn btn-primer" @click="mulaiSunting">Sunting data</button>
         </template>
