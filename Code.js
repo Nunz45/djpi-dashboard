@@ -6711,3 +6711,105 @@ function cekPraAsesmen() {
     Object.keys(tidakCocok).length + ' nama jurnal tidak cocok');
   return ringkas;
 }
+
+/* ==========================================================================
+   30. ANGKA UNTUK VIDEO EXPLAINER
+   Dijalankan sekali dari editor Apps Script; hasilnya disalin ke rundown.
+   Empat aturan kejujuran dipasang di sini, bukan diserahkan ke penyusun naskah:
+     1. DOAJ dihitung dari doajStatus (sheet Verifikasi_DOAJ), BUKAN dari ada
+        tidaknya tautan di direktori. Tautan hanya membuktikan seseorang
+        menempelkan URL.
+     2. Penyebut = jurnal yang dikelola. Kluster BELUM DIKELOLA dilaporkan
+        terpisah supaya tidak menggelembungkan angka kegagalan.
+     3. timeliness tidak diikutkan sama sekali; kategorinya memuat "Punya
+        Hutang Terbitan", itu catatan kepatuhan internal.
+     4. Tidak ada nama jurnal yang masa SK-nya hampir habis. statusMasaBerlaku_
+        hanya membandingkan TAHUN, terlalu kasar untuk klaim per jurnal.
+   ========================================================================== */
+
+function angkaExplainer() {
+  var semua = bacaDataJurnal_();
+  var dikelola = semua.filter(function (j) { return j.kluster !== KLUSTER_KOSONG; });
+  var takDikelola = semua.length - dikelola.length;
+
+  var L = [];
+  function baris(k, v) { L.push('  ' + k + ': ' + v); }
+
+  L.push('== PENYEBUT ==');
+  baris('Total baris direktori', semua.length);
+  baris('Dikelola (penyebut dipakai)', dikelola.length);
+  baris('BELUM DIKELOLA (dilaporkan terpisah)', takDikelola);
+
+  L.push('== AKREDITASI ==');
+  var akr = 0, sinta = {};
+  for (var i = 1; i <= 6; i++) sinta[i] = 0;
+  dikelola.forEach(function (j) {
+    if (j.terakreditasi) { akr++; if (sinta[j.peringkatSinta] !== undefined) sinta[j.peringkatSinta]++; }
+  });
+  baris('Terakreditasi', akr + ' dari ' + dikelola.length);
+  for (var s = 1; s <= 6; s++) baris('SINTA ' + s, sinta[s]);
+
+  L.push('== INDEKSASI (masing-masing berdiri sendiri, bukan corong) ==');
+  var doajYa = 0, doajTidak = 0, doajBelumCek = 0, bedaDoaj = 0;
+  dikelola.forEach(function (j) {
+    if (j.doajStatus === 'TERINDEKS') doajYa++;
+    else if (j.doajStatus === 'TIDAK DITEMUKAN') doajTidak++;
+    else doajBelumCek++;
+    // Selisih antara klaim direktori dan hasil verifikasi. Kalau angkanya besar,
+    // sebutkan DOAJ apa adanya di video atau jangan sebut sama sekali.
+    if (j.terindeksDoaj && j.doajStatus === 'TIDAK DITEMUKAN') bedaDoaj++;
+    if (!j.terindeksDoaj && j.doajStatus === 'TERINDEKS') bedaDoaj++;
+  });
+  baris('DOAJ terverifikasi TERINDEKS', doajYa);
+  baris('DOAJ TIDAK DITEMUKAN', doajTidak);
+  baris('DOAJ belum pernah dicek / gagal', doajBelumCek);
+  baris('SELISIH tautan direktori vs verifikasi', bedaDoaj + '  <-- kalau besar, jangan pakai angka DOAJ');
+
+  var garuda = 0, kuartilAda = 0, sebutScopus = 0, sebutQ = 0;
+  dikelola.forEach(function (j) {
+    if (j.terindeksGaruda) garuda++;
+    if (j.bereputasi) kuartilAda++;
+    var k = norm_(j.kuartil);
+    if (/\bQ\s*[1-4]\b/.test(k)) sebutQ++;
+    else if (/SCOPUS/.test(k)) sebutScopus++;
+  });
+  baris('Garuda (tautan tercatat)', garuda);
+  baris('Kolom kuartil terisi Q1-Q4', sebutQ);
+  baris('Kolom kuartil hanya menyebut SCOPUS tanpa Q', sebutScopus + '  <-- periksa manual, bisa "discontinued"/"target"');
+
+  L.push('== KLUSTER ==');
+  rekapKluster_(dikelola).forEach(function (c) {
+    baris(c.nama, c.total + ' jurnal, ' + c.terakreditasi + ' terakreditasi');
+  });
+
+  L.push('== BIAYA TERBIT (APC) ==');
+  // apc adalah teks bebas (apcValid_ hanya menuntut panjang >= 3), jadi yang
+  // dilaporkan di sini adalah keterisian, bukan klasifikasi gratis/berbayar.
+  var apcIsi = 0, apcKosong = 0, contoh = [];
+  dikelola.forEach(function (j) {
+    if (apcValid_(j.apc)) { apcIsi++; if (contoh.length < 12) contoh.push(str_(j.apc)); }
+    else apcKosong++;
+  });
+  baris('Kolom APC terisi', apcIsi);
+  baris('Kolom APC kosong', apcKosong);
+  L.push('  Contoh isi APC (untuk klasifikasi manual gratis/berbayar):');
+  contoh.forEach(function (c) { L.push('    - ' + c.substring(0, 70)); });
+
+  L.push('== VOLUME TERBITAN ==');
+  var perTahun = 0, adaAngka = 0;
+  dikelola.forEach(function (j) {
+    var n = angka_(j.artikelPerTahun);
+    if (n > 0) { perTahun += n; adaAngka++; }
+  });
+  baris('Jurnal dengan angka artikel/tahun', adaAngka + ' dari ' + dikelola.length);
+  baris('Perkiraan total artikel per tahun', perTahun + '  <-- hanya sah bila keterisian di atas tinggi');
+
+  L.push('== COVER (bahan visual video) ==');
+  var coverAda = 0;
+  dikelola.forEach(function (j) { if (coverDataUriValid_(j.coverUrl)) coverAda++; });
+  baris('Cover tersimpan sebagai data URI', coverAda + ' dari ' + dikelola.length);
+
+  var teks = L.join(String.fromCharCode(10));
+  console.log(teks);
+  return teks;
+}
