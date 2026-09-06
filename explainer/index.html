@@ -1,86 +1,96 @@
 <!doctype html>
 <html lang="id">
 <!-- Dibangun dengan skill Bang Motion v1.0.0 (MIT) — https://github.com/bangtutorial/bang-motion
-     Profil Jurnal UPI · katalog putih · 16:9 · 60 detik
-     Angka dari angkaExplainer() (Code.js §30), dijalankan 6 September 2026. -->
+     "Bagaimana jurnal naik peringkat" · katalog putih · 16:9 · 62 detik
+     Rubrik: Kepdirjen 374/2026 (n = Tata Kelola 46 + Mutu Artikel 54).
+     Angka portofolio dari angkaExplainer() (Code.js §30), 6 September 2026. -->
 <head>
 <meta charset="utf-8">
-<title>Profil Jurnal UPI — 173 jurnal, satu katalog</title>
+<title>Bagaimana Jurnal Naik Peringkat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;900&family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Palet dari identitas UPI, bukan dari starter (Hukum #3). */
 :root{
   --marun:#7f0000; --kertas:#FBFAF8; --tinta:#1A1614;
   --sorot:#E8B22A; --redup:#6B615C;
   --grid:rgba(127,0,0,.055);
 }
 html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
+/* perspective + preserve-3d: transisi push-through yang BENAR berkedalaman,
+   bukan zoom 2D yang menyamar jadi kedalaman. */
 #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;overflow:hidden;
-  background:var(--kertas);font-family:"Archivo",system-ui,sans-serif;color:var(--tinta)}
-#world{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+  background:var(--kertas);font-family:"Archivo",system-ui,sans-serif;color:var(--tinta);
+  perspective:1500px;perspective-origin:50% 50%}
+#world{position:absolute;inset:0;transform-origin:0 0;transform-style:preserve-3d;will-change:transform}
 #filters{position:fixed;width:0;height:0;opacity:0;pointer-events:none}
 
-/* ---- permukaan latar: menu §7d c + f, dua lapis ---- */
-.paper{position:absolute;inset:-2000px;background:var(--kertas)}
-.gridlayer{position:absolute;inset:-2000px;transform-origin:50% 50%;
+.paper{position:absolute;inset:-2400px;background:var(--kertas)}
+.gridlayer{position:absolute;inset:-2400px;transform-origin:50% 50%;
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
   background-size:120px 120px}
 .blob{position:absolute;border-radius:50%;pointer-events:none;
   background:radial-gradient(circle,rgba(127,0,0,.12),transparent 66%)}
-.grain{position:absolute;inset:-2000px;pointer-events:none;opacity:.10;mix-blend-mode:multiply;
+.grain{position:absolute;inset:-2400px;pointer-events:none;opacity:.10;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")}
 .vig{position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(80% 70% at 50% 50%,transparent 62%,rgba(26,22,20,.09) 100%)}
 
-/* ---- teks ---- */
 .t{position:absolute;opacity:0}
 .w{display:inline-block;white-space:nowrap;margin:0 .1em;opacity:0;will-change:transform,opacity}
-.line{position:absolute;font-weight:900;font-size:92px;line-height:1.02;letter-spacing:-.02em;
+.w.tbaca{margin-left:-.34em}
+.line{position:absolute;font-weight:700;font-size:92px;line-height:1.04;letter-spacing:-.02em;
   color:var(--tinta);opacity:0}
+.line.tebal{font-weight:900}
+.line.kanan{text-align:right}
+.line.tengah{text-align:center}
 .hl{position:relative;display:inline-block;padding:0 .1em}
 .hl i{position:absolute;left:0;right:0;top:.56em;bottom:.04em;background:var(--sorot);
   transform:scaleX(0);transform-origin:0 50%;z-index:-1}
-.name{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:34px;letter-spacing:.18em;
+.name{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:34px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--redup);opacity:0;white-space:nowrap}
-.hand{position:absolute;font-family:"Caveat",cursive;font-weight:700;font-size:66px;
+.hand{position:absolute;font-family:"Caveat",cursive;font-weight:700;font-size:62px;
   color:var(--marun);opacity:0;white-space:nowrap}
-.ghost{position:absolute;font-weight:900;font-size:400px;line-height:.82;letter-spacing:-.04em;
-  color:rgba(127,0,0,.07);white-space:nowrap;opacity:0}
-.angka{position:absolute;font-family:"IBM Plex Mono",monospace;font-weight:600;
-  font-variant-numeric:tabular-nums;color:var(--marun);opacity:0;white-space:nowrap}
+.ghost{position:absolute;font-weight:900;font-size:360px;line-height:.82;letter-spacing:-.04em;
+  color:rgba(127,0,0,.18);white-space:nowrap;opacity:0}
 
-/* ---- kartu jurnal: entitas visual pengganti cover ---- */
+/* kartu jurnal — tanda tangan gerak "kartu mendarat" berlaku untuk SEMUA blok */
 .kartu{position:absolute;opacity:0;background:#fff;border:1px solid rgba(26,22,20,.10);
-  border-radius:10px;box-shadow:0 18px 26px rgba(26,22,20,.10);padding:26px 28px;
+  border-radius:12px;box-shadow:0 20px 30px rgba(26,22,20,.11);padding:34px 38px;
   box-sizing:border-box;will-change:transform,filter}
-.kartu b{display:block;font-weight:900;font-size:34px;line-height:1.12;letter-spacing:-.01em}
-.kartu s{display:block;margin-top:14px;text-decoration:none;font-family:"IBM Plex Mono",monospace;
-  font-size:20px;letter-spacing:.1em;color:var(--redup)}
-.kartu em{position:absolute;left:28px;bottom:22px;font-style:normal;font-family:"IBM Plex Mono",monospace;
-  font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--marun)}
-.mini{position:absolute;opacity:0;background:#fff;border:1px solid rgba(26,22,20,.09);
-  border-radius:4px;box-shadow:0 6px 10px rgba(26,22,20,.07);will-change:transform}
-.mini.emas{background:var(--sorot);border-color:rgba(127,0,0,.18)}
+.kartu b{display:block;font-weight:900;font-size:44px;line-height:1.1;letter-spacing:-.01em}
+.kartu i{display:block;margin-top:16px;font-style:normal;font-family:"IBM Plex Mono",monospace;
+  font-size:34px;letter-spacing:.14em;text-transform:uppercase;color:var(--marun)}
 
-/* ---- batang SINTA & kolom indeks ---- */
-.batang{position:absolute;bottom:0;width:132px;background:var(--marun);border-radius:6px 6px 0 0;
-  transform-origin:50% 100%;transform:scaleY(0)}
-.batang.pucat{background:rgba(127,0,0,.28)}
-.blabel{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:26px;letter-spacing:.12em;
-  color:var(--redup);opacity:0;white-space:nowrap;text-align:center;width:132px}
-.bnilai{position:absolute;font-weight:900;font-size:44px;color:var(--tinta);opacity:0;
-  font-variant-numeric:tabular-nums;text-align:center;width:132px}
+/* dua blok rubrik */
+.blok{position:absolute;opacity:0;border-radius:12px;box-sizing:border-box;padding:30px 34px;
+  will-change:transform,filter;color:#fff;background:var(--marun)}
+.blok.mutu{background:#4a2018}
+.blok .angka{font-weight:900;font-size:132px;line-height:.92;font-variant-numeric:tabular-nums}
+.blok .nama{margin-top:8px;font-family:"IBM Plex Mono",monospace;font-size:32px;letter-spacing:.12em;
+  text-transform:uppercase;opacity:.86}
 
-.kolom{position:absolute;opacity:0;text-align:center;width:420px}
-.kolom .n{font-weight:900;font-size:176px;line-height:.9;color:var(--marun);
-  font-variant-numeric:tabular-nums}
-.kolom .l{margin-top:16px;font-family:"IBM Plex Mono",monospace;font-size:30px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--tinta)}
-.kolom .s{margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:22px;color:var(--redup)}
+/* garis ambang peringkat */
+.ambang{position:absolute;opacity:0;height:0;border-top:4px dashed rgba(127,0,0,.55)}
+.ambang-lbl{position:absolute;opacity:0;font-family:"IBM Plex Mono",monospace;font-size:34px;
+  font-weight:600;color:var(--marun);white-space:nowrap}
 
-.anno *{fill:none;stroke:var(--marun);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+/* histogram SINTA — warna mengikuti PERINGKAT, bukan jumlah */
+.batang{position:absolute;width:150px;border-radius:7px 7px 0 0;transform-origin:50% 100%;transform:scaleY(0)}
+.blabel{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:34px;letter-spacing:.1em;
+  color:var(--redup);opacity:0;white-space:nowrap;text-align:center;width:150px}
+.bnilai{position:absolute;font-weight:900;font-size:46px;color:var(--tinta);opacity:0;
+  font-variant-numeric:tabular-nums;text-align:center;width:150px}
+
+.mini{position:absolute;opacity:0;border-radius:5px;background:#fff;
+  border:1px solid rgba(127,0,0,.22);box-shadow:0 5px 9px rgba(26,22,20,.07);will-change:transform}
+.mini.lulus{background:var(--marun);border-color:var(--marun)}
+.mini.sorot{background:var(--sorot);border-color:rgba(127,0,0,.35)}
+
+/* kartu penyapu untuk transisi object-wipe */
+.sapu{position:absolute;width:820px;height:1150px;border-radius:20px;background:#fff;
+  border:1px solid rgba(26,22,20,.12);box-shadow:0 40px 80px rgba(26,22,20,.22);opacity:0;
+  will-change:transform,opacity}
 
 #dbg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:none;gap:12px;
   align-items:center;padding:10px 16px;border-radius:14px;background:rgba(14,16,22,.9);
@@ -94,59 +104,58 @@ html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
   <div id="world">
     <div class="paper"></div>
     <div class="gridlayer" id="gridlayer"></div>
-    <div class="blob" style="left:-200px;top:-100px;width:1400px;height:1400px"></div>
-    <div class="blob" style="left:6600px;top:200px;width:1600px;height:1600px"></div>
-    <div class="blob" style="left:12800px;top:-200px;width:1500px;height:1500px"></div>
+    <div class="blob" style="left:-300px;top:-200px;width:1500px;height:1500px"></div>
+    <div class="blob" style="left:6300px;top:100px;width:1700px;height:1700px"></div>
+    <div class="blob" style="left:13000px;top:-200px;width:1600px;height:1600px"></div>
 
-    <!-- ===================== ADEGAN 1 — pusat dunia 960,540 ===================== -->
-    <div class="ghost" id="ghost1" style="left:210px;top:60px">173</div>
-    <div class="kartu" id="k1" style="left:600px;top:250px;width:620px;height:390px">
-      <b>Indonesian Journal of Science and&nbsp;Technology</b>
-      <s>e-ISSN 2528-1410</s><em>Science</em>
+    <!-- ========== 1 — PERTANYAAN (0–8) · pusat 960,540 ========== -->
+    <div class="ghost" id="g1" style="left:250px;top:70px">SINTA 3</div>
+    <div class="kartu" id="k1" style="left:640px;top:250px;width:660px;height:270px">
+      <b>Sebuah jurnal UPI</b><i>Contoh · terakreditasi SINTA 3</i>
     </div>
-    <div class="kartu" id="k2" style="left:120px;top:430px;width:470px;height:320px">
-      <b>Indonesian Journal of Applied Linguistics</b>
-      <s>e-ISSN 2502-6747</s><em>Language</em>
+    <div class="line t tebal" id="line1" style="left:150px;top:700px;width:1640px;font-size:104px">Kenapa berhenti di <span class="hl"><i></i>SINTA 3</span>?</div>
+    <div class="name" id="nm1" style="left:154px;top:900px">Kepdirjen 374/2026</div>
+
+    <!-- ========== 2 — RUBRIK (8–20) · pusat 3560,540 ========== -->
+    <div class="blok" id="bA" style="left:2790px;top:210px;width:620px;height:250px">
+      <div class="angka">46</div><div class="nama">Tata Kelola</div>
     </div>
-    <div class="kartu" id="k3" style="left:1250px;top:180px;width:500px;height:340px">
-      <b>Curricula: Journal of Curriculum Development</b>
-      <s>e-ISSN 2830-7917</s><em>Education</em>
+    <div class="blok mutu" id="bB" style="left:3480px;top:210px;width:700px;height:250px">
+      <div class="angka">54</div><div class="nama">Mutu Artikel</div>
     </div>
-    <div class="line t" id="line1" style="left:150px;top:830px;width:1650px">UPI mengelola <span class="hl"><i></i>173 jurnal</span> ilmiah.</div>
-    <div class="name" id="nm1" style="left:154px;top:990px">Direktori DJPI · September 2026</div>
+    <div class="hand" id="hd2" style="left:3560px;top:520px">jumlahnya 100</div>
+    <div class="line t kanan" id="line2" style="left:2760px;top:690px;width:1660px;font-size:78px">Nilai akreditasi dijumlah dari <span class="hl"><i></i>dua bagian</span>.</div>
+    <div class="name" id="nm2" style="left:3810px;top:880px">Bukan satu angka tunggal</div>
 
-    <!-- ===================== ADEGAN 2 — pusat dunia 3560,540 ===================== -->
-    <div id="banjir"></div>
-    <div class="angka" id="counter" style="left:2760px;top:250px;font-size:280px">0</div>
-    <div class="line t" id="line2" style="left:2760px;top:640px;width:1700px">Setiap tahun terbit sekitar <span class="hl"><i></i>2.700 artikel</span>.</div>
-    <div class="name" id="nm2" style="left:2764px;top:900px">Dari 140 jurnal yang melaporkan</div>
+    <!-- ========== 3 — AMBANG & ARITMATIKA (20–32) · pusat 6160,540 ========== -->
+    <div id="tangga" style="position:absolute;left:5320px;top:120px;width:1700px;height:560px"></div>
+    <div class="hand" id="hd3" style="left:5360px;top:700px;font-size:56px">Tata Kelola 36 → butuh 44 dari 54</div>
+    <div class="line t tebal" id="line3" style="left:5300px;top:800px;width:1720px;font-size:94px">Tiap peringkat punya <span class="hl"><i></i>ambangnya</span>.</div>
 
-    <!-- ===================== ADEGAN 3 — pusat dunia 6160,540 ===================== -->
-    <div id="sinta" style="position:absolute;left:5460px;top:180px;width:1400px;height:560px"></div>
-    <div class="line t" id="line3" style="left:5360px;top:790px;width:1740px"><span class="hl"><i></i>110 jurnal</span> terakreditasi nasional.</div>
-    <div class="name" id="nm3" style="left:5364px;top:930px">Peringkat SINTA 1 sampai 6</div>
-    <div class="hand" id="hd3" style="left:6560px;top:120px">36 di SINTA 4</div>
-    <svg class="anno" id="anno3" style="position:absolute;left:6300px;top:160px;width:520px;height:560px;overflow:visible" viewBox="0 0 520 560">
-      <path id="tarik3" d="M40 60 C180 40 300 120 330 300"/>
-    </svg>
+    <!-- ========== 4 — KONSEKUENSI (32–44) · pusat 8760,540 ========== -->
+    <div id="lapangan"></div>
+    <div id="histo" style="position:absolute;left:8020px;top:150px;width:1500px;height:520px"></div>
+    <div class="line t" id="line4" style="left:7900px;top:800px;width:1740px;font-size:80px"><span class="hl"><i></i>110 dari 173</span> sudah melewati garis.</div>
+    <div class="name" id="nm4" style="left:7904px;top:950px">63 jurnal belum</div>
 
-    <!-- ===================== ADEGAN 4 — pusat dunia 8760,540 ===================== -->
-    <div class="kolom" id="kol1" style="left:7860px;top:230px"><div class="n">25</div><div class="l">DOAJ</div><div class="s">terverifikasi</div></div>
-    <div class="kolom" id="kol2" style="left:8340px;top:230px"><div class="n">137</div><div class="l">Garuda</div><div class="s">terdaftar</div></div>
-    <div class="kolom" id="kol3" style="left:8820px;top:230px"><div class="n">3</div><div class="l">Kuartil</div><div class="s">Q1–Q4</div></div>
-    <div class="line t" id="line4" style="left:7860px;top:700px;width:1800px">Tiga jalur indeksasi, <span class="hl"><i></i>berdiri sendiri</span>.</div>
-    <div class="name" id="nm4" style="left:7864px;top:900px">Bukan tahapan berurutan</div>
+    <!-- ========== 5 — BAGIAN TERBERAT (44–54) · pusat 11360,540 ========== -->
+    <div class="blok mutu" id="bC" style="left:10760px;top:220px;width:1200px;height:280px">
+      <div class="angka">54</div><div class="nama">Mutu Artikel · dinilai dari isi artikel</div>
+    </div>
+    <div class="hand" id="hd5" style="left:10770px;top:560px;font-size:56px">lebih dari separuh nilai</div>
+    <div class="line t tengah" id="line5" style="left:10460px;top:700px;width:1800px;font-size:104px">Bagian terberat dibaca, <span class="hl"><i></i>bukan diklaim</span>.</div>
+    <div class="name" id="nm5" style="left:10464px;top:900px">Asesor membaca sampel artikel terbit</div>
 
-    <!-- ===================== ADEGAN 5 — pusat dunia 11360,540 ===================== -->
-    <div id="kampus"></div>
-    <div class="line t" id="line5" style="left:10460px;top:830px;width:1800px">Pusat dan <span class="hl"><i></i>lima kampus daerah</span>.</div>
-    <div class="name" id="nm5" style="left:10464px;top:965px">173 jurnal, satu direktori</div>
-
-    <!-- ===================== ADEGAN 6 — pusat dunia 13960,540 ===================== -->
+    <!-- ========== 6 — PERAN & AJAKAN (54–62) · pusat 13960,540 ========== -->
     <div id="akhir"></div>
-    <div class="line t" id="line6" style="left:13060px;top:700px;width:1800px">Katalognya <span class="hl"><i></i>terbuka</span> untuk siapa pun.</div>
-    <div class="name" id="nm6" style="left:13064px;top:850px">ejournal.upi.edu</div>
-    <div class="hand" id="hd6" style="left:13064px;top:905px">Divisi Jurnal &amp; Publikasi Ilmiah UPI</div>
+    <div class="kartu" id="k6" style="left:13640px;top:250px;width:660px;height:270px">
+      <b>Sebuah jurnal UPI</b><i>Contoh · menuju SINTA 2</i>
+    </div>
+    <div class="line t tebal" id="line6" style="left:13060px;top:700px;width:1700px;font-size:88px">DJPI mendampingi <span class="hl"><i></i>63 jurnal</span> berikutnya.</div>
+    <div class="name" id="nm6" style="left:13064px;top:880px">Cek posisi jurnal Anda · ejournal.upi.edu</div>
+
+    <div class="sapu" id="sapu1"></div>
+    <div class="sapu" id="sapu2"></div>
   </div>
   <div class="grain"></div>
   <div class="vig"></div>
@@ -157,66 +166,59 @@ html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const W=1920,H=1080,DUR=60;
+const W=1920,H=1080,DUR=62;
 function fit(){const s=Math.min(innerWidth/W,innerHeight/H);$('#stage').style.transform=`translate(-50%,-50%) scale(${s})`;}
 addEventListener('resize',fit);fit();
-
-/* Acak deterministik: dipakai SEKALI saat menata elemen, tidak pernah di jalur render.
-   Hukum #2 — nol Math.random()/Date.now() saat menggambar frame. */
 function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);}
 
-/* ---------- adegan 2: banjir kartu mini (momen istimewa) ---------- */
-const banjir=$('#banjir'),MINI=150;
-for(let i=0;i<MINI;i++){
-  const d=document.createElement('div');d.className='mini'+(i%17===0?' emas':'');
-  const w=34+Math.round(rnd(i)*26);
-  d.style.cssText=`left:${2700+Math.round(rnd(i+90)*1720)}px;top:${140+Math.round(rnd(i+400)*800)}px;width:${w}px;height:${Math.round(w*1.35)}px`;
-  banjir.appendChild(d);
+/* ---------- adegan 3: empat ambang peringkat ---------- */
+const AMBANG=[[1,90],[2,80],[3,70],[4,60]],TSKALA=5.2; // sumbu 0-100, 1 poin = 5,2 px
+const tangga=$('#tangga');
+AMBANG.forEach((a,i)=>{
+  const y=560-a[1]*TSKALA;
+  tangga.insertAdjacentHTML('beforeend',
+    `<div class="ambang" id="am${i}" style="left:0;top:${y}px;width:1180px"></div>`+
+    `<div class="ambang-lbl" id="al${i}" style="left:1210px;top:${y-24}px">Peringkat ${a[0]} · ${a[1]}</div>`);
+});
+// batang contoh: Tata Kelola 36 terisi, sisanya ruang Mutu Artikel
+tangga.insertAdjacentHTML('beforeend',
+  `<div class="mini lulus" id="isi36" style="left:420px;top:${560-36*TSKALA}px;width:230px;height:${36*TSKALA}px;border-radius:8px 8px 0 0"></div>`+
+  `<div class="mini sorot" id="isi44" style="left:420px;top:${560-80*TSKALA}px;width:230px;height:${44*TSKALA}px;border-radius:8px 8px 0 0"></div>`);
+
+/* ---------- adegan 4: 173 sel + histogram SINTA berwarna menurut PERINGKAT ---------- */
+const lap=$('#lapangan');
+for(let i=0;i<173;i++){
+  const d=document.createElement('div');
+  // 110 pertama = sudah melewati garis. Warna membawa arti, bukan hiasan.
+  d.className='mini'+(i<110?' lulus':'');
+  d.style.cssText=`left:${8080+(i%20)*68}px;top:${170+Math.floor(i/20)*54}px;width:52px;height:38px`;
+  lap.appendChild(d);
 }
-const minis=$$('.mini',banjir);
+const lapm=$$('.mini',lap);
 
-/* ---------- adegan 3: enam batang SINTA ---------- */
-const SINTA=[['1',3],['2',11],['3',34],['4',36],['5',24],['6',2]],SMAX=36,SH=420,ZONA=120;
-const sinta=$('#sinta');
+const SINTA=[['1',3],['2',11],['3',34],['4',36],['5',24],['6',2]],SMAX=36,BH=380;
+const histo=$('#histo'),ZONA=110;
 SINTA.forEach((s,i)=>{
-  const x=i*220+40,h=Math.max(26,Math.round(s[1]/SMAX*SH));
-  // Batang berdiri di atas zona label, bukan di dasar wadah — kalau tidak,
-  // label SINTA tercetak DI ATAS batangnya sendiri.
-  sinta.insertAdjacentHTML('beforeend',
-    `<div class="batang${s[1]<12?' pucat':''}" id="bar${i}" style="left:${x}px;bottom:${ZONA}px;height:${h}px"></div>`+
-    `<div class="bnilai" id="bv${i}" style="left:${x}px;bottom:${ZONA+h+16}px">${s[1]}</div>`+
-    `<div class="blabel" id="bl${i}" style="left:${x}px;bottom:${ZONA-70}px">SINTA ${s[0]}</div>`);
+  const x=i*240+40,h=Math.max(30,Math.round(s[1]/SMAX*BH));
+  // gelap = peringkat tinggi. Versi lama memucatkan SINTA 1 dan 2 karena
+  // jumlahnya kecil, sehingga justru meredupkan hasil terbaik.
+  const op=(1-i*0.14).toFixed(2);
+  histo.insertAdjacentHTML('beforeend',
+    `<div class="batang" id="hb${i}" style="left:${x}px;bottom:${ZONA}px;height:${h}px;background:rgba(127,0,0,${op})"></div>`+
+    `<div class="bnilai" id="hv${i}" style="left:${x}px;bottom:${ZONA+h+14}px">${s[1]}</div>`+
+    `<div class="blabel" id="hl${i}" style="left:${x}px;bottom:${ZONA-56}px">SINTA ${s[0]}</div>`);
 });
-sinta.style.height=(SH+ZONA)+'px';
+histo.style.height=(BH+ZONA)+'px';
 
-/* ---------- adegan 5: enam rumpun kartu = pusat + lima kampus daerah ---------- */
-// Sebaran acak terbaca sebagai bug, bukan geografi. Rumpun ditata sebagai
-// blok: pusat satu kotak besar di kiri, lima kampus daerah sebagai baris.
-const kampus=$('#kampus');
-// [nama, jumlah, x, y, kolom]
-const KAMPUS=[['Kampus Pusat',44,10520,250,8],['Cibiru',9,11560,180,9],['Sumedang',7,11560,320,9],
-              ['Tasikmalaya',6,11560,460,9],['Serang',6,11560,600,9],['Purwakarta',6,11560,740,9]];
-KAMPUS.forEach((k,gi)=>{
-  const [nama,n,x,y,kol]=k, sel=52;
-  for(let i=0;i<n;i++){
-    const d=document.createElement('div');d.className='mini';
-    d.style.cssText=`left:${x+(i%kol)*sel}px;top:${y+Math.floor(i/kol)*sel}px;width:38px;height:46px`;
-    d.dataset.g=gi;kampus.appendChild(d);
-  }
-  const lx = gi===0 ? x : x-360;
-  kampus.insertAdjacentHTML('beforeend',
-    `<div class="hand" id="kl${gi}" style="left:${lx}px;top:${gi===0?y-66:y-6}px;font-size:${gi===0?52:40}px">${nama}</div>`);
-});
-const kmini=$$('.mini',kampus);
-
-/* ---------- adegan 6: kisi penuh ---------- */
+/* ---------- adegan 6: 63 sel tersisa, disorot ---------- */
 const akhir=$('#akhir');
 for(let i=0;i<173;i++){
-  const d=document.createElement('div');d.className='mini'+(i%16===0?' emas':'');
-  d.style.cssText=`left:${13210+(i%20)*76}px;top:${110+Math.floor(i/20)*58}px;width:58px;height:42px`;
+  const d=document.createElement('div');
+  d.className='mini'+(i<110?' lulus':' sorot');
+  d.style.cssText=`left:${13280+(i%20)*66}px;top:${170+Math.floor(i/20)*52}px;width:50px;height:36px`;
   akhir.appendChild(d);
 }
-const amini=$$('.mini',akhir);
+const akm=$$('.mini',akhir);
 
 /* ---------- motion blur berarah ---------- */
 const defs=$('#filters defs');let fc=0;
@@ -227,134 +229,160 @@ function blurTween(tl,targets,at,from,to,dur,{ease='power3.out',ax=1,ay=.08}={})
   tl.to(o,{v:to,duration:dur,ease,onUpdate(){b.node.setAttribute('stdDeviation',`${(o.v*ax).toFixed(2)} ${(o.v*ay).toFixed(2)}`);}},at);tl.set(targets,{filter:'none'},at+dur);}
 const VERT={ax:.1,ay:1},HORZ={ax:1,ay:.1};
 
-/* ---------- pecah kalimat per kata ---------- */
+/* ---------- kalimat per kata; tanda baca menempel ---------- */
 $$('.line').forEach(el=>{const out=[];el.childNodes.forEach(n=>{if(n.nodeType===3){n.textContent.split(/\s+/).filter(Boolean).forEach(w=>{const s=document.createElement('span');s.className='w';s.textContent=w;out.push(s);});}
   else{const s=document.createElement('span');s.className='w';s.appendChild(n.cloneNode(true));out.push(s);}});el.textContent='';
-  // Tanda baca yang jatuh setelah span sorotan menjadi kata sendiri, dan
-  // margin .1em membuatnya tampak seperti salah ketik. Margin itu ditarik balik.
-  out.forEach(sp=>{if(/^[.,;:!?]+$/.test(sp.textContent.trim()))sp.style.marginLeft='-.09em';});
+  out.forEach(sp=>{if(/^[.,;:!?]+$/.test(sp.textContent.trim()))sp.classList.add('tbaca');});
   out.forEach(s=>el.appendChild(s));});
 
 const tl=gsap.timeline({paused:true});const rig=$('#world');
 const words=el=>$$('.w',el);
-const say=(sel,at,{dur=.55,st=.07}={})=>{const el=$(sel),ws=words(el);tl.set(el,{opacity:1},at);
-  tl.fromTo(ws,{opacity:0,scale:.7,rotate:-3},{opacity:1,scale:1,rotate:0,duration:dur,ease:'back.out(1.6)',stagger:st,immediateRender:false},at);
-  blurTween(tl,el,at,22,0,dur+st*ws.length,VERT);
+/* Tiga cara masuk berbeda supaya dua adegan berturut-turut tidak pernah sama. */
+const MASUK={
+  pop:{from:{opacity:0,scale:.7,rotate:-3},to:{opacity:1,scale:1,rotate:0,ease:'back.out(1.6)'},blur:VERT},
+  naik:{from:{opacity:0,yPercent:70,scaleY:1.3},to:{opacity:1,yPercent:0,scaleY:1,ease:'power4.out'},blur:VERT},
+  kiri:{from:{opacity:0,xPercent:-60,skewX:8},to:{opacity:1,xPercent:0,skewX:0,ease:'power4.out'},blur:HORZ}
+};
+const say=(sel,at,mode='pop',{dur=.55,st=.07}={})=>{const el=$(sel),ws=words(el),m=MASUK[mode];
+  tl.set(el,{opacity:1},at);
+  tl.fromTo(ws,m.from,{...m.to,duration:dur,stagger:st,immediateRender:false},at);
+  blurTween(tl,el,at,22,0,dur+st*ws.length,m.blur);
   $$('.hl i',el).forEach((h,i)=>tl.fromTo(h,{scaleX:0},{scaleX:1,duration:.42,ease:'power3.out',immediateRender:false},at+st*ws.length+.2+i*.2));};
 const unsay=(sel,at,{dur=.3}={})=>{const el=$(sel),ws=words(el);tl.to(ws,{opacity:0,yPercent:-50,duration:dur,ease:'power2.in',stagger:.02},at);
   blurTween(tl,el,at,0,30,dur+.1,{ease:'power2.in',...VERT});tl.set(el,{opacity:0},at+dur+.15);};
 
-/* TANDA TANGAN GERAK — "kartu mendarat": masuk miring, mendarat, lalu lurus. */
-const mendarat=(sel,at,{from={x:0,y:520,rotate:9,scale:.92},dur=.95,float=true}={})=>{const el=$(sel);
-  tl.fromTo(el,{opacity:0,...from},{opacity:1,x:0,y:0,rotate:from.rotate*.28,scale:1,duration:dur,ease:'power4.out',immediateRender:false},at);
-  tl.to(el,{rotate:0,duration:.42,ease:'power2.out'},at+dur-.06);
-  blurTween(tl,el,at,32,0,dur*.7,Math.abs(from.x||0)>Math.abs(from.y||0)?HORZ:VERT);
-  if(float)tl.to(el,{y:-22,rotate:1.2,duration:1.6+((at*7)%1)*.3,ease:'sine.inOut',yoyo:true,repeat:-1},at+dur+.4);};
-const pergi=(sel,at,{dur=.4}={})=>{tl.to($(sel),{opacity:0,y:-620,rotate:-7,scale:1.08,duration:dur,ease:'power2.in'},at);};
-const draw=(sel,at,dur=.7)=>{const p=$(sel);tl.set(p,{opacity:0},0);tl.set(p,{opacity:1},at);const o={v:0};
-  tl.to(o,{v:1,duration:dur,ease:'power2.inOut',onUpdate(){p.style.clipPath=`inset(-300px ${(1-o.v)*100}% -300px -300px)`;}},at);};
-const label=(sel,at)=>tl.fromTo($(sel),{opacity:0,y:14},{opacity:1,y:0,duration:.4,ease:'power3.out',immediateRender:false},at);
+/* TANDA TANGAN GERAK — dipakai di SEMUA adegan, bukan hanya pembuka. */
+const mendarat=(sel,at,{from={x:0,y:480,rotate:8,scale:.93},dur=.9,float=true}={})=>{const el=$(sel);
+  tl.fromTo(el,{opacity:0,...from},{opacity:1,x:0,y:0,rotate:from.rotate*.3,scale:1,duration:dur,ease:'power4.out',immediateRender:false},at);
+  tl.to(el,{rotate:0,duration:.4,ease:'power2.out'},at+dur-.06);
+  blurTween(tl,el,at,30,0,dur*.7,Math.abs(from.x||0)>Math.abs(from.y||0)?HORZ:VERT);
+  if(float)tl.to(el,{y:-24,rotate:1.3,duration:1.5+((at*7)%1)*.4,ease:'sine.inOut',yoyo:true,repeat:-1},at+dur+.35);};
+const pergi=(sel,at,{dur=.4,y=-560}={})=>tl.to($(sel),{opacity:0,y,rotate:-6,scale:1.06,duration:dur,ease:'power2.in'},at);
+const label=(sel,at)=>tl.fromTo($(sel),{opacity:0,y:16},{opacity:1,y:0,duration:.4,ease:'power3.out',immediateRender:false},at);
 const unlabel=(sel,at)=>tl.to($(sel),{opacity:0,duration:.25},at);
 
-/* ---------- kamera ---------- */
-const C={x:960,y:540,z:1};
-function applyCam(){rig.style.transform=`translate(${960-C.x*C.z}px,${540-C.y*C.z}px) scale(${C.z})`;}
-const look=(at,x,y,z,dur=1.6,ease='sine.inOut')=>tl.to(C,{x,y,z,duration:dur,ease,onUpdate:applyCam},at);
-const home=(at,x=960,y=540,dur=1.2)=>look(at,x,y,1,dur,'power2.inOut');
-const into=(cutAt,x,y,z)=>tl.to(C,{x,y,z,duration:.9,ease:'power2.in',onUpdate:applyCam},cutAt-.9);
-const settle=(cutAt,x,y,z)=>tl.to(C,{x,y,z:z*.94,duration:1.1,ease:'power3.out',onUpdate:applyCam},cutAt);
-const breath=(a,b,z)=>tl.to(C,{z,duration:b-a,ease:'sine.inOut',onUpdate:applyCam},a);
+/* ---------- kamera: translate + translateZ + rotateY + scale ---------- */
+const C={x:960,y:520,z:1,d:0,ry:0};
+function applyCam(){rig.style.transform=
+  `translate(${960-C.x*C.z}px,${540-C.y*C.z}px) translateZ(${C.d}px) rotateY(${C.ry}deg) scale(${C.z})`;}
+// Dipasang ke ticker, bukan ke onUpdate tiap tween. Versi lama hanya menulis
+// transform saat sebuah tween kamera berjalan, sehingga frame pertama dan
+// jalur ?clean=1 (yang dipakai export) memakai framing bawaan, bukan framing awal.
+gsap.ticker.add(applyCam);
+const look=(at,x,y,z,dur=1.5,ease='sine.inOut')=>tl.to(C,{x,y,z,duration:dur,ease},at);
+const home=(at,x,y,dur=1.1)=>tl.to(C,{x,y,z:1,d:0,ry:0,duration:dur,ease:'power2.inOut'},at);
+const breath=(a,b,z)=>tl.to(C,{z,duration:b-a,ease:'sine.inOut'},a);
+/* Transisi A — push-through BERKEDALAMAN (translateZ, bukan skala) */
+const tembus=(cut,x,y)=>{tl.to(C,{d:640,duration:.85,ease:'power2.in'},cut-.85);
+  tl.set(C,{x,y,d:-520},cut);tl.to(C,{d:0,duration:1.0,ease:'power3.out'},cut);};
+/* Transisi B — object wipe: kartu besar menyapu melewati lensa */
+const sapu=(sel,cut,x,y,{dari=-1300,ke=2400}={})=>{const el=$(sel);
+  tl.set(el,{opacity:1},cut-.5);
+  tl.fromTo(el,{x:dari,y:-40,rotate:-9},{x:ke,y:40,rotate:9,duration:1.0,ease:'power2.inOut',immediateRender:false},cut-.5);
+  blurTween(tl,el,cut-.5,0,26,1.0,HORZ);
+  tl.set(el,{opacity:0},cut+.5);
+  tl.set(C,{x,y},cut);};
+/* Transisi C — whip ke sudut lain (rotateY) */
+const whip=(cut,x,y)=>{tl.to(C,{ry:-16,duration:.45,ease:'power2.in'},cut-.45);
+  tl.set(C,{x,y,ry:16},cut);tl.to(C,{ry:0,duration:.7,ease:'power3.out'},cut);};
 
-/* GERAK LATAR — menu §7c #8: kisi bernapas. Terpisah dari tanda tangan gerak. */
+/* gerak latar §7c #8 — kisi bernapas */
 tl.fromTo('#gridlayer',{scale:1},{scale:1.04,duration:8,ease:'sine.inOut',yoyo:true,repeat:-1},0);
 
-/* ======================= KOREOGRAFI 60 DETIK ======================= */
+/* ============================ 62 DETIK ============================
+   Tiap adegan bergantung pada adegan sebelumnya: pertanyaan → rubrik →
+   ambang → akibatnya pada 173 jurnal → bagian terberat → peran DJPI.
+   Urutannya tidak bisa ditukar tanpa kehilangan makna. */
 
-/* --- Adegan 1 (0–9,5): satu kartu mendarat, kamera mundur --- */
-tl.set(C,{x:960,y:470,z:1.75,onUpdate:applyCam},0);
-tl.fromTo('#ghost1',{opacity:0,y:50},{opacity:1,y:0,duration:1.3,ease:'power2.out'},.2);
-mendarat('#k1',.35);
-look(1.9,620,620,1.5,1.3);
-mendarat('#k2',2.2,{from:{x:-430,y:120,rotate:-8,scale:.92}});
-look(3.5,1420,410,1.5,1.2);
-mendarat('#k3',3.8,{from:{x:420,y:-90,rotate:7,scale:.92}});
-home(5.0);
-say('#line1',6.3);label('#nm1',7.6);
-breath(6.2,9.0,1.03);
-unsay('#line1',8.9);unlabel('#nm1',8.9);
-tl.to('#ghost1',{opacity:0,duration:.4},8.9);
+/* --- 1. PERTANYAAN (0–8) --- */
+tl.set(C,{x:970,y:390,z:2.55},0);
+tl.fromTo('#g1',{opacity:0,y:40},{opacity:1,y:0,duration:1.2,ease:'power2.out'},.15);
+mendarat('#k1',.3,{from:{x:0,y:300,rotate:6,scale:.96}});
+look(1.6,960,470,1.35,1.5);
+home(3.4,960,540);
+say('#line1',4.4,'pop');label('#nm1',5.6);
+breath(4.3,7.2,1.03);
+unsay('#line1',7.1);unlabel('#nm1',7.1);
+tl.to('#g1',{opacity:0,duration:.35},7.1);
+pergi('#k1',7.2,{y:-500});
 
-/* --- Adegan 2 (9,5–20,5): MOMEN ISTIMEWA, kartu membanjir --- */
-into(9.9,2600,540,1.55);settle(9.9,3560,540,1.5);
-minis.forEach((m,i)=>{
-  const t=10.1+rnd(i+7)*2.0;
-  tl.fromTo(m,{opacity:0,y:-560-rnd(i)*420,x:(rnd(i+3)-.5)*300,rotate:(rnd(i+5)-.5)*50,scale:.7},
-    {opacity:1,y:0,x:0,rotate:(rnd(i+9)-.5)*7,scale:1,duration:.95,ease:'power3.out',immediateRender:false},t);
+/* --- 2. RUBRIK (8–20) · transisi berkedalaman --- */
+tembus(8.2,3560,470);
+mendarat('#bA',8.6,{from:{x:-420,y:120,rotate:-7,scale:.9}});
+mendarat('#bB',9.2,{from:{x:420,y:120,rotate:7,scale:.9}});
+label('#hd2',10.4);
+home(11.0,3560,540);
+say('#line2',12.2,'naik');label('#nm2',13.6);
+breath(12.1,18.9,1.04);
+unsay('#line2',18.8);unlabel('#nm2',18.8);unlabel('#hd2',18.8);
+pergi('#bA',18.9,{y:-620});pergi('#bB',19.0,{y:-620});
+
+/* --- 3. AMBANG & ARITMATIKA (20–32) · transisi object wipe --- */
+sapu('#sapu1',20.2,6160,470);
+AMBANG.forEach((a,i)=>{
+  tl.fromTo('#am'+i,{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:.5,ease:'power3.out',
+    transformOrigin:'0 50%',immediateRender:false},20.6+i*.18);
+  label('#al'+i,20.9+i*.18);
 });
-home(12.4,3560,540,1.3);
-/* penghitung: fungsi murni dari waktu timeline, bukan jam sistem */
-const cObj={v:0};
-tl.set('#counter',{opacity:1},12.9);
-tl.to(cObj,{v:2687,duration:2.6,ease:'power2.out',
-  onUpdate(){$('#counter').textContent=Math.round(cObj.v).toLocaleString('id-ID');}},12.9);
-say('#line2',15.7);label('#nm2',17.0);
-breath(15.6,19.8,1.03);
-unsay('#line2',19.7);unlabel('#nm2',19.7);
-tl.to('#counter',{opacity:0,duration:.35},19.7);
-tl.to(minis,{opacity:0,duration:.4,stagger:{each:.002,from:'random'}},19.6);
+home(22.4,6160,540);
+// batang contoh tumbuh: 36 dulu, lalu 44 yang dibutuhkan
+tl.fromTo('#isi36',{opacity:0,scaleY:0,transformOrigin:'50% 100%'},{opacity:1,scaleY:1,duration:.7,ease:'power3.out',immediateRender:false},23.4);
+tl.fromTo('#isi44',{opacity:0,scaleY:0,transformOrigin:'50% 100%'},{opacity:1,scaleY:1,duration:.8,ease:'back.out(1.3)',immediateRender:false},24.6);
+label('#hd3',25.6);
+say('#line3',26.6,'kiri');
+breath(26.5,30.9,1.03);
+unsay('#line3',30.8);unlabel('#hd3',30.8);
+AMBANG.forEach((a,i)=>{unlabel('#al'+i,30.8);tl.to('#am'+i,{opacity:0,duration:.25},30.8);});
+tl.to(['#isi36','#isi44'],{opacity:0,duration:.3},30.9);
 
-/* --- Adegan 3 (20,5–31,5): batang SINTA --- */
-into(20.9,5200,540,1.5);settle(20.9,6160,470,1.45);
-home(22.3,6160,540,1.2);
+/* --- 4. KONSEKUENSI (32–44) · transisi whip --- */
+whip(32.2,8760,470);
+// 173 sel mendarat; 110 gelap sudah melewati garis, 63 tetap pucat
+lapm.forEach((m,i)=>{
+  tl.fromTo(m,{opacity:0,y:-70-rnd(i)*90,scale:.6},
+    {opacity:1,y:0,scale:1,duration:.5,ease:'power3.out',immediateRender:false},32.5+i*.006);
+});
+home(34.2,8760,540);
+tl.to(lapm,{opacity:0,duration:.4,stagger:{each:.002,from:'random'}},35.6);
 SINTA.forEach((s,i)=>{
-  const t=22.6+i*.16;
-  tl.to('#bar'+i,{scaleY:1,duration:.7,ease:'back.out(1.4)'},t);
-  tl.fromTo('#bv'+i,{opacity:0,y:18},{opacity:1,y:0,duration:.4,ease:'power3.out',immediateRender:false},t+.4);
-  tl.fromTo('#bl'+i,{opacity:0},{opacity:1,duration:.35,immediateRender:false},t+.5);
+  const t=36.2+i*.15;
+  tl.to('#hb'+i,{scaleY:1,duration:.65,ease:'back.out(1.3)'},t);
+  tl.fromTo('#hv'+i,{opacity:0,y:16},{opacity:1,y:0,duration:.35,ease:'power3.out',immediateRender:false},t+.35);
+  tl.fromTo('#hl'+i,{opacity:0},{opacity:1,duration:.3,immediateRender:false},t+.45);
 });
-say('#line3',25.2);label('#nm3',26.5);
-draw('#tarik3',27.4,.7);label('#hd3',27.9);
-breath(25.1,30.8,1.03);
-unsay('#line3',30.7);unlabel('#nm3',30.7);unlabel('#hd3',30.7);
-tl.to('#tarik3',{opacity:0,duration:.25},30.7);
+say('#line4',38.6,'pop');label('#nm4',40.0);
+breath(38.5,42.9,1.03);
+unsay('#line4',42.8);unlabel('#nm4',42.8);
+SINTA.forEach((s,i)=>{tl.to(['#hb'+i,'#hv'+i,'#hl'+i],{opacity:0,duration:.3},42.9);});
 
-/* --- Adegan 4 (31,5–42,5): tiga kolom sejajar, bukan corong --- */
-into(31.9,7900,540,1.45);settle(31.9,8760,470,1.4);
-home(33.3,8760,520,1.2);
-['#kol1','#kol2','#kol3'].forEach((k,i)=>{
-  tl.fromTo(k,{opacity:0,y:70,scale:.9},{opacity:1,y:0,scale:1,duration:.65,ease:'back.out(1.5)',immediateRender:false},33.7+i*.28);
-});
-say('#line4',36.0);label('#nm4',37.3);
-breath(35.9,41.8,1.03);
-unsay('#line4',41.7);unlabel('#nm4',41.7);
-tl.to(['#kol1','#kol2','#kol3'],{opacity:0,y:-60,duration:.35,stagger:.05},41.7);
+/* --- 5. BAGIAN TERBERAT (44–54) · transisi berkedalaman --- */
+tembus(44.2,11360,470);
+mendarat('#bC',44.6,{from:{x:0,y:420,rotate:5,scale:.92}});
+label('#hd5',46.0);
+home(46.4,11360,540);
+say('#line5',47.4,'naik');label('#nm5',48.8);
+breath(47.3,52.9,1.03);
+unsay('#line5',52.8);unlabel('#nm5',52.8);unlabel('#hd5',52.8);
+pergi('#bC',52.9,{y:-640});
 
-/* --- Adegan 5 (42,5–52): pusat + lima kampus daerah --- */
-into(42.9,10500,540,1.4);settle(42.9,11360,470,1.35);
-home(44.2,11360,500,1.2);
-kmini.forEach((m,i)=>{
-  const g=Number(m.dataset.g),t=44.4+g*.45+rnd(i+11)*.4;
-  tl.fromTo(m,{opacity:0,scale:.5,y:-160,rotate:(rnd(i+13)-.5)*40},
-    {opacity:1,scale:1,y:0,rotate:(rnd(i+17)-.5)*8,duration:.6,ease:'power3.out',immediateRender:false},t);
+/* --- 6. PERAN & AJAKAN (54–62) · transisi object wipe --- */
+sapu('#sapu2',54.2,13960,470,{dari:2400,ke:-1300});
+akm.forEach((m,i)=>{
+  tl.fromTo(m,{opacity:0,scale:.6},{opacity:1,scale:1,duration:.4,ease:'power3.out',immediateRender:false},54.4+i*.003);
 });
-KAMPUS.forEach((k,gi)=>label('#kl'+gi,44.9+gi*.45));
-say('#line5',47.6);label('#nm5',48.9);
-breath(47.5,51.3,1.03);
-unsay('#line5',51.2);unlabel('#nm5',51.2);
-KAMPUS.forEach((k,gi)=>unlabel('#kl'+gi,51.2));
-tl.to(kmini,{opacity:0,duration:.35,stagger:{each:.003,from:'random'}},51.2);
-
-/* --- Adegan 6 (52–60): kisi penuh + penutup --- */
-into(52.4,13100,540,1.35);settle(52.4,13960,470,1.3);
-home(53.7,13960,500,1.2);
-amini.forEach((m,i)=>{
-  tl.fromTo(m,{opacity:0,scale:.6,y:-90},{opacity:1,scale:1,y:0,duration:.5,ease:'power3.out',immediateRender:false},53.9+i*.008);
-});
-say('#line6',56.0);label('#nm6',57.2);label('#hd6',57.7);
-breath(55.9,60,1.03);
+home(55.4,13960,540);
+say('#line6',56.4,'kiri');label('#nm6',57.8);
+breath(56.3,59.4,1.03);
+// Loop tanpa lompatan: kisi dan teks pamit, kamera mendorong masuk ke kartu
+// contoh pada z 2.55 — framing yang sama persis dengan detik nol.
+unsay('#line6',59.3);unlabel('#nm6',59.3);
+tl.to(akm,{opacity:0,duration:.5,stagger:{each:.002,from:'random'}},59.3);
+mendarat('#k6',59.6,{from:{x:0,y:260,rotate:4,scale:.95},dur:.7,float:false});
+tl.to(C,{x:13970,y:390,z:2.55,duration:1.5,ease:'power2.inOut'},60.2);
+tl.to('#k6',{opacity:0,duration:.3},61.7);
 tl.to({},{duration:.01},DUR);
 
-/* ---------- kontrol: autoplay + loop tanpa player ---------- */
+/* ---------- kontrol ---------- */
 const q=new URLSearchParams(location.search),vo=$('#vo'),hasVO=!!vo.getAttribute('src');let audioOn=false;
 function start(){tl.play(0);if(hasVO){vo.currentTime=0;vo.play().then(()=>audioOn=true).catch(()=>{});}}
 tl.eventCallback('onComplete',()=>start());
@@ -365,7 +393,8 @@ if(q.has('debug')){const dbg=$('#dbg');dbg.style.display='flex';const sc=$('#dSc
   gsap.ticker.add(()=>{if(!drag)sc.value=String(tl.time()/DUR*1000);ck.textContent=tl.time().toFixed(2)+'s';$('#dPlay').textContent=tl.paused()?'Play':'Pause';});
   sc.addEventListener('pointerdown',()=>{drag=true;tl.pause();});addEventListener('pointerup',()=>drag=false);
   sc.addEventListener('input',()=>{tl.pause();tl.time(sc.value/1000*DUR);});$('#dPlay').onclick=()=>tl.paused()?tl.play():tl.pause();}
-document.fonts.ready.then(()=>{applyCam();window.OPENER.ready=true;if(q.has('clean'))return;
+tl.pause(0,false);applyCam();
+document.fonts.ready.then(()=>{window.OPENER.ready=true;if(q.has('clean'))return;
   if(!hasVO){start();return;}
   vo.play().then(()=>{audioOn=true;vo.currentTime=0;tl.play(0);}).catch(()=>{const go=()=>{removeEventListener('pointerdown',go);removeEventListener('keydown',go);start();};addEventListener('pointerdown',go);addEventListener('keydown',go);});});
 </script>

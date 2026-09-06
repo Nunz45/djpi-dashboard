@@ -1,56 +1,63 @@
-# Naskah Narasi — Profil Jurnal UPI
+# Naskah Narasi — Bagaimana Jurnal Naik Peringkat
 
-Durasi target 60 detik. Nada: tenang, faktual, tidak promosi. Angka dibaca penuh, bukan dieja.
+Durasi 62 detik. Nada: tenang, menjelaskan, tidak promosi.
+
+**Aturan yang dipegang naskah ini:** narasi tidak pernah mengulang kalimat yang sudah tertulis di
+layar. Layar membawa klaimnya, suara membawa sebabnya. Kalau sebuah baris terasa seperti membaca
+teks di layar, baris itu salah.
 
 ---
 
-**[0:00 – 0:09] Pembuka**
+**[0:00 – 0:08]** · layar: *Kenapa berhenti di SINTA 3?*
 
-> Universitas Pendidikan Indonesia mengelola seratus tujuh puluh tiga jurnal ilmiah.
-> Bukan satu atau dua, melainkan satu katalog penuh.
+> Setiap jurnal terakreditasi punya satu angka di belakang peringkatnya.
+> Angka itu yang menentukan ia berhenti di mana.
 
-**[0:09 – 0:20] Volume**
+**[0:08 – 0:20]** · layar: *Nilai akreditasi dijumlah dari dua bagian* · 46 + 54
 
-> Setiap tahun, jurnal-jurnal ini menerbitkan sekitar dua ribu tujuh ratus artikel.
-> Angka itu berasal dari seratus empat puluh jurnal yang melaporkan datanya.
+> Empat puluh enam poin dinilai dari cara jurnal dikelola: susunan penyunting,
+> proses telaah, ketepatan terbit.
+> Lima puluh empat sisanya dinilai dari isi artikelnya sendiri.
 
-**[0:20 – 0:31] Akreditasi**
+**[0:20 – 0:32]** · layar: *Tiap peringkat punya ambangnya* · balok mendarat di garis 80
 
-> Seratus sepuluh di antaranya sudah terakreditasi nasional.
-> Paling banyak berada di SINTA tiga dan empat, dan tiga jurnal sudah mencapai SINTA satu.
+> Selisihnya bisa dihitung. Kalau tata kelola sebuah jurnal bernilai tiga puluh enam,
+> untuk naik ke Peringkat dua ia butuh sekurangnya empat puluh empat dari lima puluh empat.
+> Itu bukan tebakan, itu pengurangan.
 
-**[0:31 – 0:42] Indeksasi**
+**[0:32 – 0:44]** · layar: *110 dari 173 sudah melewati garis*
 
-> Untuk indeksasi ada tiga jalur, dan ketiganya berdiri sendiri.
-> Dua puluh lima jurnal terverifikasi di DOAJ, seratus tiga puluh tujuh terdaftar di Garuda,
-> dan tiga sudah masuk kuartil internasional.
+> Di UPI, seratus sepuluh jurnal sudah melewati garis enam puluh.
+> Enam puluh tiga lainnya belum — dan sebagian besar tertahan di bagian yang sama.
 
-**[0:42 – 0:52] Jangkauan**
+**[0:44 – 0:54]** · layar: *Bagian terberat dibaca, bukan diklaim*
 
-> Jurnal-jurnal ini tersebar dari kampus pusat sampai lima kampus daerah:
-> Cibiru, Sumedang, Tasikmalaya, Serang, dan Purwakarta.
+> Mutu artikel tidak bisa dinyatakan sendiri oleh pengelola.
+> Asesor membacanya, satu artikel demi satu artikel, dari terbitan tiga tahun terakhir.
 
-**[0:52 – 1:00] Penutup**
+**[0:54 – 1:02]** · layar: *DJPI mendampingi 63 jurnal berikutnya*
 
-> Katalog lengkapnya terbuka untuk siapa pun, di ejournal dot upi dot e-d-u.
+> Karena itu pendampingan dimulai dari artikel, bukan dari borang.
+> Cek posisi jurnal Anda di ejournal titik upi titik e-d-u.
 
 ---
 
 ## Catatan untuk pembaca naskah
 
-- **Jangan menaikkan nada di angka.** Angka di sini bekerja karena datar; membacanya seperti
-  pengumuman kemenangan justru membuatnya terdengar dilebih-lebihkan.
-- **"Berdiri sendiri" pada bagian indeksasi wajib terbaca jelas.** Kalimat itu ada supaya penonton
-  tidak menyimpulkan DOAJ adalah tahap menuju Scopus. Jangan dipotong.
-- Jeda satu ketuk di setiap pergantian bagian; transisi kamera memang berlangsung di situ.
-- Rekam dalam satu berkas utuh, bukan enam potongan. Lebih mudah disinkronkan.
+- **Bagian 0:20–0:32 adalah inti video.** Di situlah penonton mengerti bahwa peringkat itu
+  aritmetika, bukan penilaian kabur. Baca pelan, beri jeda sebelum "itu pengurangan".
+- **Jangan menaikkan nada di angka.** Angka bekerja karena datar.
+- "Enam puluh tiga lainnya belum" jangan dibaca seperti kabar buruk. Itu premis pekerjaan
+  DJPI, dan adegan terakhir menjawabnya.
+- Jeda satu ketuk di tiap pergantian bagian; transisi kamera berlangsung di situ.
+- Rekam satu berkas utuh, bukan enam potongan.
 
 ## Cara mengirim kembali
 
-1. Rekam dengan alat apa pun — ponsel sudah cukup asal ruangannya sunyi — atau hasilkan dengan
+1. Rekam dengan alat apa pun — ponsel di ruangan sunyi sudah cukup — atau hasilkan dengan
    pembangkit suara.
 2. Simpan sebagai `vo.mp3` atau `vo.m4a` di folder `explainer/`.
-3. Kabari saya. Timeline akan diregangkan mengikuti jeda suara Anda, bukan sebaliknya, sehingga
-   durasi tiap adegan menyesuaikan tempo bicara Anda.
+3. Kabari saya. Timeline diregangkan mengikuti jeda suara Anda, jadi tempo bicara Anda yang
+   menentukan durasi adegan.
 
 Tanpa audio, videonya tetap berjalan dan bisa ditonton apa adanya.
