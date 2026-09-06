@@ -53,7 +53,9 @@ var CACHE = {
   PIN_TTL: 300,
   SESSION_TTL: 14400,
   EDIT_TTL: 3600,
-  SAMARAN_TTL: 900,   // sesi admin atas nama pengelola, sengaja pendek (15 menit)
+  SAMARAN_TTL: 1800,  // sesi admin atas nama pengelola, 30 menit. Tetap pendek, tetapi
+                      // tidak sependek 15 menit yang menjadikannya item paling dekat
+                      // kedaluwarsa sehingga pertama digusur saat cache penuh.
   PENCAIRAN_LOG: 'pencairan_apc_log_v1',
   PENCAIRAN_LOG_TTL: 600,
   TERBITAN_LOG: 'terbitan_log_v1',
@@ -1376,30 +1378,30 @@ function lolosRateLimit_(tipe, target) {
 }
 
 /**
- * Token sesi disimpan di USER cache, bukan script cache.
+ * Token sesi ditulis ke DUA cache dan dibaca dari dua-duanya.
  *
- * Script cache dibatasi 1000 item, dan saat penuh Google membuang item yang
- * paling dekat kedaluwarsa. Cache itu juga menampung payload jurnal yang dipecah
- * sampai 21 potongan (tulisCachePotong_), penjaga PIN, dan cache sheet lain.
- * Token dengan TTL terpendek karena itu jadi yang PERTAMA digusur -- dan
- * SAMARAN_TTL 15 menit adalah TTL terpendek di seluruh sistem, sehingga token
- * penyamaran adalah item paling rapuh yang ada. Gejalanya: token baru dibuat,
- * beberapa detik kemudian sudah tidak dikenali, dan pengguna terlempar ke layar
- * PIN tanpa penjelasan.
+ * Script cache dijamin sama untuk semua permintaan, tetapi dibatasi 1000 item
+ * dan saat penuh Google membuang item yang paling dekat kedaluwarsa. Karena
+ * cache itu juga menampung payload jurnal yang dipecah sampai 21 potongan,
+ * token ber-TTL pendek adalah yang pertama digusur.
  *
- * User cache punya kuota terpisah dan hanya berisi token, jadi jauh lebih lapang.
- * Karena executeAs USER_DEPLOYING, "user"-nya sama untuk semua pengunjung,
- * sehingga token tetap terbaca lintas permintaan.
+ * User cache punya kuota terpisah, TETAPI terikat ke pengguna. Pada deployment
+ * berakses anonim -- dan deployment yang hidup sekarang memang masih anonim,
+ * terbukti permintaan tanpa login tetap dilayani -- "pengguna" bisa berbeda
+ * antar eksekusi. Token yang ditulis saat membuka mode atas nama karena itu
+ * tidak ditemukan lagi ketika tab baru memuat halaman. Itulah SESSION_EXPIRED
+ * yang muncul setelah token sempat dipindahkan ke user cache saja.
+ *
+ * Menulis ke keduanya menutup dua mode gagal sekaligus: script cache menjamin
+ * token terbaca lintas eksekusi, user cache menyimpan salinan yang selamat bila
+ * script cache penuh. Pembacaan mencoba keduanya.
  */
-function cacheToken_() {
-  try { return CacheService.getUserCache() || CacheService.getScriptCache(); }
-  catch (err) { return CacheService.getScriptCache(); }
-}
-
 function buatToken_(prefix, muatan, ttl) {
   var token = prefix + Utilities.getUuid();
   muatan.expires = Date.now() + ttl * 1000;
-  cacheToken_().put(token, JSON.stringify(muatan), ttl);
+  var json = JSON.stringify(muatan);
+  try { CacheService.getScriptCache().put(token, json, ttl); } catch (err) { /* utama */ }
+  try { CacheService.getUserCache().put(token, json, ttl); } catch (err) { /* cadangan */ }
   return token;
 }
 
@@ -1437,11 +1439,10 @@ function aksiEdit_(muatan, aksi) {
 function bacaToken_(token, prefix) {
   if (!token || typeof token !== 'string') return null;
   if (prefix && token.indexOf(prefix) !== 0) return null;
-  // Baca dari user cache lebih dulu, lalu script cache sebagai cadangan supaya
-  // token yang terbit sebelum perubahan ini tetap berlaku sampai kedaluwarsa.
-  var mentah = cacheToken_().get(token);
+  var mentah = null;
+  try { mentah = CacheService.getScriptCache().get(token); } catch (err) { mentah = null; }
   if (!mentah) {
-    try { mentah = CacheService.getScriptCache().get(token); } catch (err) { mentah = null; }
+    try { mentah = CacheService.getUserCache().get(token); } catch (err) { mentah = null; }
   }
   if (!mentah) return null;
   try {
@@ -1463,8 +1464,8 @@ function logout(token) {
   if (token && typeof token === 'string') {
     // Hapus dari kedua tempat: token yang terbit sebelum pemindahan ke user
     // cache masih tersimpan di script cache.
-    try { cacheToken_().remove(token); } catch (err) { /* abaikan */ }
     try { CacheService.getScriptCache().remove(token); } catch (err) { /* abaikan */ }
+    try { CacheService.getUserCache().remove(token); } catch (err) { /* abaikan */ }
   }
   return { ok: true };
 }
