@@ -651,10 +651,39 @@
       </div>
 
       <template v-else-if="persiapanAkr.rubrik">
-        <div class="alert alert-info mb-16">
+        <div class="alert alert-info mb-16 layar-saja">
           Ukur kesiapan jurnal Anda sebelum mengajukan akreditasi ke ARJUNA. Isian dan persentase di
           sini adalah <b>perkiraan Anda sendiri</b>; asesor ARJUNA yang memberi nilai resmi.
           Mengacu pada Kepdirjen 374/2026.
+        </div>
+
+        <div v-if="akrSesiBerakhir" class="alert alert-galat mb-16 layar-saja">
+          <b>Sesi Anda berakhir.</b> Isian di layar ini tidak hilang — sudah tersimpan di perangkat
+          ini. Masuk kembali lewat tab baru, buka menu Persiapan Akreditasi, lalu pilih
+          <b>Pulihkan isian</b> untuk mengirimnya ke server.
+        </div>
+
+        <div v-if="akrKonflik" class="alert alert-emas mb-16 layar-saja">
+          <b>Isian ini sudah diperbarui dari tempat lain.</b>
+          {{ akrKonflik.message }} Ini terjadi bila jurnal yang sama dibuka di dua tab, atau
+          admin DJPI menyimpan sambil bertindak atas nama Anda.
+          <div class="akr-draf-aksi">
+            <button type="button" class="btn btn-primer" @click="konflikTimpa">
+              Pakai isian di layar ini
+            </button>
+            <button type="button" class="btn" @click="konflikAmbilServer">
+              Muat versi terbaru dari server
+            </button>
+          </div>
+        </div>
+
+        <div v-if="akrDraf" class="alert alert-emas mb-16 layar-saja">
+          Ada isian dari perangkat ini yang belum pernah tersimpan di server<span
+            v-if="capDrafTampil()">, terakhir diubah {{ capDrafTampil() }}</span>.
+          <div class="akr-draf-aksi">
+            <button type="button" class="btn btn-primer" @click="pulihkanDraf">Pulihkan isian</button>
+            <button type="button" class="btn" @click="hapusDraf">Pakai yang tersimpan di server</button>
+          </div>
         </div>
 
         <div class="akr-alur">
@@ -949,7 +978,8 @@
                     <h2 class="card-title">Hasil pemeriksaan artikel terbit</h2>
                     <p class="card-note">
                       DJPI memeriksa {{ praAsesmen.totalArtikel }} artikel Anda memakai daftar periksa
-                      Tahap 3.2.
+                      Tahap 3.2. Asesor ARJUNA membaca sampel artikel tiga tahun terakhir, jadi
+                      anggap ini contoh pola, bukan gambaran seluruh terbitan Anda.
                       <template v-if="praAsesmen.terakhirDiperbarui">Diperbarui {{ tglPanjang(praAsesmen.terakhirDiperbarui) }}.</template>
                     </p>
                   </div>
@@ -974,12 +1004,15 @@
                       <span class="badge" :class="a.perluPerbaikan ? 'badge-warn' : 'badge-ok'">
                         {{ a.perluPerbaikan }} dari {{ a.jumlahButir }} perlu perbaikan
                       </span>
+                      <span v-if="a.perluDicek" class="badge badge-emas">
+                        {{ a.perluDicek }} perlu dicek sendiri
+                      </span>
                     </button>
 
                     <div v-show="akrArtikelTerbuka === i" class="akr-artikel-isi">
                       <label class="teks-kecil akr-filter">
                         <input type="checkbox" v-model="akrTampilSemuaButir">
-                        Tampilkan juga butir yang sudah sesuai
+                        Tampilkan juga butir yang sudah sesuai dan yang di luar pemeriksaan otomatis
                       </label>
 
                       <div v-for="t in butirTampil(a)" :key="t.kode" class="akr-temuan">
@@ -993,7 +1026,8 @@
                       </div>
 
                       <p v-if="!butirTampil(a).length" class="card-note">
-                        Tidak ada butir yang perlu perbaikan pada artikel ini.
+                        Tidak ada butir yang perlu perbaikan atau perlu dicek pada artikel ini.
+                        Centang kotak di atas untuk melihat seluruh {{ a.jumlahButir }} butir.
                       </p>
                     </div>
                   </div>
@@ -1058,6 +1092,32 @@
                   </div>
                 </div>
 
+                <!-- ambang peringkat: berapa Mutu Artikel yang harus dicapai -->
+                <div class="akr-rev">
+                  <div class="akr-rev-head">
+                    <span class="akr-rev-judul">Perkiraan posisi terhadap peringkat</span>
+                  </div>
+                  <div class="akr-rev-isi">
+                    <p class="card-note mb-8">
+                      Nilai akhir = Tata Kelola (maks {{ persiapanAkr.rubrik.tataKelolaMaks }}) +
+                      Mutu Artikel (maks {{ persiapanAkr.rubrik.mutuArtikelMaks }}). Tata Kelola Anda
+                      sekarang <b>{{ akrTotalTataKelola }}</b>. Angka di bawah bukan ramalan nilai
+                      Mutu Artikel Anda — itu dinilai asesor dari sampel artikel — melainkan berapa
+                      yang harus dicapai supaya sampai ke tiap peringkat.
+                    </p>
+                    <div v-for="a in akrAmbangPeringkat" :key="a.p" class="akr-rev-baris">
+                      <span>Peringkat {{ a.p }} <span class="hint">(nilai ≥ {{ a.min }})</span></span>
+                      <b v-if="a.status === 'aman'">Sudah terpenuhi dari Tata Kelola saja</b>
+                      <b v-else-if="a.status === 'mustahil'" class="teks-kurang">
+                        Tidak tercapai walau Mutu Artikel sempurna</b>
+                      <b v-else>Butuh ≥ {{ a.butuh }} dari {{ a.maksMutu }} Mutu Artikel</b>
+                    </div>
+                    <p class="hint mt-8">
+                      Angka ini ikut bergerak setiap kali Anda mengubah nilai Tata Kelola.
+                    </p>
+                  </div>
+                </div>
+
                 <!-- tahap 1 -->
                 <div class="akr-rev">
                   <div class="akr-rev-head">
@@ -1108,7 +1168,10 @@
                     <div class="akr-rev-baris"><span>Pemeriksaan DJPI atas artikel terbit</span>
                       <b v-if="praAsesmen.totalArtikel">{{ praAsesmen.totalArtikel }} artikel ·
                         {{ praAsesmen.totalPerluPerbaikan }} butir perlu perbaikan</b>
-                      <b v-else class="teks-kurang">Belum ada artikel yang diperiksa</b></div>
+                      <!-- Bukan defisit jurnal ini: antrean pemeriksaan ada di DJPI, dan
+                           pengelola tidak bisa menindaklanjutinya. Warna merah yang sama
+                           dengan syarat gagal membuatnya terbaca sebagai kesalahan sendiri. -->
+                      <b v-else class="teks-lembut">Belum masuk antrean pemeriksaan DJPI</b></div>
                   </div>
                 </div>
 
@@ -1122,8 +1185,10 @@
                   </ol>
                 </template>
                 <div v-else class="alert alert-ok mt-8">
-                  {{ akrSyaratBerlaku.length }} syarat Tahap 1 terpenuhi dan seluruh
-                  {{ persiapanAkr.rubrik.tataKelola.length }} unsur Tata Kelola sudah bernilai penuh.
+                  {{ akrSyaratBerlaku.length }} syarat Tahap 1 terpenuhi, seluruh
+                  {{ persiapanAkr.rubrik.tataKelola.length }} unsur Tata Kelola bernilai penuh, dan
+                  seluruh butir Mutu Artikel sudah Anda periksa. Nilai Mutu Artikel tetap ditentukan
+                  asesor dari sampel artikel Anda.
                 </div>
 
                 <div v-if="persiapanAkr.pesan" class="alert mt-8"
@@ -1147,7 +1212,7 @@
               </button>
               <template v-else>
                 <button type="button" class="btn" @click="cetakPersiapanAkr">Cetak / Simpan PDF</button>
-                <button type="button" class="btn btn-primer" :disabled="persiapanAkr.menyimpan" @click="simpanPersiapanAkr">
+                <button type="button" class="btn btn-primer" :disabled="persiapanAkr.menyimpan" @click="simpanPersiapanAkr()">
                   <span v-if="persiapanAkr.menyimpan" class="spinner" aria-hidden="true"></span>
                   {{ persiapanAkr.menyimpan ? 'Menyimpan…' : 'Simpan' }}
                 </button>
@@ -1155,6 +1220,131 @@
             </div>
           </div>
         </div>
+
+        <!-- ============================================================
+             Lembar kerja untuk dicetak. Hanya tampil saat mencetak.
+
+             Alur di layar tidak bisa dipakai sebagai lampiran: jawaban
+             Tahap 1 dan level Tata Kelola terpilih hanya ditandai warna
+             latar, yang hilang begitu "background graphics" dimatikan
+             (bawaan Chrome), sementara seluruh salinan rubrik ikut
+             tercetak sehingga jawaban tenggelam. Bagian ini menuliskan
+             jawabannya sebagai teks.
+             ============================================================ -->
+        <section class="akr-cetak">
+          <header class="akr-cetak-kop">
+            <h1>Lembar Persiapan Akreditasi</h1>
+            <p>{{ persiapanAkr.jurnal ? persiapanAkr.jurnal.namaJurnal : namaJurnalAktif }}</p>
+            <p class="akr-cetak-meta">
+              {{ persiapanAkr.jenis === 'baru' ? 'Akreditasi Baru' : 'Akreditasi Ulang' }}<template
+                v-if="persiapanAkr.tglBerakhirSk"> · SK berakhir {{ tglPanjang(persiapanAkr.tglBerakhirSk) }}</template><br>
+              Dicetak {{ akrCetakWaktu }}<template v-if="emailInput"> oleh {{ emailInput }}</template><br>
+              <template v-if="persiapanAkr.terakhirDisimpan">Isian tersimpan {{ persiapanAkr.terakhirDisimpan }}</template>
+              <template v-else>Isian belum pernah disimpan ke server</template>
+            </p>
+            <p class="akr-cetak-nb">
+              Swa-penilaian mengacu Kepdirjen 374/2026. Nilai resmi ditetapkan asesor ARJUNA.
+            </p>
+          </header>
+
+          <h2>Perkiraan posisi terhadap peringkat</h2>
+          <p class="akr-cetak-nb">
+            Tata Kelola {{ akrTotalTataKelola }} dari {{ persiapanAkr.rubrik.tataKelolaMaks }}.
+            Angka di bawah adalah nilai Mutu Artikel yang harus dicapai, bukan perkiraan nilai
+            Mutu Artikel jurnal ini.
+          </p>
+          <table class="akr-cetak-tabel">
+            <tr v-for="a in akrAmbangPeringkat" :key="a.p">
+              <th>Peringkat {{ a.p }} (≥ {{ a.min }})</th>
+              <td>
+                <template v-if="a.status === 'aman'">Sudah terpenuhi dari Tata Kelola saja</template>
+                <template v-else-if="a.status === 'mustahil'">Tidak tercapai walau Mutu Artikel sempurna</template>
+                <template v-else>Butuh ≥ {{ a.butuh }} dari {{ a.maksMutu }}</template>
+              </td>
+            </tr>
+          </table>
+
+          <h2>Tahap 1 — Syarat pengajuan ({{ akrSyaratLolos }} dari {{ akrSyaratBerlaku.length }})</h2>
+          <table class="akr-cetak-tabel">
+            <tr v-for="s in akrSyaratBerlaku" :key="s.k">
+              <th>{{ s.label }}</th>
+              <td>
+                <b>{{ akrJawabanSyarat(s.k) }}</b>
+                <div v-if="(persiapanAkr.jawaban.tahap1[s.k] || {}).catatan" class="akr-cetak-bukti">
+                  Bukti: {{ persiapanAkr.jawaban.tahap1[s.k].catatan }}
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <h2>Tahap 3.1 — Tata Kelola ({{ akrTotalTataKelola }} dari {{ persiapanAkr.rubrik.tataKelolaMaks }})</h2>
+          <table class="akr-cetak-tabel">
+            <tr v-for="u in persiapanAkr.rubrik.tataKelola" :key="u.k">
+              <th>{{ u.k }} · {{ u.nama }}</th>
+              <td>
+                <b>{{ akrNilaiCetak(u) }} dari {{ u.maks }}</b>
+                <div class="akr-cetak-bukti">{{ akrTeksLevelCetak(u) }}</div>
+                <div v-if="(persiapanAkr.jawaban.tataKelola[u.k] || {}).catatan" class="akr-cetak-bukti">
+                  Bukti: {{ persiapanAkr.jawaban.tataKelola[u.k].catatan }}
+                </div>
+              </td>
+            </tr>
+          </table>
+          <p class="akr-cetak-nb">
+            Klausul COPE terpenuhi: {{ akrCopeTerpenuhi }} dari {{ persiapanAkr.rubrik.cope.length }}
+            ({{ akrCopePersen }}%), yang menentukan nilai unsur C.4.
+          </p>
+
+          <h2>Tahap 3.2 — Mutu Artikel ({{ persiapanAkr.rubrik.mutuArtikelMaks }} dari 100)</h2>
+          <p class="akr-cetak-nb">
+            Daftar periksa mandiri: {{ akrMutuDicek }} dari
+            {{ persiapanAkr.rubrik.mutuArtikel.length }} butir sudah diperiksa.
+          </p>
+          <table class="akr-cetak-tabel">
+            <tr v-for="m in persiapanAkr.rubrik.mutuArtikel" :key="m.k">
+              <th>{{ m.k }} · {{ m.nama }}</th>
+              <td>{{ persiapanAkr.jawaban.mutu[m.k] ? 'Sudah diperiksa' : 'Belum diperiksa' }}</td>
+            </tr>
+          </table>
+
+          <template v-if="praAsesmen.totalArtikel">
+            <h2>Temuan pemeriksaan DJPI atas artikel terbit</h2>
+            <div v-for="(a, i) in praAsesmen.artikel" :key="'c' + i" class="akr-cetak-artikel">
+              <h3>{{ a.judul }}</h3>
+              <p class="akr-cetak-nb" v-if="a.doi">DOI {{ a.doi }}</p>
+              <table class="akr-cetak-tabel">
+                <!-- seluruh butir, bukan hanya yang perlu perbaikan -->
+                <tr v-for="t in a.butir" :key="t.kode">
+                  <th>{{ t.kode }} · {{ t.nama }}</th>
+                  <td>
+                    <b>{{ labelStatusTemuan(t.status) }}</b>
+                    <div v-if="t.temuan" class="akr-cetak-bukti">{{ t.temuan }}</div>
+                    <div v-if="t.saran" class="akr-cetak-bukti">Saran: {{ t.saran }}</div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </template>
+
+          <h2>Daftar kerja, diurutkan menurut selisih poin</h2>
+          <p v-if="!akrDaftarPerbaikan.length" class="akr-cetak-nb">
+            Tidak ada butir tersisa dari yang bisa diukur di layar ini.
+          </p>
+          <ol v-else class="akr-cetak-daftar">
+            <li v-for="(p, i) in akrDaftarPerbaikan" :key="'k' + i">
+              <b>{{ p.kode ? p.tipe + ' · ' + p.kode : p.tipe }}</b> — {{ p.teks }}
+              <div v-if="p.saran" class="akr-cetak-bukti">{{ p.saran }}</div>
+            </li>
+          </ol>
+
+          <h2>Berkas dan terbitan yang disiapkan di luar layar ini</h2>
+          <table class="akr-cetak-tabel">
+            <tr v-for="b in (persiapanAkr.rubrik.berkasArjuna || [])" :key="b.k">
+              <th>☐ {{ b.nama }}</th>
+              <td>{{ b.ket }}</td>
+            </tr>
+          </table>
+        </section>
       </template>
     </section>
 
@@ -1186,6 +1376,31 @@ var TOKEN_AWAL = <?!= JSON.stringify(tokenAwal) ?>;
 var ATAS_NAMA_AWAL = <?!= JSON.stringify(atasNamaAwal) ?>;
 
 const { createApp } = Vue;
+
+// Bentuk awal panel Persiapan Akreditasi. Dipakai data() dan resetPanelAkr()
+// supaya keduanya tidak bisa berbeda: panel ini memegang jawaban SATU jurnal,
+// dan sisa jawaban jurnal sebelumnya akan ditulis ke baris jurnal berikutnya
+// oleh simpan otomatis kalau tidak dibersihkan saat ganti sesi.
+function bentukAwalPersiapanAkr() {
+  return {
+    dimuat: false, memuat: false, menyimpan: false,
+    rubrik: null, prefill: {}, jurnal: null,
+    // sumber[k] = {status:'otomatis'|'verifikasi', teks} dari Code.js;
+    // asal[k]   = nilai awal dari DJPI, dipakai untuk tautan "Kembalikan"
+    sumber: {}, asal: {},
+    // asalDipakai = salinan nilai DJPI saat jawaban terakhir disimpan. Dipakai
+    // sebagai acuan penanda "Diubah pengelola" supaya pergerakan data direktori
+    // tidak dicatat sebagai perbuatan pengelola.
+    asalDipakai: null,
+    jenis: 'ulang', tglBerakhirSk: '',
+    // jawaban: tahap1[k] = {jawab:'ya'|'tidak', catatan}; tataKelola[k] = {nilai, catatan};
+    //          cope[k] = bool; mutu[k] = bool
+    jawaban: { tahap1: {}, tataKelola: {}, cope: {}, mutu: {} },
+    terakhirDisimpan: '', pesan: '', pesanJenis: 'info',
+    // temuan pra-asesmen Tahap 3.2 dari sheet Pra_Asesmen_Artikel (Code.js section 29)
+    praAsesmen: { artikel: [], totalArtikel: 0, totalPerluPerbaikan: 0, terakhirDiperbarui: '' }
+  };
+}
 
 const appPengelola = createApp({
   data() {
@@ -1268,20 +1483,7 @@ const appPengelola = createApp({
       mengirimTerbitan: false,
 
       // --- panel Persiapan Akreditasi (Kepdirjen 374/2026) ---
-      persiapanAkr: {
-        dimuat: false, memuat: false, menyimpan: false,
-        rubrik: null, prefill: {}, jurnal: null,
-        // sumber[k] = {status:'otomatis'|'verifikasi', teks} dari Code.js;
-        // asal[k]   = nilai awal dari DJPI, dipakai untuk tautan "Kembalikan"
-        sumber: {}, asal: {},
-        jenis: 'ulang', tglBerakhirSk: '',
-        // jawaban: tahap1[k] = {jawab:'ya'|'tidak', catatan}; tataKelola[k] = {nilai, catatan};
-        //          cope[k] = bool; mutu[k] = bool
-        jawaban: { tahap1: {}, tataKelola: {}, cope: {}, mutu: {} },
-        terakhirDisimpan: '', pesan: '', pesanJenis: 'info',
-        // temuan pra-asesmen Tahap 3.2 dari sheet Pra_Asesmen_Artikel (Code.js section 29)
-        praAsesmen: { artikel: [], totalArtikel: 0, totalPerluPerbaikan: 0, terakhirDiperbarui: '' }
-      },
+      persiapanAkr: bentukAwalPersiapanAkr(),
       akrArtikelTerbuka: -1,
       akrTampilSemuaButir: false,
       // alur enam langkah: 1 Ringkasan, 2 Tahap 1, 3 Tahap 2, 4 Tahap 3.1,
@@ -1293,13 +1495,26 @@ const appPengelola = createApp({
       // simpan otomatis: penanda antrean saat satu simpan masih berjalan, dan
       // pesan galat supaya kegagalan tidak lewat tanpa terlihat
       akrSimpanTertunda: false,
-      akrGalatSimpan: ''
+      akrGalatSimpan: '',
+      // salinan lokal yang menunggu keputusan pengelola (pulihkan / buang),
+      // dan penanda sesi berakhir yang TIDAK menghancurkan isian di layar
+      akrDraf: null,
+      akrCetakWaktu: '',
+      akrSesiBerakhir: false,
+      // hasil deteksi tabrakan dari server; isian di layar dibiarkan utuh
+      akrKonflik: null
     };
   },
 
   mounted() {
     try { this.tema = localStorage.getItem('djpi-tema') || 'auto'; } catch (e) {}
     this.terapkanTema();
+
+    // Cetak bisa dimulai lewat Ctrl+P, bukan hanya lewat tombol di panel. Cap
+    // waktu dipasang di sini supaya lembar cetak tidak pernah keluar tanpa tanggal.
+    try {
+      window.addEventListener('beforeprint', () => { this.setCapCetak(); });
+    } catch (e) {}
 
     // Jalur pemulihan sesi: token dititipkan lewat ?t= (pola sama seperti
     // sesi darurat admin), atau dari localStorage bila pengelola sebelumnya
@@ -1513,6 +1728,26 @@ const appPengelola = createApp({
       var maks = this.persiapanAkr.rubrik ? this.persiapanAkr.rubrik.tataKelolaMaks : 46;
       return Math.round((this.akrTotalTataKelola / maks) * 100);
     },
+    /**
+     * Nilai Mutu Artikel minimum yang dibutuhkan untuk tiap peringkat, mengingat
+     * nilai Tata Kelola yang sudah diisi. Ini pengurangan, bukan ramalan: alat
+     * ini tidak menebak berapa nilai Mutu Artikel jurnal ini, ia hanya menyebut
+     * berapa yang harus dicapai. Pertanyaannya bergeser dari "berapa nilai saya"
+     * menjadi "apakah sekian dari 54 realistis untuk artikel saya".
+     */
+    akrAmbangPeringkat() {
+      var r = this.persiapanAkr.rubrik;
+      if (!r || !r.peringkat) return [];
+      var tk = this.akrTotalTataKelola;
+      var maksMutu = r.mutuArtikelMaks || 54;
+      return r.peringkat.map((p) => {
+        var butuh = Math.round((p.min - tk) * 10) / 10;
+        return {
+          p: p.p, min: p.min, butuh: butuh, maksMutu: maksMutu,
+          status: butuh <= 0 ? 'aman' : (butuh > maksMutu ? 'mustahil' : 'perlu')
+        };
+      });
+    },
     akrUnsurDinilai() {
       var a = this.persiapanAkr;
       if (!a.rubrik) return 0;
@@ -1520,8 +1755,13 @@ const appPengelola = createApp({
       return a.rubrik.tataKelola.filter((u) => (tk[u.k] || {}).nilai !== undefined && (tk[u.k] || {}).nilai !== '').length;
     },
     akrCopeTerpenuhi() {
+      var r = this.persiapanAkr.rubrik;
       var cope = this.persiapanAkr.jawaban.cope || {};
-      return Object.keys(cope).filter((k) => cope[k]).length;
+      // Dihitung dari daftar klausul rubrik, bukan dari seluruh kunci objek:
+      // kunci sisa rubrik versi lama yang ikut tersimpan di JSON akan mendorong
+      // persentase C.4 di atas kenyataan.
+      if (!r) return 0;
+      return r.cope.filter((c) => cope[c.k]).length;
     },
     akrCopePersen() {
       var total = this.persiapanAkr.rubrik ? this.persiapanAkr.rubrik.cope.length : 16;
@@ -1568,20 +1808,59 @@ const appPengelola = createApp({
           out.push({ tipe: 'Tahap 1', kode: '', kunci: s.k, teks: s.label + ' — belum diisi.', saran: s.deskripsi });
         }
       });
+      // Tanggal SK yang kosong menyembunyikan hitung mundur tenggat, jadi ia
+      // pekerjaan juga — bukan sekadar field kosong.
+      if (a.jenis === 'ulang' && !a.tglBerakhirSk) {
+        out.push({
+          tipe: 'Ringkasan', kode: '', kunci: 'tglBerakhirSk', selisih: 0,
+          teks: 'Tanggal berakhir SK belum diisi.',
+          saran: 'Tanpa tanggal ini, tenggat pengajuan ulang tidak bisa dihitung dan tidak ada peringatan yang muncul.'
+        });
+      }
+
+      // Tata Kelola, diurutkan menurut selisih poin: yang paling banyak menambah
+      // nilai berada di atas.
       var tk = a.jawaban.tataKelola || {};
+      var tkOut = [];
       a.rubrik.tataKelola.forEach((u) => {
         var entri = tk[u.k] || {};
         if (entri.nilai === undefined || entri.nilai === '') {
-          out.push({ tipe: 'Tata Kelola', kode: u.k, teks: u.nama + ' — belum diisi.', saran: '' });
+          tkOut.push({ tipe: 'Tata Kelola', kode: u.k, selisih: u.maks,
+            teks: u.nama + ' — belum diisi (bisa menambah sampai ' + u.maks + ' poin).', saran: '' });
         } else if (Number(entri.nilai) < u.maks) {
           var atas = (u.levels.find((x) => x.n === u.maks) || {});
-          out.push({
-            tipe: 'Tata Kelola', kode: u.k,
-            teks: u.nama + ' — nilai ' + entri.nilai + ' dari ' + u.maks + '.',
+          var beda = Math.round((u.maks - Number(entri.nilai)) * 10) / 10;
+          tkOut.push({
+            tipe: 'Tata Kelola', kode: u.k, selisih: beda,
+            teks: u.nama + ' — nilai ' + entri.nilai + ' dari ' + u.maks + ' (selisih ' + beda + ' poin).',
             saran: 'Target nilai penuh: ' + (atas.l || '')
           });
         }
       });
+      tkOut.sort((x, y) => y.selisih - x.selisih);
+      out = out.concat(tkOut);
+
+      // Mutu Artikel: 54 dari 100 poin, dan sebelumnya sama sekali tidak masuk
+      // daftar ini — sehingga jurnal yang Tata Kelolanya penuh melihat daftar
+      // kosong seolah tidak ada pekerjaan tersisa.
+      var mutu = a.jawaban.mutu || {};
+      var belumDicek = a.rubrik.mutuArtikel.filter((m) => !mutu[m.k]);
+      if (belumDicek.length) {
+        out.push({
+          tipe: 'Mutu Artikel', kode: '', kunci: 'mutu-belum', selisih: 0,
+          teks: belumDicek.length + ' dari ' + a.rubrik.mutuArtikel.length +
+            ' butir belum Anda periksa — bagian ini bernilai ' +
+            (a.rubrik.mutuArtikelMaks || 54) + ' dari 100.',
+          saran: 'Butir yang belum diperiksa: ' + belumDicek.map((m) => m.k).join(', ') + '.'
+        });
+      }
+      if (this.praAsesmen.totalPerluPerbaikan) {
+        out.push({
+          tipe: 'Mutu Artikel', kode: '', kunci: 'pra-asesmen', selisih: 0,
+          teks: this.praAsesmen.totalPerluPerbaikan + ' temuan dari pemeriksaan DJPI atas artikel terbit belum ditindaklanjuti.',
+          saran: 'Buka Tahap 3.2 untuk melihat temuan per artikel beserta sarannya.'
+        });
+      }
       return out;
     }
   },
@@ -1643,7 +1922,26 @@ const appPengelola = createApp({
         .pilihJurnalPengelola(this.tokenPilih, namaJurnal);
     },
 
+    // Panel akreditasi memegang jawaban satu jurnal. Sesi baru berarti jurnal
+    // yang mungkin berbeda, jadi panelnya dikosongkan di kedua ujung: saat sesi
+    // dibuat dan saat sesi ditutup.
+    resetPanelAkr() {
+      if (this.akrTimerSimpan) { clearTimeout(this.akrTimerSimpan); this.akrTimerSimpan = null; }
+      this.akrSimpanTertunda = false;
+      this.akrGalatSimpan = '';
+      this.akrDraf = null;
+      this.akrSesiBerakhir = false;
+      this.akrKonflik = null;
+      this.persiapanAkr = bentukAwalPersiapanAkr();
+      this.akrArtikelTerbuka = -1;
+      this.akrTampilSemuaButir = false;
+      this.akrLangkah = 1;
+      this.akrDariTinjauan = false;
+      this.akrGrupBuka = 'A';
+    },
+
     simpanSesi(token, namaJurnal) {
+      this.resetPanelAkr();
       this.token = token;
       this.namaJurnalAktif = namaJurnal;
       try {
@@ -1673,6 +1971,7 @@ const appPengelola = createApp({
       this.token = ''; this.namaJurnalAktif = '';
       this.tahap = 'login'; this.emailInput = ''; this.pin = '';
       this.tokenPilih = ''; this.daftarJurnalPilihan = [];
+      this.resetPanelAkr();
     },
 
     masukKeMenu() {
@@ -1695,6 +1994,8 @@ const appPengelola = createApp({
 
     // ================= NAVIGASI MENU =================
     bukaMenu(kunci) {
+      // Pindah menu tidak boleh meninggalkan ketikan 3 detik terakhir menggantung.
+      if (this.akrTimerSimpan) this.simpanDiam();
       this.menuAktif = kunci;
       this.navMobileTerbuka = false;
       this.galatPanel = ''; this.toastPanel = '';
@@ -2026,6 +2327,10 @@ const appPengelola = createApp({
             j.tataKelola = ts.tataKelola || {};
             j.cope = ts.cope || {};
             j.mutu = ts.mutu || {};
+            // Baris lama (disimpan sebelum acuan ini ada) tidak punya asalDipakai;
+            // untuk baris itu penanda kembali memakai nilai DJPI hari ini.
+            a.asalDipakai = (ts.asalDipakai && typeof ts.asalDipakai === 'object')
+              ? ts.asalDipakai : null;
           }
 
           // Nilai asal dari DJPI dicatat terpisah, baik jawaban sudah tersimpan
@@ -2064,6 +2369,11 @@ const appPengelola = createApp({
           // Buka kelompok unsur pertama yang belum lengkap
           var grup = this.akrKelompok.find((g) => g.dinilai < g.unsur.length);
           this.akrGrupBuka = grup ? grup.k : 'A';
+
+          // Salinan lokal yang masih ada berarti ada perubahan yang tidak pernah
+          // sampai ke server. Isinya tidak dipasang diam-diam: pengelola yang
+          // memutuskan, karena baris di server bisa saja lebih baru.
+          this.akrDraf = this.bacaDraf();
         })
         .withFailureHandler((err) => {
           a.memuat = false;
@@ -2129,17 +2439,35 @@ const appPengelola = createApp({
       if ((a.jawaban.tataKelola || {})[kunci]) return a.jawaban.tataKelola[kunci].nilai;
       return undefined;
     },
-    /** '' | 'otomatis' | 'verifikasi' | 'diubah' */
+    /**
+     * Acuan pembanding: nilai DJPI pada saat jawaban terakhir disimpan, bukan
+     * nilai DJPI hari ini. Sitasi dan tanggal SK bergerak sendiri di direktori;
+     * membandingkan ke nilai hari ini membuat field yang tidak pernah disentuh
+     * siapa pun ikut dicap "Diubah pengelola".
+     */
+    akrAcuan(kunci) {
+      var a = this.persiapanAkr;
+      if (a.asalDipakai && a.asalDipakai[kunci] !== undefined) return a.asalDipakai[kunci];
+      return (a.asal || {})[kunci];
+    },
+    /** '' | 'otomatis' | 'verifikasi' | 'diubah' | 'data-berubah' */
     akrTanda(kunci) {
       var a = this.persiapanAkr;
       var s = (a.sumber || {})[kunci];
       if (!s) return '';
-      var asal = (a.asal || {})[kunci];
-      if (asal !== undefined && String(this.akrNilaiKini(kunci)) !== String(asal)) return 'diubah';
+      var acuan = this.akrAcuan(kunci);
+      if (acuan !== undefined && String(this.akrNilaiKini(kunci)) !== String(acuan)) return 'diubah';
+      // Jawaban masih sama dengan acuan, tetapi datanya di direktori DJPI sudah
+      // bergerak sejak terakhir disimpan. Itu kabar, bukan tuduhan.
+      var kini = (a.asal || {})[kunci];
+      if (kini !== undefined && acuan !== undefined && String(kini) !== String(acuan)) return 'data-berubah';
       return s.status;
     },
     akrTandaLabel(kunci) {
-      var peta = { otomatis: 'Terisi otomatis', verifikasi: 'Perlu verifikasi', diubah: 'Diubah pengelola' };
+      var peta = {
+        otomatis: 'Terisi otomatis', verifikasi: 'Perlu verifikasi',
+        diubah: 'Diubah pengelola', 'data-berubah': 'Data DJPI diperbarui'
+      };
       return peta[this.akrTanda(kunci)] || '';
     },
     /** Nilai data DJPI yang jadi dasar jawaban, untuk ditampilkan apa adanya. */
@@ -2151,9 +2479,14 @@ const appPengelola = createApp({
       var a = this.persiapanAkr;
       var s = (a.sumber || {})[kunci];
       if (!s) return '';
-      if (this.akrTanda(kunci) !== 'diubah') return s.teks;
-      var asal = (a.asal || {})[kunci];
-      return 'Data DJPI menyebut ' + this.akrLabelNilai(kunci, asal) + '.';
+      var tanda = this.akrTanda(kunci);
+      if (tanda === 'data-berubah') {
+        return 'Data DJPI untuk field ini berubah menjadi ' +
+          this.akrLabelNilai(kunci, (a.asal || {})[kunci]) +
+          ' sejak jawaban Anda terakhir disimpan. Jawaban Anda tidak ikut diubah.';
+      }
+      if (tanda !== 'diubah') return s.teks;
+      return 'Data DJPI menyebut ' + this.akrLabelNilai(kunci, this.akrAcuan(kunci)) + '.';
     },
     akrLabelNilai(kunci, nilai) {
       if (nilai === 'ya') return 'Ya';
@@ -2215,9 +2548,67 @@ const appPengelola = createApp({
       return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
     },
 
+    // ---- salinan lokal ----
+    /**
+     * Salinan di perangkat, ditulis pada setiap perubahan sebelum simpan ke
+     * server dijadwalkan. Gunanya menutup tiga lubang sekaligus: jeda 3 detik
+     * yang belum sempat terkirim, tab yang ditutup, dan sesi yang berakhir di
+     * tengah pengisian. Salinan dihapus begitu server menerima.
+     */
+    kunciDraf() {
+      return this.namaJurnalAktif ? 'djpi_akr_draf_' + this.namaJurnalAktif : '';
+    },
+    simpanDraf() {
+      var k = this.kunciDraf();
+      if (!k) return;
+      var a = this.persiapanAkr;
+      if (!a.dimuat) return;
+      try {
+        localStorage.setItem(k, JSON.stringify({
+          namaJurnal: this.namaJurnalAktif,
+          jenis: a.jenis, tglBerakhirSk: a.tglBerakhirSk, jawaban: a.jawaban,
+          cap: new Date().toISOString()
+        }));
+      } catch (e) {}
+    },
+    hapusDraf() {
+      var k = this.kunciDraf();
+      if (!k) return;
+      try { localStorage.removeItem(k); } catch (e) {}
+      this.akrDraf = null;
+    },
+    /** Draf yang tersisa berarti ada perubahan yang belum pernah diterima server. */
+    bacaDraf() {
+      var k = this.kunciDraf();
+      if (!k) return null;
+      try {
+        var d = JSON.parse(localStorage.getItem(k) || 'null');
+        if (d && d.namaJurnal === this.namaJurnalAktif && d.jawaban) return d;
+      } catch (e) {}
+      return null;
+    },
+    pulihkanDraf() {
+      var d = this.akrDraf;
+      if (!d) return;
+      var a = this.persiapanAkr;
+      a.jenis = d.jenis || a.jenis;
+      a.tglBerakhirSk = d.tglBerakhirSk || a.tglBerakhirSk;
+      a.jawaban = d.jawaban;
+      this.akrDraf = null;
+      this.jadwalkanSimpan();
+    },
+    capDrafTampil() {
+      var d = this.akrDraf;
+      if (!d || !d.cap) return '';
+      var t = new Date(d.cap);
+      return isNaN(t.getTime()) ? '' : this.tglPanjang(d.cap.substring(0, 10)) +
+        ', ' + ('0' + t.getHours()).slice(-2) + '.' + ('0' + t.getMinutes()).slice(-2);
+    },
+
     // ---- simpan otomatis ----
     /** Menunda simpan 3 detik supaya mengetik tidak memicu satu simpan per huruf. */
     jadwalkanSimpan() {
+      this.simpanDraf();
       if (this.akrTimerSimpan) clearTimeout(this.akrTimerSimpan);
       this.akrTimerSimpan = setTimeout(() => { this.simpanDiam(); }, 3000);
     },
@@ -2233,6 +2624,12 @@ const appPengelola = createApp({
     simpanDiam() {
       var a = this.persiapanAkr;
       if (!a.dimuat) return;
+      // Sesi yang sudah mati tidak akan hidup lagi dengan mencoba ulang; antrean
+      // dihentikan supaya tidak berputar memanggil server dengan token kedaluwarsa.
+      if (this.akrSesiBerakhir) { this.simpanDraf(); return; }
+      // Konflik menunggu keputusan pengelola; simpan otomatis tidak boleh
+      // memutuskannya sendiri dengan mencoba ulang.
+      if (this.akrKonflik) { this.simpanDraf(); return; }
       if (a.menyimpan) { this.akrSimpanTertunda = true; return; }
       if (this.akrTimerSimpan) { clearTimeout(this.akrTimerSimpan); this.akrTimerSimpan = null; }
       a.menyimpan = true;
@@ -2250,6 +2647,18 @@ const appPengelola = createApp({
           if (res && res.ok) {
             this.akrGalatSimpan = '';
             a.terakhirDisimpan = res.terakhirDisimpan || a.terakhirDisimpan;
+            this.hapusDraf();
+          } else if (res && res.code === 'SESSION_EXPIRED') {
+            // Sebelumnya simpan otomatis tidak memeriksa res.code sama sekali,
+            // sehingga sesi yang sudah mati hanya menghasilkan kalimat abu-abu
+            // dan gagal berulang kali tanpa pengelola tahu.
+            this.simpanDraf();
+            this.akrSesiBerakhir = true;
+            this.akrGalatSimpan = '';
+          } else if (res && res.code === 'KONFLIK') {
+            this.simpanDraf();
+            this.akrKonflik = res;
+            this.akrGalatSimpan = '';
           } else {
             this.akrGalatSimpan = (res && res.message) || 'Perubahan terakhir belum tersimpan.';
           }
@@ -2260,9 +2669,7 @@ const appPengelola = createApp({
             ((err && err.message) || 'sambungan terputus') + '. Tekan Simpan di langkah terakhir.';
           selesai();
         })
-        .simpanPersiapanAkreditasi(this.token, {
-          jenis: a.jenis, tglBerakhirSk: a.tglBerakhirSk, jawaban: a.jawaban
-        });
+        .simpanPersiapanAkreditasi(this.token, this.muatanSimpanAkr());
     },
     // C.4: hitung level dari sub-checklist 16 klausul COPE, lalu simpan ke tataKelola['C.4']
     toggleCope(k) {
@@ -2282,7 +2689,52 @@ const appPengelola = createApp({
       return peta[s] || s;
     },
 
-    simpanPersiapanAkr() {
+    /**
+     * Muatan simpan. namaJurnal jadi jaring pengaman kalau panel masih memegang
+     * jawaban jurnal lain; terakhirDisimpan jadi nomor versi supaya server bisa
+     * menolak penimpaan; paksa dipakai hanya setelah pengelola memilih menimpa.
+     */
+    muatanSimpanAkr(paksa) {
+      var a = this.persiapanAkr;
+      // Nilai DJPI saat ini ikut disimpan sebagai acuan untuk pemuatan berikutnya.
+      var jawaban = {
+        tahap1: a.jawaban.tahap1, tataKelola: a.jawaban.tataKelola,
+        cope: a.jawaban.cope, mutu: a.jawaban.mutu,
+        asalDipakai: Object.assign({}, a.asal)
+      };
+      return {
+        namaJurnal: this.namaJurnalAktif,
+        jenis: a.jenis,
+        tglBerakhirSk: a.tglBerakhirSk,
+        jawaban: jawaban,
+        terakhirDisimpan: a.terakhirDisimpan,
+        // Sengaja ketat: kalau method ini dipasang langsung ke @click, Vue
+        // mengirim objek Event sebagai argumen pertama, dan !!Event bernilai
+        // benar — deteksi konflik akan terlewat tanpa ada yang memintanya.
+        paksa: paksa === true
+      };
+    },
+
+    /** Konflik: pertahankan isian di layar dan timpakan ke server. */
+    konflikTimpa() {
+      var k = this.akrKonflik;
+      if (!k) return;
+      // Cap server dipakai sebagai versi baru supaya penimpaan ini sendiri
+      // tidak langsung dianggap konflik berikutnya.
+      this.persiapanAkr.terakhirDisimpan = k.serverTerakhirDisimpan ||
+        this.persiapanAkr.terakhirDisimpan;
+      this.akrKonflik = null;
+      this.simpanPersiapanAkr(true);
+    },
+    /** Konflik: buang isian di layar, pakai versi yang ada di server. */
+    konflikAmbilServer() {
+      this.akrKonflik = null;
+      this.hapusDraf();
+      this.persiapanAkr.dimuat = false;
+      this.muatPersiapanAkr();
+    },
+
+    simpanPersiapanAkr(paksa) {
       var a = this.persiapanAkr;
       a.menyimpan = true;
       a.pesan = '';
@@ -2290,7 +2742,19 @@ const appPengelola = createApp({
         .withSuccessHandler((res) => {
           a.menyimpan = false;
           if (!res || !res.ok) {
-            if (res && res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            // Sesi berakhir tidak boleh menghapus layar: isian sudah ada di
+            // salinan lokal, dan pengelola perlu melihatnya tetap utuh sambil
+            // masuk kembali di tab lain.
+            if (res && res.code === 'SESSION_EXPIRED') {
+              this.simpanDraf();
+              this.akrSesiBerakhir = true;
+              return;
+            }
+            if (res && res.code === 'KONFLIK') {
+              this.simpanDraf();
+              this.akrKonflik = res;
+              return;
+            }
             a.pesan = (res && res.message) || 'Gagal menyimpan.';
             a.pesanJenis = 'galat';
             return;
@@ -2298,23 +2762,26 @@ const appPengelola = createApp({
           a.pesan = res.message || 'Tersimpan.';
           a.pesanJenis = 'ok';
           a.terakhirDisimpan = res.terakhirDisimpan || a.terakhirDisimpan;
+          this.hapusDraf();
         })
         .withFailureHandler((err) => {
           a.menyimpan = false;
           a.pesan = 'Gagal menyimpan: ' + err.message;
           a.pesanJenis = 'galat';
         })
-        .simpanPersiapanAkreditasi(this.token, {
-          jenis: a.jenis,
-          tglBerakhirSk: a.tglBerakhirSk,
-          jawaban: a.jawaban
-        });
+        .simpanPersiapanAkreditasi(this.token, this.muatanSimpanAkr(paksa));
     },
 
-    // Bawaan: hanya butir yang perlu perbaikan. Sisanya dibuka lewat kotak centang.
+    /**
+     * Bawaan: butir yang menuntut pekerjaan pengelola, yaitu "perlu perbaikan"
+     * DAN "perlu dicek". Sebelumnya hanya "perlu perbaikan" yang dirender,
+     * sehingga butir yang justru meminta pemeriksaan manusia tidak terlihat dan
+     * tidak ikut tercetak. Butir yang sudah sesuai dan yang di luar jangkauan
+     * pemeriksaan otomatis dibuka lewat kotak centang.
+     */
     butirTampil(a) {
       if (this.akrTampilSemuaButir) return a.butir;
-      return a.butir.filter((t) => t.status === 'perlu perbaikan');
+      return a.butir.filter((t) => t.status === 'perlu perbaikan' || t.status === 'perlu dicek');
     },
     kelasStatusTemuan(s) {
       var peta = {
@@ -2326,8 +2793,35 @@ const appPengelola = createApp({
       return peta[s] || 'badge badge-none';
     },
 
+    /** Nilai terpilih sebuah unsur untuk lembar cetak. */
+    akrNilaiCetak(u) {
+      var v = (this.persiapanAkr.jawaban.tataKelola[u.k] || {}).nilai;
+      return (v === undefined || v === '') ? 'Belum diisi' : v;
+    },
+    /** Teks level yang dipilih, supaya cetakan bisa dibaca tanpa membuka rubrik. */
+    akrTeksLevelCetak(u) {
+      var v = (this.persiapanAkr.jawaban.tataKelola[u.k] || {}).nilai;
+      if (v === undefined || v === '') return 'Belum ada level yang dipilih.';
+      var lv = u.levels.find((x) => String(x.n) === String(v));
+      return lv ? lv.l : '';
+    },
+
+    /**
+     * Cap waktu cetak. Tanpa ini lembarnya keluar tanpa tanggal dan tanpa
+     * identitas pencetak, sehingga tidak bisa dipakai sebagai lampiran maupun
+     * bahan rapat redaksi.
+     */
+    setCapCetak() {
+      var d = new Date();
+      var bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      this.akrCetakWaktu = d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear() +
+        ', ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2);
+    },
+
     cetakPersiapanAkr() {
-      window.print();
+      this.setCapCetak();
+      this.$nextTick(() => { window.print(); });
     }
   }
 });
@@ -2396,6 +2890,8 @@ appPengelola.mount('#app');
 }
 .akr-nav-status { flex: 1; min-width: 130px; font-size: 12.5px; color: var(--muted); }
 
+.akr-draf-aksi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
 /* penanda field yang terisi dari data DJPI */
 .b-auto {
   display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 4px;
@@ -2405,13 +2901,17 @@ appPengelola.mount('#app');
 .b-otomatis { background: #e4f0f0; color: #0f5f68; }
 .b-verifikasi { background: #fbf0dc; color: #8a5a05; }
 .b-diubah { background: var(--red-soft); color: var(--red); }
+/* Data direktori bergerak sendiri; ini kabar, bukan galat, jadi warnanya netral. */
+.b-data-berubah { background: #ece9f3; color: #4a3d7a; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .b-otomatis { background: #132a2c; color: #6fbdc4; }
   :root:not([data-theme="light"]) .b-verifikasi { background: #2c2314; color: #d6a44e; }
+  :root:not([data-theme="light"]) .b-data-berubah { background: #221f30; color: #a89ed0; }
   :root:not([data-theme="light"]) .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
 }
 :root[data-theme="dark"] .b-otomatis, body.dark .b-otomatis { background: #132a2c; color: #6fbdc4; }
 :root[data-theme="dark"] .b-verifikasi, body.dark .b-verifikasi { background: #2c2314; color: #d6a44e; }
+:root[data-theme="dark"] .b-data-berubah, body.dark .b-data-berubah { background: #221f30; color: #a89ed0; }
 :root[data-theme="dark"] .akr-st.selesai .akr-st-bul,
 body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
 .akr-sumber { margin: 8px 0 0; }
@@ -2567,17 +3067,48 @@ body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
   .akr-unit-head { flex-direction: column; }
 }
 
+/* Lembar cetak: tidak pernah tampil di layar, hanya saat mencetak. */
+.akr-cetak { display: none; }
+
 @media print {
   .app-nav, .app-atas, .akr-nav, .akr-stepper, .footer, .app-nav-backdrop { display: none !important; }
-  /* v-show menyembunyikan langkah lewat style inline; saat mencetak semuanya dibuka */
-  .akr-alur { display: block !important; }
-  .akr-langkah { display: block !important; margin-bottom: 16px; }
-  .akr-grup-isi { display: block !important; }
+  /* Alur di layar TIDAK ikut dicetak: jawaban di sana hanya ditandai warna latar,
+     yang hilang saat "background graphics" dimatikan, dan seluruh salinan rubrik
+     ikut terbawa. Yang dicetak adalah .akr-cetak, yang menulis jawabannya. */
+  .akr-alur { display: none !important; }
+  /* Hanya spanduk milik panel akreditasi yang disembunyikan. Menyembunyikan
+     .card secara umum akan membuat panel lain (riwayat DOI, terbitan) tercetak
+     sebagai halaman kosong. */
+  .layar-saja { display: none !important; }
+
+  .akr-cetak { display: block !important; }
   .app-utama { margin: 0 !important; padding: 0 !important; }
-  .app-panel { box-shadow: none !important; }
-  .card { break-inside: avoid; box-shadow: none !important; border-color: #ccc !important; }
-  .akr-level, .akr-cope { break-inside: avoid; }
-  body { background: #fff !important; }
+  .app-panel { box-shadow: none !important; border: 0 !important; }
+  body { background: #fff !important; color: #000 !important; }
+
+  @page { size: A4; margin: 16mm 14mm; }
+
+  .akr-cetak h1 { font-size: 17px; margin: 0 0 2px; }
+  .akr-cetak h2 {
+    font-size: 13px; margin: 18px 0 6px; padding-bottom: 3px;
+    border-bottom: 1px solid #999; break-after: avoid;
+  }
+  .akr-cetak h3 { font-size: 12px; margin: 12px 0 4px; break-after: avoid; }
+  .akr-cetak-kop { margin-bottom: 6px; padding-bottom: 8px; border-bottom: 2px solid #333; }
+  .akr-cetak-kop p { margin: 2px 0; font-size: 12px; }
+  .akr-cetak-meta { color: #444; font-size: 11px !important; }
+  .akr-cetak-nb { margin: 4px 0 8px; font-size: 10.5px; color: #444; }
+
+  .akr-cetak-tabel { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .akr-cetak-tabel th, .akr-cetak-tabel td {
+    padding: 4px 6px; border: 1px solid #bbb; text-align: left;
+    vertical-align: top; break-inside: avoid;
+  }
+  .akr-cetak-tabel th { width: 42%; font-weight: 600; background: none; }
+  .akr-cetak-bukti { margin-top: 2px; font-size: 10px; color: #444; }
+  .akr-cetak-daftar { margin: 4px 0 0; padding-left: 18px; font-size: 11px; }
+  .akr-cetak-daftar li { margin-bottom: 5px; break-inside: avoid; }
+  .akr-cetak-artikel { break-inside: auto; }
 }
 </style>
 

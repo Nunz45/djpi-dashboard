@@ -5914,7 +5914,11 @@ var AKR_TATA_KELOLA = [
       { n: 5, l: 'Rekam jejak publikasi internasional & editor dari >= 5 negara.' },
       { n: 3, l: 'Rekam jejak internasional & editor dari >= 2 negara atau >= 6 institusi.' },
       { n: 2, l: 'Rekam jejak nasional & editor dari >= 4 institusi.' },
-      { n: 1, l: 'Rekam jejak nasional & editor dari >= 2 institusi.' }
+      { n: 1, l: 'Rekam jejak nasional & editor dari >= 2 institusi.' },
+      // Kepdirjen tidak menuliskan level 0 untuk unsur ini, tetapi jurnal yang
+      // seluruh penyuntingnya satu institusi tidak punya opsi yang bisa dipilih
+      // dan formulirnya jadi mustahil diselesaikan secara jujur.
+      { n: 0, l: 'Belum memenuhi level terendah: penyunting berasal dari satu institusi dan/atau rekam jejaknya belum dapat diverifikasi.' }
     ] },
   { k: 'B.4', nama: 'Keberagaman asal Penulis', maks: 6,
     catatan: 'Dilihat per nomor terbitan, 3 tahun terakhir. Afiliasi penulis wajib valid & terverifikasi. Penambahan penulis pasca-accepted tanpa alasan jelas tidak diakui.',
@@ -5993,7 +5997,10 @@ var AKR_TATA_KELOLA = [
       { n: 4, l: 'Tercantum, tetapi metadata belum terindeks di pengindeks bereputasi internasional.' },
       { n: 3, l: 'Tercantum + metadata terindeks di pengindeks internasional/nasional bersistem seleksi (mis. DOAJ).' },
       { n: 2, l: 'Tercantum, tetapi metadata belum terindeks di pengindeks bersistem seleksi.' },
-      { n: 1, l: 'Tercantum + metadata terindeks di pengindeks tanpa sistem seleksi (mis. Google Scholar).' }
+      { n: 1, l: 'Tercantum + metadata terindeks di pengindeks tanpa sistem seleksi (mis. Google Scholar).' },
+      // Sama seperti B.3: tanpa level 0, jurnal yang belum terindeks di mana pun
+      // tidak punya jawaban yang benar.
+      { n: 0, l: 'Belum memenuhi level terendah: belum tercantum di pengindeks mana pun.' }
     ] }
 ];
 
@@ -6093,6 +6100,30 @@ var AKR_DISINSENTIF =
 var AKR_TATA_KELOLA_MAKS = 46;
 var AKR_MUTU_ARTIKEL_MAKS = 54;
 
+/**
+ * Berkas dan terbitan yang harus disiapkan di luar layar ini. Enam langkah di
+ * menu ini bisa selesai seluruhnya sementara pengajuan tetap tersendat di tahap
+ * unggah, karena daftar ini sebelumnya tidak disebut di mana pun.
+ */
+var AKR_BERKAS_ARJUNA = [
+  { k: 'ar1', nama: 'Akun ARJUNA aktif atas nama pengelola jurnal',
+    ket: 'Pastikan surel yang terdaftar masih bisa diakses.' },
+  { k: 'ar2', nama: 'Terbitan full-text yang bisa diakses penilai',
+    ket: 'Akreditasi baru: terbitan dua tahun terakhir. Reakreditasi: terbitan sejak SK berjalan. Pastikan PDF terbuka tanpa login.' },
+  { k: 'ar3', nama: 'Tautan halaman kebijakan: fokus & ruang lingkup, etika publikasi, proses telaah, dan lisensi',
+    ket: 'Halaman harus hidup dan isinya konsisten dengan jawaban Anda di Tahap 3.1.' },
+  { k: 'ar4', nama: 'Bukti DOI aktif dan metadata terkirim ke Crossref',
+    ket: 'Termasuk metadata rujukan, karena ini dilihat pada unsur visibilitas.' },
+  { k: 'ar5', nama: 'Susunan Tim Penyunting beserta afiliasi dan tautan profil',
+    ket: 'Nama dan afiliasi harus dapat diverifikasi; identitas yang tidak terverifikasi menurunkan nilai B.3.' },
+  { k: 'ar6', nama: 'Bukti telaah mitra bestari untuk sampel naskah',
+    ket: 'Rubrik B.1 menyatakan tanpa bukti berarti tanpa telaah.' },
+  { k: 'ar7', nama: 'Salinan SK akreditasi berjalan (untuk reakreditasi)',
+    ket: 'Beserta tanggal berakhirnya, yang juga diisi di langkah 1.' },
+  { k: 'ar8', nama: 'Borang evaluasi diri ARJUNA',
+    ket: 'Diisi sendiri dan menentukan penugasan asesor. Angka di bagian "Perkiraan posisi terhadap peringkat" membantu mengisinya.' }
+];
+
 /* -- Helper sheet & rubrik -------------------------------------------- */
 
 function getPersiapanAkreditasiSheet_() {
@@ -6116,6 +6147,7 @@ function rubrikAkreditasi_() {
     cope: AKR_COPE,
     mutuArtikel: AKR_MUTU_ARTIKEL,
     disinsentif: AKR_DISINSENTIF,
+    berkasArjuna: AKR_BERKAS_ARJUNA,
     tataKelolaMaks: AKR_TATA_KELOLA_MAKS,
     mutuArtikelMaks: AKR_MUTU_ARTIKEL_MAKS,
     peringkat: [
@@ -6125,6 +6157,16 @@ function rubrikAkreditasi_() {
 }
 
 /** Cari nomor baris berdasar nama jurnal di kolom A. 0 bila tidak ada. */
+/**
+ * Cap waktu simpan disamakan ke menit. Sheet menyimpan detik, sedangkan yang
+ * dikirim ke klien saat memuat sudah dipotong ke menit; tanpa penyamaan ini
+ * perbandingan versi akan selalu berbeda dan setiap simpan dianggap konflik.
+ */
+function capAkrNorm_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm');
+  return str_(v).substring(0, 16);
+}
+
 function cariBarisPersiapanAkr_(sh, namaJurnal) {
   var last = sh.getLastRow();
   if (last < 2) return 0;
@@ -6210,22 +6252,24 @@ function prefillAkreditasi_(namaJurnal) {
       ]);
   }
 
-  // E.1 dampak ilmiah. Sitasi DJPI dihitung sepanjang waktu, sedangkan rubrik
-  // meminta 3 tahun terakhir, jadi nilainya selalu berstatus perlu verifikasi.
+  // E.1 dampak ilmiah. Sitasi yang dipegang DJPI dihitung sepanjang tahun terbit,
+  // sedangkan rubrik meminta 3 tahun terakhir saja, dan kolom sitasi 3 tahun tidak
+  // ada di sheet mana pun. Level apa pun yang diturunkan dari angka ini adalah
+  // BATAS ATAS, bukan nilai. Karena itu fieldnya sengaja dibiarkan kosong: prefill
+  // yang meninggikan hampir tidak pernah diturunkan lagi oleh pengelola, dan
+  // selisihnya terbawa sampai ke pengajuan.
   if (refSit) {
     var doiSit = Math.max(angka_(refSit.crossref), angka_(refSit.openalex));
-    var lvE1 = doiSit > 75 ? 6 : doiSit >= 31 ? 4 : doiSit >= 11 ? 3 : doiSit >= 5 ? 2 : doiSit >= 1 ? 1 : null;
-    if (lvE1 !== null) {
-      pre['E.1'] = lvE1;
-      tandai('E.1', 'verifikasi', 'Angka di atas dihitung untuk seluruh tahun terbit, ' +
-        'sedangkan rubrik menghitung 3 tahun terakhir saja. Angka sebenarnya bisa lebih ' +
-        'rendah, jadi sesuaikan setelah Anda memeriksanya.', [
-          { label: 'Sitasi Crossref', isi: refSit.crossref },
-          { label: 'Sitasi OpenAlex', isi: refSit.openalex },
-          { label: 'Dipakai untuk level', isi: doiSit + ' sitasi basis data DOI' },
-          { label: 'Artikel terdata', isi: refSit.artikel + ' artikel' }
-        ]);
-    }
+    var lvAtas = doiSit > 75 ? 6 : doiSit >= 31 ? 4 : doiSit >= 11 ? 3 : doiSit >= 5 ? 2 : doiSit >= 1 ? 1 : 0;
+    tandai('E.1', 'verifikasi', 'Sitasi yang tercatat di DJPI mencakup seluruh tahun terbit, ' +
+      'sedangkan rubrik hanya menghitung 3 tahun terakhir. Dari angka itu, level tertinggi ' +
+      'yang mungkin adalah ' + lvAtas + ' — nilai sebenarnya sama atau lebih rendah. ' +
+      'Periksa sitasi 3 tahun terakhir di Crossref atau Google Scholar, lalu pilih sendiri.', [
+        { label: 'Sitasi Crossref (seluruh tahun)', isi: refSit.crossref },
+        { label: 'Sitasi OpenAlex (seluruh tahun)', isi: refSit.openalex },
+        { label: 'Batas atas level', isi: 'Level ' + lvAtas },
+        { label: 'Artikel terdata', isi: refSit.artikel + ' artikel' }
+      ]);
   }
 
   if (jurnal.bereputasi) {
@@ -6329,6 +6373,16 @@ function simpanPersiapanAkreditasi(token, payload) {
   if (!muatan) return sesiHabis_();
   if (!payload || typeof payload !== 'object') return { ok: false, message: 'Data kosong.' };
 
+  // Jaring pengaman: klien ikut menyebut jurnal yang sedang diisi. Kalau panel
+  // masih memegang jawaban jurnal sebelumnya, namanya tidak akan cocok dengan
+  // token, dan simpanan ditolak alih-alih menimpa baris jurnal yang salah.
+  if (payload.namaJurnal && norm_(str_(payload.namaJurnal)) !== norm_(str_(muatan.namaJurnal))) {
+    return {
+      ok: false, code: 'JURNAL_TIDAK_COCOK',
+      message: 'Isian di layar milik jurnal lain. Muat ulang halaman sebelum menyimpan.'
+    };
+  }
+
   var jenis = (str_(payload.jenis) === 'baru') ? 'baru' : 'ulang';
   var tglBerakhir = str_(payload.tglBerakhirSk).substring(0, 10);
   var jawaban = (payload.jawaban && typeof payload.jawaban === 'object') ? payload.jawaban : {};
@@ -6373,8 +6427,36 @@ function simpanPersiapanAkreditasi(token, payload) {
     ];
 
     var baris = cariBarisPersiapanAkr_(sh, muatan.namaJurnal);
-    if (baris) sh.getRange(baris, 1, 1, barisData.length).setValues([barisData]);
-    else sh.appendRow(barisData);
+
+    // Deteksi tabrakan. Penulisan di sini mengganti SELURUH baris, jadi dua tab
+    // atau admin mode atas nama yang menyimpan bersamaan akan saling menghapus.
+    // LockService hanya mengurutkan penulisan, ia tidak melihat isi yang ditimpa.
+    if (baris && !payload.paksa) {
+      var capServer = capAkrNorm_(sh.getRange(baris, 8).getValue());
+      var capKlien = capAkrNorm_(payload.terakhirDisimpan);
+      if (capServer && capServer !== capKlien) {
+        var lamaJson = str_(sh.getRange(baris, 5).getValue());
+        var lamaJawab = {};
+        try { lamaJawab = JSON.parse(lamaJson || '{}'); } catch (e) { lamaJawab = {}; }
+        return {
+          ok: false, code: 'KONFLIK',
+          message: 'Isian jurnal ini sudah diperbarui dari tempat lain pada ' + capServer +
+                   '. Isian Anda belum ditimpakan.',
+          serverTerakhirDisimpan: capServer,
+          serverJawaban: lamaJawab
+        };
+      }
+    }
+
+    if (!baris) {
+      sh.appendRow(barisData);
+      baris = sh.getLastRow();
+    }
+    // Kolom tanggal SK dijadikan teks SEBELUM ditulis. Tanpa ini Sheets meng-coerce
+    // string ISO jadi Date memakai zona spreadsheet, sedangkan pembacaan memakai TZ
+    // di atas, sehingga tanggalnya bisa bergeser sehari tiap siklus simpan-muat.
+    sh.getRange(baris, 4).setNumberFormat('@');
+    sh.getRange(baris, 1, 1, barisData.length).setValues([barisData]);
     SpreadsheetApp.flush();
 
     catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'PERSIAPAN_AKREDITASI'),
@@ -6500,11 +6582,31 @@ function bersihkanCachePraAsesmen_() {
   CacheService.getScriptCache().remove(CACHE_PRA_ASESMEN);
 }
 
-/** Cocokkan nama jurnal secara toleran: sama persis, atau salah satu memuat yang lain. */
+/**
+ * Kunci pencocokan nama jurnal: huruf besar, spasi rapi, tanda baca dibuang.
+ * Toleran terhadap beda tanda titik dua atau tanda hubung, tetapi tetap membedakan
+ * nama yang memang berbeda.
+ */
+function kunciJurnal_(v) {
+  return norm_(v).replace(/[^A-Z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Cocokkan nama jurnal secara TEPAT setelah dinormalkan.
+ *
+ * Sebelumnya fungsi ini menerima substring dua arah, sehingga nama pendek
+ * mewarisi temuan jurnal lain: "Curricula" cocok ke "Curricula: Journal of
+ * Curriculum Development", "Passage" ke "Passage: Journal of English Language
+ * and Literature", dan "Indonesian Journal of Science" ke "Indonesian Journal of
+ * Science and Technology". Pengelola bisa melihat, dan memperbaiki, temuan milik
+ * jurnal yang bukan miliknya. Kolom "Nama Jurnal" di sheet pra-asesmen memang
+ * sudah ditulis persis seperti Sheet1 (lihat mutu-artikel/peta_jurnal.json),
+ * jadi kecocokan tepat tidak menghilangkan satu pun baris yang sah.
+ */
 function cocokJurnal_(a, b) {
-  var x = norm_(a), y = norm_(b);
+  var x = kunciJurnal_(a), y = kunciJurnal_(b);
   if (!x || !y) return false;
-  return x === y || x.indexOf(y) !== -1 || y.indexOf(x) !== -1;
+  return x === y;
 }
 
 /**
@@ -6565,10 +6667,14 @@ function cekPraAsesmen() {
   }
 
   var jurnal = bacaDataJurnal_().map(function (j) { return j.namaJurnal; });
-  var cocok = {}, tidakCocok = {};
+  var cocok = {}, tidakCocok = {}, ganda = {};
   baris.forEach(function (b) {
-    var ada = jurnal.some(function (n) { return cocokJurnal_(n, b.namaJurnal); });
-    var wadah = ada ? cocok : tidakCocok;
+    // Dihitung, bukan sekadar some(): satu baris yang cocok ke lebih dari satu
+    // jurnal berarti temuannya tampil di beberapa panel sekaligus. Versi lama
+    // memakai some() sehingga kasus itu tetap dilaporkan "OK".
+    var kena = jurnal.filter(function (n) { return cocokJurnal_(n, b.namaJurnal); });
+    if (kena.length > 1) ganda[b.namaJurnal] = kena;
+    var wadah = kena.length ? cocok : tidakCocok;
     wadah[b.namaJurnal] = (wadah[b.namaJurnal] || 0) + 1;
   });
 
@@ -6582,8 +6688,15 @@ function cekPraAsesmen() {
       garis.push('  MISS ' + k + ' (' + tidakCocok[k] + ' baris) -- temuan ini tidak akan tampil ke pengelola');
     });
     garis.push('Perbaiki kolom "Nama Jurnal" di sheet, atau perbarui mutu-artikel/peta_jurnal.json lalu susun ulang TSV.');
-  } else {
-    garis.push('Seluruh baris cocok. Temuan akan tampil di menu Persiapan Akreditasi masing-masing jurnal.');
+  }
+  if (Object.keys(ganda).length) {
+    garis.push('Cocok ke LEBIH DARI SATU jurnal -- temuan akan bocor antar-panel:');
+    Object.keys(ganda).forEach(function (k) {
+      garis.push('  GANDA ' + k + ' -> ' + ganda[k].join(' | '));
+    });
+  }
+  if (!Object.keys(tidakCocok).length && !Object.keys(ganda).length) {
+    garis.push('Seluruh baris cocok ke tepat satu jurnal. Temuan akan tampil di menu Persiapan Akreditasi masing-masing jurnal.');
   }
 
   var ringkas = garis.join(String.fromCharCode(10));

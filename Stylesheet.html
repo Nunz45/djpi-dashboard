@@ -217,6 +217,8 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
 .alert-galat{background:#fbecec;color:#7e1a1a;border-color:#f1d2d2}
 .alert-ok{background:#e8f2e9;color:#1f5a2a;border-color:#cfe4d2}
 .alert-info{background:#eef4f5;color:#17565e;border-color:#d6e4e7}
+/* Perlu keputusan pengelola, bukan galat dan bukan kabar baik. */
+.alert-emas{background:#fbf3df;color:#6b4e12;border-color:#ecdcae}
 .kosong{padding:var(--space-8) var(--space-5);border:1px dashed var(--line-strong);border-radius:var(--radius-lg);background:var(--surface-soft);color:var(--muted);text-align:center}
 .kosong-judul{color:var(--text);font-weight:800}
 .skeleton{border-radius:7px;background:linear-gradient(90deg,var(--elev-5) 25%,var(--elev-2) 50%,var(--elev-5) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite}
@@ -425,6 +427,7 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
   :root:not([data-theme="light"]) .alert-galat{background:#2b1616;color:#f0b8b8;border-color:#5a2a2a}
   :root:not([data-theme="light"]) .alert-ok{background:#173420;color:#a8d8b4;border-color:#265232}
   :root:not([data-theme="light"]) .alert-info{background:#152628;color:#9fd0d6;border-color:#27484d}
+  :root:not([data-theme="light"]) .alert-emas{background:#332a10;color:#e6cd8e;border-color:#5c4c1e}
 }
 :root[data-theme="dark"] .topbar,body.dark .topbar{background:rgba(23,22,20,.9)}
 :root[data-theme="dark"] table.tabel th,body.dark table.tabel th{background:rgba(0,0,0,.55)}
@@ -440,6 +443,7 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 :root[data-theme="dark"] .alert-galat,body.dark .alert-galat{background:#2b1616;color:#f0b8b8;border-color:#5a2a2a}
 :root[data-theme="dark"] .alert-ok,body.dark .alert-ok{background:#173420;color:#a8d8b4;border-color:#265232}
 :root[data-theme="dark"] .alert-info,body.dark .alert-info{background:#152628;color:#9fd0d6;border-color:#27484d}
+:root[data-theme="dark"] .alert-emas,body.dark .alert-emas{background:#332a10;color:#e6cd8e;border-color:#5c4c1e}
 
 /* ===== Mode gelap untuk warna berstatus yang dulu hardcoded terang =====
    .row-alert*, .input-galat, .kpi-icon-w/-g, dan .kpi-gold memakai latar terang
