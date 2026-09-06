@@ -1452,6 +1452,71 @@ function bacaToken_(token, prefix) {
   } catch (err) { return null; }
 }
 
+/**
+ * Menerangkan KENAPA sebuah token tidak terbaca. Dipakai pada jalur gagal saja.
+ * Tidak pernah membocorkan isi token: hanya panjang dan awalannya.
+ */
+function diagnosaToken_(token, prefix) {
+  if (!token || typeof token !== 'string') return 'token tidak dikirim ke server';
+  var potong = token.slice(0, 5) + '...(' + token.length + ' karakter)';
+  if (prefix && token.indexOf(prefix) !== 0) return 'awalan salah, diharap ' + prefix + ', dapat ' + potong;
+
+  var diSkrip = null, diUser = null;
+  try { diSkrip = CacheService.getScriptCache().get(token); } catch (err) { diSkrip = null; }
+  try { diUser = CacheService.getUserCache().get(token); } catch (err) { diUser = null; }
+
+  if (!diSkrip && !diUser) {
+    return 'token ' + potong + ' TIDAK ADA di script cache maupun user cache. ' +
+      'Berarti tulisan dan pembacaan terjadi pada penyimpanan yang berbeda, ' +
+      'atau entrinya sudah hilang. Jalankan ujiTokenLangkah1_() lalu ujiTokenLangkah2_().';
+  }
+
+  var mentah = diSkrip || diUser;
+  var dimana = diSkrip ? 'script cache' : 'user cache saja';
+  try {
+    var m = JSON.parse(mentah);
+    if (!m.expires) return 'token ada di ' + dimana + ' tetapi tanpa medan expires';
+    var sisa = Math.round((m.expires - Date.now()) / 1000);
+    return 'token ada di ' + dimana + ', kedaluwarsa ' + (sisa < 0 ? (-sisa + ' detik lalu') : ('dalam ' + sisa + ' detik'));
+  } catch (err) {
+    return 'token ada di ' + dimana + ' tetapi isinya tidak bisa diurai';
+  }
+}
+
+/**
+ * Uji dua langkah untuk membuktikan apakah cache benar-benar dibagi antar
+ * eksekusi. Jalankan dari editor Apps Script:
+ *   1. ujiTokenLangkah1_()  -> menghasilkan token, salin dari log
+ *   2. ujiTokenLangkah2_()  -> tempel token itu ke dalam fungsinya, jalankan
+ * Kalau langkah 2 gagal padahal langkah 1 berhasil, cache tidak menyeberang
+ * antar eksekusi dan token harus dipindahkan ke penyimpanan lain.
+ */
+function ujiTokenLangkah1_() {
+  var tok = buatToken_('edit_', { namaJurnal: 'UJI', email: 'uji@upi.edu', aktor: 'uji', samaran: true }, 1800);
+  var langsung = bacaToken_(tok, 'edit_');
+  var pesan = [
+    'Token dibuat : ' + tok,
+    'Dibaca ulang dalam eksekusi yang SAMA: ' + (langsung ? 'BERHASIL' : 'GAGAL'),
+    '',
+    'Salin token di atas, tempel ke dalam ujiTokenLangkah2_(), lalu jalankan.'
+  ].join(String.fromCharCode(10));
+  console.log(pesan);
+  return pesan;
+}
+
+function ujiTokenLangkah2_() {
+  var tok = '';   // <-- tempel token dari langkah 1 di sini
+
+  if (!tok) return 'Tempel dulu token dari ujiTokenLangkah1_() ke dalam fungsi ini.';
+  var muatan = bacaToken_(tok, 'edit_');
+  var pesan = [
+    'Dibaca pada eksekusi BERBEDA: ' + (muatan ? 'BERHASIL' : 'GAGAL'),
+    'Diagnosa: ' + diagnosaToken_(tok, 'edit_')
+  ].join(String.fromCharCode(10));
+  console.log(pesan);
+  return pesan;
+}
+
 function sesiHabis_() {
   return { ok: false, code: 'SESSION_EXPIRED', message: 'Sesi Anda telah berakhir. Silakan masuk kembali.' };
 }
@@ -1834,7 +1899,17 @@ function verifyJournalPin(namaJurnal, pin) {
  */
 function getSesiPengelola(token) {
   var muatan = bacaToken_(token, 'edit_');
-  if (!muatan) return sesiHabis_();
+  if (!muatan) {
+    // Diagnostik: tanpa ini, SESSION_EXPIRED tidak membedakan token yang tidak
+    // pernah sampai, token yang salah prefix, token yang tidak ada di cache mana
+    // pun, dan token yang ada tetapi sudah kedaluwarsa. Keempatnya butuh
+    // perbaikan yang berbeda.
+    var d = diagnosaToken_(token, 'edit_');
+    console.warn('getSesiPengelola gagal: ' + d);
+    var r = sesiHabis_();
+    r.diagnosa = d;
+    return r;
+  }
   return {
     ok: true,
     namaJurnal: muatan.namaJurnal,

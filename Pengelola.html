@@ -1317,7 +1317,8 @@ const appPengelola = createApp({
             // kegagalan tampak seperti "tidak terjadi apa-apa".
             this.pesanGalat = 'Mode atas nama gagal: ' +
               ((res && res.message) || 'sesi tidak berlaku') +
-              (res && res.code ? ' [' + res.code + ']' : '');
+              (res && res.code ? ' [' + res.code + ']' : '') +
+              (res && res.diagnosa ? ' — ' + res.diagnosa : '');
             return;
           }
           this.namaJurnalAktif = res.namaJurnal;
@@ -1349,7 +1350,8 @@ const appPengelola = createApp({
           if (!res || !res.ok) {
             this.pesanGalat = 'Tautan sesi tidak berlaku: ' +
               ((res && res.message) || 'token tidak dikenali') +
-              (res && res.code ? ' [' + res.code + ']' : '');
+              (res && res.code ? ' [' + res.code + ']' : '') +
+              (res && res.diagnosa ? ' — ' + res.diagnosa : '');
             return;
           }
           this.emailInput = res.email || '';
