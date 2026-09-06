@@ -1790,6 +1790,28 @@ function verifyJournalPin(namaJurnal, pin) {
   }
 }
 
+/**
+ * Kembalikan identitas sesi dari muatan token edit_, TANPA perlu tahu nama
+ * jurnalnya lebih dulu.
+ *
+ * Dibutuhkan karena getJournalDetailForEditor menuntut namaJurnal sebagai
+ * argumen kedua untuk mencocokkannya dengan token. Pada dua jalur, klien belum
+ * punya nama itu: mode "bertindak atas nama pengelola", dan pemulihan lewat ?t=
+ * di perangkat yang localStorage-nya kosong. Nama jurnalnya justru ada di dalam
+ * token, jadi tanya saja ke sini lebih dulu.
+ */
+function getSesiPengelola(token) {
+  var muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+  return {
+    ok: true,
+    namaJurnal: muatan.namaJurnal,
+    email: muatan.email || '',
+    atasNama: !!muatan.samaran,
+    aktor: muatan.samaran ? (muatan.aktor || '') : ''
+  };
+}
+
 function getJournalDetailForEditor(token, namaJurnal) {
   var muatan = bacaToken_(token, 'edit_');
   if (!muatan) return sesiHabis_();

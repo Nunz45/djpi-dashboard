@@ -1308,11 +1308,12 @@ const appPengelola = createApp({
       google.script.run
         .withSuccessHandler((res) => {
           if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
-          this.namaJurnalAktif = res.detail.namaJurnal;
+          this.namaJurnalAktif = res.namaJurnal;
+          this.emailInput = res.email || '';
           this.masukKeMenu();
         })
-        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat: ' + err.message; })
-        .getJournalDetailForEditor(TOKEN_AWAL);
+        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat sesi: ' + err.message; })
+        .getSesiPengelola(TOKEN_AWAL);
       return;
     }
 
@@ -1332,11 +1333,11 @@ const appPengelola = createApp({
       google.script.run
         .withSuccessHandler((res) => {
           if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
-          this.namaJurnalAktif = res.detail.namaJurnal;
-          this.simpanSesi(TOKEN_AWAL, res.detail.namaJurnal);
+          this.emailInput = res.email || '';
+          this.simpanSesi(TOKEN_AWAL, res.namaJurnal);
         })
-        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat: ' + err.message; })
-        .getJournalDetailForEditor(TOKEN_AWAL);
+        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat sesi: ' + err.message; })
+        .getSesiPengelola(TOKEN_AWAL);
       return;
     }
 
