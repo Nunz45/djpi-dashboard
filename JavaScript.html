@@ -377,9 +377,19 @@ var appDjpi = Vue.createApp({
           // kegagalan jadi terlihat dan URL-nya bisa diperiksa atau disalin.
           s.urlAtasNama=url;
           s.popupGagal=false;
-          var w=null;
-          try{ w=window.open(url,'_blank','noopener'); }catch(e){ w=null; }
-          if(!w) s.popupGagal=true;
+          // Anchor sintetis, bukan window.open. Panggilan ini berada di luar
+          // transient user activation karena menunggu round-trip server lebih
+          // dulu, dan window.open dalam keadaan itu diblokir Safari. Klik pada
+          // elemen <a> lebih permisif, dan tanpa argumen windowFeatures ia
+          // selalu membuka tab, bukan jendela popup.
+          var ok=false;
+          try{
+            var a=document.createElement('a');
+            a.href=url; a.target='_blank'; a.rel='noopener';
+            document.body.appendChild(a); a.click(); a.remove();
+            ok=true;
+          }catch(e){ ok=false; }
+          if(!ok) s.popupGagal=true;
         })
         .catch(function(err){ alert('Gagal membuka panel pengelola: '+((err&&err.message)||err)); })
         .finally(function(){ s.membukaAtasNama=false; });

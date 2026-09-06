@@ -1678,6 +1678,14 @@
         </form>
       </div>
 
+      <!-- URL ditampilkan apa adanya supaya kegagalan bisa didiagnosis tanpa
+           DevTools. Kalau alamatnya berakhiran /dev atau tidak diawali
+           script.google.com, berarti URL_WEBAPP belum disetel -- jalankan
+           cekUrlWebApp_() dari editor Apps Script. -->
+      <p v-if="urlAtasNama" class="card-note" style="padding:0 var(--space-5);word-break:break-all">
+        Alamat panel: {{ urlAtasNama }}
+      </p>
+
       <div class="modal-foot">
         <template v-if="modeSunting">
           <button type="button" class="btn" @click="batalSunting">Batal</button>
