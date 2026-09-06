@@ -1302,17 +1302,31 @@ const appPengelola = createApp({
     // bukan dari localStorage -- di perangkat bersama, nilai yang tertinggal di
     // sana bisa menunjuk jurnal yang berbeda dari yang ditunjuk token.
     if (atasNama) {
-      if (!TOKEN_AWAL) return;
+      if (!TOKEN_AWAL) {
+        this.pesanGalat = 'Mode atas nama diminta tetapi tautannya tidak membawa token. ' +
+          'Buka lagi dari tombol di dashboard admin.';
+        return;
+      }
       this.token = TOKEN_AWAL;
       try { document.title = '[ATAS NAMA] ' + document.title; } catch (e) {}
       google.script.run
         .withSuccessHandler((res) => {
-          if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
+          if (!res || !res.ok) {
+            // pesanGalat, BUKAN galatPanel: galatPanel hanya dirender di dalam
+            // shell menu, sehingga di layar login ia tidak pernah terlihat dan
+            // kegagalan tampak seperti "tidak terjadi apa-apa".
+            this.pesanGalat = 'Mode atas nama gagal: ' +
+              ((res && res.message) || 'sesi tidak berlaku') +
+              (res && res.code ? ' [' + res.code + ']' : '');
+            return;
+          }
           this.namaJurnalAktif = res.namaJurnal;
           this.emailInput = res.email || '';
           this.masukKeMenu();
         })
-        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat sesi: ' + err.message; })
+        .withFailureHandler((err) => {
+          this.pesanGalat = 'Mode atas nama gagal memanggil server: ' + ((err && err.message) || err);
+        })
         .getSesiPengelola(TOKEN_AWAL);
       return;
     }
@@ -1332,11 +1346,18 @@ const appPengelola = createApp({
       this.token = TOKEN_AWAL;
       google.script.run
         .withSuccessHandler((res) => {
-          if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
+          if (!res || !res.ok) {
+            this.pesanGalat = 'Tautan sesi tidak berlaku: ' +
+              ((res && res.message) || 'token tidak dikenali') +
+              (res && res.code ? ' [' + res.code + ']' : '');
+            return;
+          }
           this.emailInput = res.email || '';
           this.simpanSesi(TOKEN_AWAL, res.namaJurnal);
         })
-        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat sesi: ' + err.message; })
+        .withFailureHandler((err) => {
+          this.pesanGalat = 'Gagal memanggil server: ' + ((err && err.message) || err);
+        })
         .getSesiPengelola(TOKEN_AWAL);
       return;
     }

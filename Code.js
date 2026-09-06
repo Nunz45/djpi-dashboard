@@ -1375,10 +1375,31 @@ function lolosRateLimit_(tipe, target) {
   return true;
 }
 
+/**
+ * Token sesi disimpan di USER cache, bukan script cache.
+ *
+ * Script cache dibatasi 1000 item, dan saat penuh Google membuang item yang
+ * paling dekat kedaluwarsa. Cache itu juga menampung payload jurnal yang dipecah
+ * sampai 21 potongan (tulisCachePotong_), penjaga PIN, dan cache sheet lain.
+ * Token dengan TTL terpendek karena itu jadi yang PERTAMA digusur -- dan
+ * SAMARAN_TTL 15 menit adalah TTL terpendek di seluruh sistem, sehingga token
+ * penyamaran adalah item paling rapuh yang ada. Gejalanya: token baru dibuat,
+ * beberapa detik kemudian sudah tidak dikenali, dan pengguna terlempar ke layar
+ * PIN tanpa penjelasan.
+ *
+ * User cache punya kuota terpisah dan hanya berisi token, jadi jauh lebih lapang.
+ * Karena executeAs USER_DEPLOYING, "user"-nya sama untuk semua pengunjung,
+ * sehingga token tetap terbaca lintas permintaan.
+ */
+function cacheToken_() {
+  try { return CacheService.getUserCache() || CacheService.getScriptCache(); }
+  catch (err) { return CacheService.getScriptCache(); }
+}
+
 function buatToken_(prefix, muatan, ttl) {
   var token = prefix + Utilities.getUuid();
   muatan.expires = Date.now() + ttl * 1000;
-  CacheService.getScriptCache().put(token, JSON.stringify(muatan), ttl);
+  cacheToken_().put(token, JSON.stringify(muatan), ttl);
   return token;
 }
 
@@ -1416,7 +1437,12 @@ function aksiEdit_(muatan, aksi) {
 function bacaToken_(token, prefix) {
   if (!token || typeof token !== 'string') return null;
   if (prefix && token.indexOf(prefix) !== 0) return null;
-  var mentah = CacheService.getScriptCache().get(token);
+  // Baca dari user cache lebih dulu, lalu script cache sebagai cadangan supaya
+  // token yang terbit sebelum perubahan ini tetap berlaku sampai kedaluwarsa.
+  var mentah = cacheToken_().get(token);
+  if (!mentah) {
+    try { mentah = CacheService.getScriptCache().get(token); } catch (err) { mentah = null; }
+  }
   if (!mentah) return null;
   try {
     var muatan = JSON.parse(mentah);
@@ -1434,7 +1460,12 @@ function pinAcak_() {
 }
 
 function logout(token) {
-  if (token && typeof token === 'string') CacheService.getScriptCache().remove(token);
+  if (token && typeof token === 'string') {
+    // Hapus dari kedua tempat: token yang terbit sebelum pemindahan ke user
+    // cache masih tersimpan di script cache.
+    try { cacheToken_().remove(token); } catch (err) { /* abaikan */ }
+    try { CacheService.getScriptCache().remove(token); } catch (err) { /* abaikan */ }
+  }
   return { ok: true };
 }
 
