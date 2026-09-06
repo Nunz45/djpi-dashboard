@@ -25,6 +25,16 @@ def issn(v):
     v = re.sub(r'[^0-9Xx]', '', str(v or '')).upper()
     return v if re.match(r'^\d{7}[\dX]$', v) else ''
 
+# Kolom ISSN di Sheet1: AF = E-ISSN, AG = P-ISSN. Kolom lama "ISSN" (X) tidak
+# dipakai lagi. e-ISSN jadi kunci utama karena lampiran SK mencatat EISSN;
+# p-ISSN hanya jaring kedua dan kecocokannya SELALU ditandai, sebab mencocokkan
+# nomor cetak ke kolom elektronik bisa menghasilkan pasangan yang keliru.
+def eissnBaris(r):
+    return issn(r.get('E-ISSN'))
+
+def pissnBaris(r):
+    return issn(r.get('P-ISSN'))
+
 def kunci(n):
     n = re.sub(r'\([^)]*\)', ' ', n or '')
     n = re.sub(r'[^a-z0-9 ]', ' ', n.lower())
@@ -98,24 +108,30 @@ TAHUN_INI = datetime.date.today().year
 # data yang harus diketahui, karena e-ISSN adalah kunci gabung seluruh berkas ini.
 hitungIssn = {}
 for r in utama:
-    e = issn(r.get('E-ISSN')) or issn(r.get('ISSN'))
+    e = eissnBaris(r)
     if e: hitungIssn.setdefault(e, []).append((r.get('NAMA JURNAL') or '').strip())
 issnKembar = {e: v for e, v in hitungIssn.items() if len(v) > 1}
-hasil, ringkas = [], {'cocok-issn':0,'cocok-nama':0,'tanpa-sk':0}
+hasil, ringkas = [], {'cocok-issn':0,'cocok-pissn':0,'cocok-nama':0,'tanpa-sk':0}
 for r in utama:
     nama = (r.get('NAMA JURNAL') or '').strip()
     if not nama: continue
-    e = issn(r.get('E-ISSN')) or issn(r.get('ISSN'))
+    e = eissnBaris(r)
+    pi = pissnBaris(r)
     status = (r.get('STATUS AKREDITASI') or '').strip()
     terakreditasi = status.upper().startswith('SINTA')
     pkSheet = re.sub(r'[^0-9]', '', status) if terakreditasi else ''
 
-    rec, caraGabung = (terbaru.get(e), 'e-ISSN') if e and e in terbaru else (None, '')
+    rec, caraGabung = (terbaru.get(e), 'e-ISSN (AF)') if e and e in terbaru else (None, '')
+    if not rec and pi and pi in terbaru:
+        rec, caraGabung = terbaru[pi], 'p-ISSN (AG)'
     if not rec:
         rec = petaNama.get(kunci(nama))
         caraGabung = 'nama jurnal' if rec else ''
-    if rec: ringkas['cocok-issn' if caraGabung == 'e-ISSN' else 'cocok-nama'] += 1
-    else:   ringkas['tanpa-sk'] += 1
+    if rec:
+        ringkas['cocok-issn' if caraGabung.startswith('e-ISSN') else
+                ('cocok-pissn' if caraGabung.startswith('p-ISSN') else 'cocok-nama')] += 1
+    else:
+        ringkas['tanpa-sk'] += 1
 
     catatan = []
     if not rec and terakreditasi:
@@ -133,7 +149,10 @@ for r in utama:
             catatan.append('peringkat beda: Sheet1 %s vs SK %s (rekam SK sudah baru, '
                            'perlu diadu ke sertifikat)' % (pkSheet, rec['peringkat']))
     if not e:
-        catatan.append('e-ISSN kosong di Sheet1, gabung hanya lewat nama')
+        catatan.append('e-ISSN (AF) kosong di Sheet1')
+    if caraGabung == 'p-ISSN (AG)':
+        catatan.append('cocok lewat p-ISSN, bukan e-ISSN — lampiran SK mencatat e-ISSN, '
+                       'jadi pasangan ini perlu diperiksa')
     if e and e in issnKembar:
         catatan.append('e-ISSN KEMBAR di Sheet1, dipakai juga oleh: %s'
                        % ', '.join(n for n in issnKembar[e] if n != nama)[:60])
@@ -158,7 +177,7 @@ for r in utama:
             bulan = '%s-%02d' % (thSk, max(1, min(12, round(12 * no / ipt))))
 
     hasil.append({
-        'nama': nama, 'kluster': (r.get('KLUSTER') or '').strip(), 'eIssn': e,
+        'nama': nama, 'kluster': (r.get('KLUSTER') or '').strip(), 'eIssn': e, 'pIssn': pi,
         'statusSheet1': status, 'peringkatSk': ('SINTA ' + rec['peringkat']) if (rec and rec['peringkat']) else '',
         'nomorSk': rec['nomorSk'] if rec else '', 'periodeSk': rec['periode'] if rec else '',
         'masaBerlaku': ('Vol %s No %s Thn %s s.d. Vol %s No %s Thn %s' % (
@@ -173,14 +192,15 @@ for r in utama:
     })
 
 # jurnal di SK yang tidak ada di Sheet1
-adaDiSheet1 = {issn(r.get('E-ISSN')) or issn(r.get('ISSN')) for r in utama}
+adaDiSheet1 = {x for r in utama for x in (eissnBaris(r), pissnBaris(r)) if x}
 namaSheet1 = {kunci((r.get('NAMA JURNAL') or '')) for r in utama}
 yatim = [b for e, b in terbaru.items()
          if e not in adaDiSheet1 and kunci(b['namaJurnal']) not in namaSheet1]
 
 print()
 print('=== HASIL CEK SILANG ===')
-print('  cocok lewat e-ISSN            : %d' % ringkas['cocok-issn'])
+print('  cocok lewat e-ISSN (kolom AF)  : %d' % ringkas['cocok-issn'])
+print('  cocok lewat p-ISSN (kolom AG)  : %d  (ditandai, perlu diperiksa)' % ringkas['cocok-pissn'])
 print('  cocok hanya lewat nama jurnal : %d  (perlu diperiksa manusia)' % ringkas['cocok-nama'])
 print('  tidak ketemu di SK            : %d' % ringkas['tanpa-sk'])
 print('  ada di SK tetapi tidak di Sheet1: %d' % len(yatim))

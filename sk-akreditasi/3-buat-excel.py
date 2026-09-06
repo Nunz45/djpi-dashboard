@@ -110,21 +110,21 @@ if os.path.exists('cek-silang.json'):
 
 if cs:
     ws3 = wb.create_sheet('Cek Silang Sheet1')
-    kol3 = ['Nama Jurnal (Sheet1)', 'Kluster', 'e-ISSN', 'Status di Sheet1',
+    kol3 = ['Nama Jurnal (Sheet1)', 'Kluster', 'e-ISSN (AF)', 'p-ISSN (AG)', 'Status di Sheet1',
             'Peringkat menurut SK', 'Nomor SK', 'Periode SK', 'Masa Berlaku menurut SK',
             'Tanggal Expired di Sheet1', 'Frekuensi Terbit', 'Terbit/Tahun',
             'Perkiraan Bulan Berakhir', 'Cara Gabung', 'Selisih yang Ditemukan']
-    data3 = [[h['nama'], h['kluster'], h['eIssn'], h['statusSheet1'], h['peringkatSk'],
+    data3 = [[h['nama'], h['kluster'], h['eIssn'], h.get('pIssn',''), h['statusSheet1'], h['peringkatSk'],
               h['nomorSk'], h['periodeSk'], h['masaBerlaku'], h['tanggalExpiredSheet1'],
               h['issue'], h['terbitPerTahun'], h['perkiraanBulanBerakhir'],
               h['caraGabung'], h['catatan']] for h in cs['hasil']]
-    tulis(ws3, kol3, data3, [40,14,12,15,17,26,16,40,17,20,12,16,16,58],
-          bungkus=(1,8,14))
+    tulis(ws3, kol3, data3, [40,14,12,12,15,17,26,16,40,17,20,12,16,16,60],
+          bungkus=(1,9,15))
     for r, h in enumerate(cs['hasil'], 2):
         if h['catatan']:
-            ws3.cell(r,14).fill = PatternFill('solid', fgColor=MERAH)
-        if h['caraGabung'] == 'nama jurnal':
-            ws3.cell(r,13).fill = PatternFill('solid', fgColor=EMAS)
+            ws3.cell(r,15).fill = PatternFill('solid', fgColor=MERAH)
+        if h['caraGabung'] != 'e-ISSN (AF)':
+            ws3.cell(r,14).fill = PatternFill('solid', fgColor=EMAS)
 
     if cs.get('yatim'):
         ws3b = wb.create_sheet('Ada di SK Tapi Tidak di Sheet1')
