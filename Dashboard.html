@@ -1836,10 +1836,16 @@
 </div>
 
 <script>
-  var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
+  // <?!= ?> WAJIB di sini, bukan <?= ?>. Scriptlet <?= ?> melakukan contextual
+  // escaping: di dalam <script> ia sudah membungkus nilainya menjadi literal
+  // string JS. Ditambah JSON.stringify, nilainya jadi ter-kutip DUA KALI --
+  // TOKEN_AWAL berisi "edit_abc" lengkap dengan tanda kutipnya, sehingga server
+  // menolaknya dengan "awalan salah, diharap edit_". <?!= ?> mencetak apa adanya,
+  // sehingga keluaran JSON.stringify menjadi literal itu sendiri.
+  var TOKEN_AWAL = <?!= JSON.stringify(tokenAwal) ?>;
   // URL absolut wajib: halaman berjalan di iframe sandbox googleusercontent.com,
   // sehingga href relatif mengarah ke origin sandbox dan menghasilkan halaman kosong.
-  var URL_PENGELOLA = <?= JSON.stringify(urlPengelola) ?>;
+  var URL_PENGELOLA = <?!= JSON.stringify(urlPengelola) ?>;
 
   // ============================================================
   // CATATAN PENTING — baca ini sebelum menempel file ini
