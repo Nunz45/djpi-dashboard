@@ -108,51 +108,55 @@ html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
     <div class="blob" style="left:6300px;top:100px;width:1700px;height:1700px"></div>
     <div class="blob" style="left:13000px;top:-200px;width:1600px;height:1600px"></div>
 
-    <!-- ========== 1 — PERTANYAAN (0–8) · pusat 960,540 ========== -->
-    <div class="ghost" id="g1" style="left:250px;top:70px">SINTA 3</div>
-    <div class="kartu" id="k1" style="left:640px;top:250px;width:660px;height:270px">
-      <b>Sebuah jurnal UPI</b><i>Contoh · terakreditasi SINTA 3</i>
-    </div>
-    <div class="line t tebal" id="line1" style="left:150px;top:700px;width:1640px;font-size:104px">Kenapa berhenti di <span class="hl"><i></i>SINTA 3</span>?</div>
-    <div class="name" id="nm1" style="left:154px;top:900px">Kepdirjen 374/2026</div>
+    <!-- ========== 1 — POSISI (0–9) · pusat 960,540 ========== -->
+    <div id="lap1"></div>
+    <div class="hand" id="c1a" style="left:250px;top:170px;font-size:52px">sudah terakreditasi</div>
+    <div class="hand" id="c1b" style="left:1180px;top:240px;font-size:52px">belum</div>
+    <div class="line t tebal" id="line1" style="left:150px;top:800px;width:1660px;font-size:98px"><span class="hl"><i></i>110 sudah</span>, 63 belum.</div>
+    <div class="name" id="nm1" style="left:154px;top:950px">173 jurnal yang dikelola UPI</div>
 
-    <!-- ========== 2 — RUBRIK (8–20) · pusat 3560,540 ========== -->
-    <div class="blok" id="bA" style="left:2790px;top:210px;width:620px;height:250px">
+    <!-- ========== 2 — JALUR AKREDITASI BARU (9–21) · pusat 3560,540 ========== -->
+    <div class="kartu" id="kBaru" style="left:2860px;top:250px;width:1400px;height:190px">
+      <b>Akreditasi Baru</b><i>63 jurnal</i>
+    </div>
+    <div class="name" id="s2a" style="left:2890px;top:560px">Syarat masuk · terbit 3 tahun berturut-turut</div>
+    <div class="name" id="s2b" style="left:2890px;top:625px">Yang dinilai · terbitan 3 tahun terakhir</div>
+    <div class="line t kanan" id="line2" style="left:2760px;top:760px;width:1700px;font-size:80px">Mulai dari <span class="hl"><i></i>tiga tahun terbit</span>.</div>
+
+    <!-- ========== 3 — JALUR REAKREDITASI (21–33) · pusat 6160,540 ========== -->
+    <div class="kartu" id="kUlang" style="left:5460px;top:230px;width:1400px;height:190px">
+      <b>Reakreditasi</b><i>110 jurnal</i>
+    </div>
+    <div id="garisWaktu" style="position:absolute;left:5460px;top:540px;width:1400px;height:150px"></div>
+    <div class="name" id="s3a" style="left:5490px;top:700px">Yang dinilai · tiga nomor terbitan terakhir</div>
+    <div class="line t tebal" id="line3" style="left:5300px;top:800px;width:1740px;font-size:92px">Ajukan <span class="hl"><i></i>enam bulan</span> sebelum SK habis.</div>
+
+    <!-- ========== 4 — PENILAIAN YANG SAMA (33–45) · pusat 8760,540 ========== -->
+    <div class="blok" id="bA" style="left:7990px;top:190px;width:620px;height:250px">
       <div class="angka">46</div><div class="nama">Tata Kelola</div>
     </div>
-    <div class="blok mutu" id="bB" style="left:3480px;top:210px;width:700px;height:250px">
+    <div class="blok mutu" id="bB" style="left:8680px;top:190px;width:700px;height:250px">
       <div class="angka">54</div><div class="nama">Mutu Artikel</div>
     </div>
-    <div class="hand" id="hd2" style="left:3560px;top:520px">jumlahnya 100</div>
-    <div class="line t kanan" id="line2" style="left:2760px;top:690px;width:1660px;font-size:78px">Nilai akreditasi dijumlah dari <span class="hl"><i></i>dua bagian</span>.</div>
-    <div class="name" id="nm2" style="left:3810px;top:880px">Bukan satu angka tunggal</div>
+    <div id="tangga" style="position:absolute;left:7950px;top:500px;width:1620px;height:230px"></div>
+    <div class="line t" id="line4" style="left:7900px;top:790px;width:1760px;font-size:78px">Dua jalur, <span class="hl"><i></i>satu rubrik</span> yang sama.</div>
+    <div class="name" id="nm4" style="left:7904px;top:940px">Kepdirjen 374/2026 · nilai penuh 100</div>
 
-    <!-- ========== 3 — AMBANG & ARITMATIKA (20–32) · pusat 6160,540 ========== -->
-    <div id="tangga" style="position:absolute;left:5320px;top:120px;width:1700px;height:560px"></div>
-    <div class="hand" id="hd3" style="left:5360px;top:700px;font-size:56px">Tata Kelola 36 → butuh 44 dari 54</div>
-    <div class="line t tebal" id="line3" style="left:5300px;top:800px;width:1720px;font-size:94px">Tiap peringkat punya <span class="hl"><i></i>ambangnya</span>.</div>
-
-    <!-- ========== 4 — KONSEKUENSI (32–44) · pusat 8760,540 ========== -->
-    <div id="lapangan"></div>
-    <div id="histo" style="position:absolute;left:8020px;top:150px;width:1500px;height:520px"></div>
-    <div class="line t" id="line4" style="left:7900px;top:800px;width:1740px;font-size:80px"><span class="hl"><i></i>110 dari 173</span> sudah melewati garis.</div>
-    <div class="name" id="nm4" style="left:7904px;top:950px">63 jurnal belum</div>
-
-    <!-- ========== 5 — BAGIAN TERBERAT (44–54) · pusat 11360,540 ========== -->
+    <!-- ========== 5 — BAGIAN TERBERAT (45–55) · pusat 11360,540 ========== -->
     <div class="blok mutu" id="bC" style="left:10760px;top:220px;width:1200px;height:280px">
-      <div class="angka">54</div><div class="nama">Mutu Artikel · dinilai dari isi artikel</div>
+      <div class="angka">54</div><div class="nama">Mutu Artikel · dari isi artikel</div>
     </div>
     <div class="hand" id="hd5" style="left:10770px;top:560px;font-size:56px">lebih dari separuh nilai</div>
-    <div class="line t tengah" id="line5" style="left:10460px;top:700px;width:1800px;font-size:104px">Bagian terberat dibaca, <span class="hl"><i></i>bukan diklaim</span>.</div>
+    <div class="line t tengah" id="line5" style="left:10460px;top:700px;width:1800px;font-size:100px">Bagian terberat dibaca, <span class="hl"><i></i>bukan diklaim</span>.</div>
     <div class="name" id="nm5" style="left:10464px;top:900px">Asesor membaca sampel artikel terbit</div>
 
-    <!-- ========== 6 — PERAN & AJAKAN (54–62) · pusat 13960,540 ========== -->
-    <div id="akhir"></div>
-    <div class="kartu" id="k6" style="left:13640px;top:250px;width:660px;height:270px">
-      <b>Sebuah jurnal UPI</b><i>Contoh · menuju SINTA 2</i>
+    <!-- ========== 6 — AJAKAN (55–62) · pusat 13960,540 ========== -->
+    <div id="lap6"></div>
+    <div class="kartu" id="k6" style="left:13640px;top:300px;width:660px;height:190px">
+      <b>Jurnal Anda</b><i>Cek posisinya</i>
     </div>
-    <div class="line t tebal" id="line6" style="left:13060px;top:700px;width:1700px;font-size:88px">DJPI mendampingi <span class="hl"><i></i>63 jurnal</span> berikutnya.</div>
-    <div class="name" id="nm6" style="left:13064px;top:880px">Cek posisi jurnal Anda · ejournal.upi.edu</div>
+    <div class="line t tebal" id="line6" style="left:13060px;top:700px;width:1720px;font-size:88px">Mulai dari <span class="hl"><i></i>daftar periksa</span>-nya.</div>
+    <div class="name" id="nm6" style="left:13064px;top:880px">Menu Persiapan Akreditasi · ejournal.upi.edu</div>
 
     <div class="sapu" id="sapu1"></div>
     <div class="sapu" id="sapu2"></div>
@@ -171,54 +175,48 @@ function fit(){const s=Math.min(innerWidth/W,innerHeight/H);$('#stage').style.tr
 addEventListener('resize',fit);fit();
 function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);}
 
-/* ---------- adegan 3: empat ambang peringkat ---------- */
-const AMBANG=[[1,90],[2,80],[3,70],[4,60]],TSKALA=5.2; // sumbu 0-100, 1 poin = 5,2 px
+/* ---------- adegan 1 & 6: 173 sel, 110 lulus + 63 belum ---------- */
+function buatLapangan(host,x0,y0){
+  const arr=[];
+  for(let i=0;i<173;i++){
+    const d=document.createElement('div');
+    d.className='mini'+(i<110?' lulus':' sorot');
+    d.style.cssText='left:'+(x0+(i%20)*68)+'px;top:'+(y0+Math.floor(i/20)*54)+'px;width:52px;height:38px';
+    host.appendChild(d);arr.push(d);
+  }
+  return arr;
+}
+const lap1=buatLapangan($('#lap1'),260,200);
+const lap6=buatLapangan($('#lap6'),13290,190);
+// Tujuan saat lapangan MEMISAH jadi dua rumpun — inilah yang menyiapkan dua jalur.
+const tujuan=lap1.map(function(d,i){
+  const L=parseFloat(d.style.left),T=parseFloat(d.style.top);
+  if(i<110){const c=i%12,r=Math.floor(i/12);return{x:200+c*62-L,y:250+r*52-T};}
+  const j=i-110,c=j%9,r=Math.floor(j/9);return{x:1180+c*62-L,y:320+r*52-T};
+});
+
+/* ---------- adegan 3: garis waktu tenggat reakreditasi ---------- */
+$('#garisWaktu').innerHTML=
+  '<div id="gwBatang" style="position:absolute;left:0;top:64px;width:1400px;height:10px;'+
+    'background:rgba(127,0,0,.18);border-radius:5px;transform-origin:0 50%;transform:scaleX(0)"></div>'+
+  '<div id="gwIsi" style="position:absolute;left:0;top:64px;width:860px;height:10px;'+
+    'background:var(--marun);border-radius:5px;transform-origin:0 50%;transform:scaleX(0)"></div>'+
+  '<div id="gwTenggat" style="position:absolute;left:854px;top:34px;width:12px;height:70px;'+
+    'background:var(--sorot);border-radius:3px;opacity:0"></div>'+
+  '<div id="gwSk" style="position:absolute;left:1388px;top:34px;width:12px;height:70px;'+
+    'background:var(--marun);border-radius:3px;opacity:0"></div>'+
+  '<div class="hand" id="gwLblT" style="left:640px;top:-42px;font-size:46px">tenggat pengajuan</div>'+
+  '<div class="hand" id="gwLblS" style="left:1180px;top:112px;font-size:46px">SK habis</div>';
+
+/* ---------- adegan 4: empat ambang peringkat ---------- */
+const AMBANG=[[1,90],[2,80],[3,70],[4,60]];
 const tangga=$('#tangga');
-AMBANG.forEach((a,i)=>{
-  const y=560-a[1]*TSKALA;
+AMBANG.forEach(function(a,i){
+  const x=i*400;
   tangga.insertAdjacentHTML('beforeend',
-    `<div class="ambang" id="am${i}" style="left:0;top:${y}px;width:1180px"></div>`+
-    `<div class="ambang-lbl" id="al${i}" style="left:1210px;top:${y-24}px">Peringkat ${a[0]} · ${a[1]}</div>`);
+    '<div class="ambang" id="am'+i+'" style="left:'+x+'px;top:60px;width:330px"></div>'+
+    '<div class="ambang-lbl" id="al'+i+'" style="left:'+x+'px;top:82px">Peringkat '+a[0]+' \u00b7 '+a[1]+'</div>');
 });
-// batang contoh: Tata Kelola 36 terisi, sisanya ruang Mutu Artikel
-tangga.insertAdjacentHTML('beforeend',
-  `<div class="mini lulus" id="isi36" style="left:420px;top:${560-36*TSKALA}px;width:230px;height:${36*TSKALA}px;border-radius:8px 8px 0 0"></div>`+
-  `<div class="mini sorot" id="isi44" style="left:420px;top:${560-80*TSKALA}px;width:230px;height:${44*TSKALA}px;border-radius:8px 8px 0 0"></div>`);
-
-/* ---------- adegan 4: 173 sel + histogram SINTA berwarna menurut PERINGKAT ---------- */
-const lap=$('#lapangan');
-for(let i=0;i<173;i++){
-  const d=document.createElement('div');
-  // 110 pertama = sudah melewati garis. Warna membawa arti, bukan hiasan.
-  d.className='mini'+(i<110?' lulus':'');
-  d.style.cssText=`left:${8080+(i%20)*68}px;top:${170+Math.floor(i/20)*54}px;width:52px;height:38px`;
-  lap.appendChild(d);
-}
-const lapm=$$('.mini',lap);
-
-const SINTA=[['1',3],['2',11],['3',34],['4',36],['5',24],['6',2]],SMAX=36,BH=380;
-const histo=$('#histo'),ZONA=110;
-SINTA.forEach((s,i)=>{
-  const x=i*240+40,h=Math.max(30,Math.round(s[1]/SMAX*BH));
-  // gelap = peringkat tinggi. Versi lama memucatkan SINTA 1 dan 2 karena
-  // jumlahnya kecil, sehingga justru meredupkan hasil terbaik.
-  const op=(1-i*0.14).toFixed(2);
-  histo.insertAdjacentHTML('beforeend',
-    `<div class="batang" id="hb${i}" style="left:${x}px;bottom:${ZONA}px;height:${h}px;background:rgba(127,0,0,${op})"></div>`+
-    `<div class="bnilai" id="hv${i}" style="left:${x}px;bottom:${ZONA+h+14}px">${s[1]}</div>`+
-    `<div class="blabel" id="hl${i}" style="left:${x}px;bottom:${ZONA-56}px">SINTA ${s[0]}</div>`);
-});
-histo.style.height=(BH+ZONA)+'px';
-
-/* ---------- adegan 6: 63 sel tersisa, disorot ---------- */
-const akhir=$('#akhir');
-for(let i=0;i<173;i++){
-  const d=document.createElement('div');
-  d.className='mini'+(i<110?' lulus':' sorot');
-  d.style.cssText=`left:${13280+(i%20)*66}px;top:${170+Math.floor(i/20)*52}px;width:50px;height:36px`;
-  akhir.appendChild(d);
-}
-const akm=$$('.mini',akhir);
 
 /* ---------- motion blur berarah ---------- */
 const defs=$('#filters defs');let fc=0;
@@ -290,95 +288,90 @@ const whip=(cut,x,y)=>{tl.to(C,{ry:-16,duration:.45,ease:'power2.in'},cut-.45);
 tl.fromTo('#gridlayer',{scale:1},{scale:1.04,duration:8,ease:'sine.inOut',yoyo:true,repeat:-1},0);
 
 /* ============================ 62 DETIK ============================
-   Tiap adegan bergantung pada adegan sebelumnya: pertanyaan → rubrik →
-   ambang → akibatnya pada 173 jurnal → bagian terberat → peran DJPI.
-   Urutannya tidak bisa ditukar tanpa kehilangan makna. */
+   Posisi -> jalur akreditasi baru -> jalur reakreditasi -> keduanya bertemu
+   di rubrik yang sama -> bagian terberat -> ajakan.
+   Memisah lalu menyatu; urutannya tidak bisa ditukar. */
 
-/* --- 1. PERTANYAAN (0–8) --- */
-tl.set(C,{x:970,y:390,z:2.55},0);
-tl.fromTo('#g1',{opacity:0,y:40},{opacity:1,y:0,duration:1.2,ease:'power2.out'},.15);
-mendarat('#k1',.3,{from:{x:0,y:300,rotate:6,scale:.96}});
-look(1.6,960,470,1.35,1.5);
-home(3.4,960,540);
-say('#line1',4.4,'pop');label('#nm1',5.6);
-breath(4.3,7.2,1.03);
-unsay('#line1',7.1);unlabel('#nm1',7.1);
-tl.to('#g1',{opacity:0,duration:.35},7.1);
-pergi('#k1',7.2,{y:-500});
+/* --- 1. POSISI (0-9) --- */
+tl.set(C,{x:960,y:470,z:1.5},0);
+lap1.forEach(function(m,i){
+  tl.fromTo(m,{opacity:0,y:-60-rnd(i)*80,scale:.6},
+    {opacity:1,y:0,scale:1,duration:.45,ease:'power3.out',immediateRender:false},.25+i*.005);
+});
+home(1.6,960,540);
+lap1.forEach(function(m,i){
+  tl.to(m,{x:tujuan[i].x,y:tujuan[i].y,duration:.9,ease:'power3.inOut'},
+    2.6+(i<110?0:.25)+rnd(i+3)*.25);
+});
+label('#c1a',4.0);label('#c1b',4.3);
+say('#line1',5.0,'pop');label('#nm1',6.3);
+breath(4.9,8.1,1.03);
+unsay('#line1',8.0);unlabel('#nm1',8.0);unlabel('#c1a',8.0);unlabel('#c1b',8.0);
+tl.to(lap1,{opacity:0,duration:.4,stagger:{each:.002,from:'random'}},8.0);
 
-/* --- 2. RUBRIK (8–20) · transisi berkedalaman --- */
-tembus(8.2,3560,470);
-mendarat('#bA',8.6,{from:{x:-420,y:120,rotate:-7,scale:.9}});
-mendarat('#bB',9.2,{from:{x:420,y:120,rotate:7,scale:.9}});
-label('#hd2',10.4);
+/* --- 2. JALUR AKREDITASI BARU (9-21) - push-through berkedalaman --- */
+tembus(9.2,3560,470);
+mendarat('#kBaru',9.6,{from:{x:0,y:400,rotate:5,scale:.93}});
 home(11.0,3560,540);
-say('#line2',12.2,'naik');label('#nm2',13.6);
-breath(12.1,18.9,1.04);
-unsay('#line2',18.8);unlabel('#nm2',18.8);unlabel('#hd2',18.8);
-pergi('#bA',18.9,{y:-620});pergi('#bB',19.0,{y:-620});
+label('#s2a',11.8);label('#s2b',12.6);
+say('#line2',13.6,'naik');
+breath(13.5,19.9,1.04);
+unsay('#line2',19.8);unlabel('#s2a',19.8);unlabel('#s2b',19.8);
+pergi('#kBaru',19.9,{y:-620});
 
-/* --- 3. AMBANG & ARITMATIKA (20–32) · transisi object wipe --- */
-sapu('#sapu1',20.2,6160,470);
-AMBANG.forEach((a,i)=>{
-  tl.fromTo('#am'+i,{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:.5,ease:'power3.out',
-    transformOrigin:'0 50%',immediateRender:false},20.6+i*.18);
-  label('#al'+i,20.9+i*.18);
-});
-home(22.4,6160,540);
-// batang contoh tumbuh: 36 dulu, lalu 44 yang dibutuhkan
-tl.fromTo('#isi36',{opacity:0,scaleY:0,transformOrigin:'50% 100%'},{opacity:1,scaleY:1,duration:.7,ease:'power3.out',immediateRender:false},23.4);
-tl.fromTo('#isi44',{opacity:0,scaleY:0,transformOrigin:'50% 100%'},{opacity:1,scaleY:1,duration:.8,ease:'back.out(1.3)',immediateRender:false},24.6);
-label('#hd3',25.6);
-say('#line3',26.6,'kiri');
-breath(26.5,30.9,1.03);
-unsay('#line3',30.8);unlabel('#hd3',30.8);
-AMBANG.forEach((a,i)=>{unlabel('#al'+i,30.8);tl.to('#am'+i,{opacity:0,duration:.25},30.8);});
-tl.to(['#isi36','#isi44'],{opacity:0,duration:.3},30.9);
+/* --- 3. JALUR REAKREDITASI (21-33) - object wipe --- */
+sapu('#sapu1',21.2,6160,470);
+mendarat('#kUlang',21.6,{from:{x:-460,y:120,rotate:-6,scale:.93}});
+home(23.0,6160,540);
+tl.to('#gwBatang',{scaleX:1,duration:.6,ease:'power3.out'},23.4);
+tl.to('#gwSk',{opacity:1,duration:.3},24.0);label('#gwLblS',24.2);
+tl.to('#gwIsi',{scaleX:1,duration:.9,ease:'power2.inOut'},24.8);
+tl.to('#gwTenggat',{opacity:1,duration:.3},25.6);label('#gwLblT',25.8);
+label('#s3a',26.6);
+say('#line3',27.4,'kiri');
+breath(27.3,31.9,1.03);
+unsay('#line3',31.8);unlabel('#s3a',31.8);unlabel('#gwLblT',31.8);unlabel('#gwLblS',31.8);
+tl.to(['#gwBatang','#gwIsi','#gwTenggat','#gwSk'],{opacity:0,duration:.3},31.9);
+pergi('#kUlang',31.9,{y:-620});
 
-/* --- 4. KONSEKUENSI (32–44) · transisi whip --- */
-whip(32.2,8760,470);
-// 173 sel mendarat; 110 gelap sudah melewati garis, 63 tetap pucat
-lapm.forEach((m,i)=>{
-  tl.fromTo(m,{opacity:0,y:-70-rnd(i)*90,scale:.6},
-    {opacity:1,y:0,scale:1,duration:.5,ease:'power3.out',immediateRender:false},32.5+i*.006);
+/* --- 4. SATU RUBRIK (33-45) - whip --- */
+whip(33.2,8760,470);
+mendarat('#bA',33.6,{from:{x:-400,y:120,rotate:-7,scale:.9}});
+mendarat('#bB',34.2,{from:{x:400,y:120,rotate:7,scale:.9}});
+home(35.4,8760,540);
+AMBANG.forEach(function(a,i){
+  tl.fromTo('#am'+i,{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:.45,ease:'power3.out',
+    transformOrigin:'0 50%',immediateRender:false},36.0+i*.16);
+  label('#al'+i,36.3+i*.16);
 });
-home(34.2,8760,540);
-tl.to(lapm,{opacity:0,duration:.4,stagger:{each:.002,from:'random'}},35.6);
-SINTA.forEach((s,i)=>{
-  const t=36.2+i*.15;
-  tl.to('#hb'+i,{scaleY:1,duration:.65,ease:'back.out(1.3)'},t);
-  tl.fromTo('#hv'+i,{opacity:0,y:16},{opacity:1,y:0,duration:.35,ease:'power3.out',immediateRender:false},t+.35);
-  tl.fromTo('#hl'+i,{opacity:0},{opacity:1,duration:.3,immediateRender:false},t+.45);
-});
-say('#line4',38.6,'pop');label('#nm4',40.0);
-breath(38.5,42.9,1.03);
-unsay('#line4',42.8);unlabel('#nm4',42.8);
-SINTA.forEach((s,i)=>{tl.to(['#hb'+i,'#hv'+i,'#hl'+i],{opacity:0,duration:.3},42.9);});
+say('#line4',38.4,'pop');label('#nm4',39.8);
+breath(38.3,43.9,1.03);
+unsay('#line4',43.8);unlabel('#nm4',43.8);
+AMBANG.forEach(function(a,i){unlabel('#al'+i,43.8);tl.to('#am'+i,{opacity:0,duration:.25},43.8);});
+pergi('#bA',43.9,{y:-640});pergi('#bB',44.0,{y:-640});
 
-/* --- 5. BAGIAN TERBERAT (44–54) · transisi berkedalaman --- */
-tembus(44.2,11360,470);
-mendarat('#bC',44.6,{from:{x:0,y:420,rotate:5,scale:.92}});
-label('#hd5',46.0);
-home(46.4,11360,540);
-say('#line5',47.4,'naik');label('#nm5',48.8);
-breath(47.3,52.9,1.03);
-unsay('#line5',52.8);unlabel('#nm5',52.8);unlabel('#hd5',52.8);
-pergi('#bC',52.9,{y:-640});
+/* --- 5. BAGIAN TERBERAT (45-55) - push-through berkedalaman --- */
+tembus(45.2,11360,470);
+mendarat('#bC',45.6,{from:{x:0,y:420,rotate:5,scale:.92}});
+label('#hd5',47.0);
+home(47.4,11360,540);
+say('#line5',48.2,'naik');label('#nm5',49.6);
+breath(48.1,53.9,1.03);
+unsay('#line5',53.8);unlabel('#nm5',53.8);unlabel('#hd5',53.8);
+pergi('#bC',53.9,{y:-640});
 
-/* --- 6. PERAN & AJAKAN (54–62) · transisi object wipe --- */
-sapu('#sapu2',54.2,13960,470,{dari:2400,ke:-1300});
-akm.forEach((m,i)=>{
-  tl.fromTo(m,{opacity:0,scale:.6},{opacity:1,scale:1,duration:.4,ease:'power3.out',immediateRender:false},54.4+i*.003);
+/* --- 6. AJAKAN (55-62) - object wipe, lalu match cut ke detik nol --- */
+sapu('#sapu2',55.2,13960,470,{dari:2400,ke:-1300});
+lap6.forEach(function(m,i){
+  tl.fromTo(m,{opacity:0,scale:.6},{opacity:1,scale:1,duration:.4,ease:'power3.out',immediateRender:false},55.4+i*.003);
 });
-home(55.4,13960,540);
-say('#line6',56.4,'kiri');label('#nm6',57.8);
-breath(56.3,59.4,1.03);
-// Loop tanpa lompatan: kisi dan teks pamit, kamera mendorong masuk ke kartu
-// contoh pada z 2.55 — framing yang sama persis dengan detik nol.
-unsay('#line6',59.3);unlabel('#nm6',59.3);
-tl.to(akm,{opacity:0,duration:.5,stagger:{each:.002,from:'random'}},59.3);
-mendarat('#k6',59.6,{from:{x:0,y:260,rotate:4,scale:.95},dur:.7,float:false});
-tl.to(C,{x:13970,y:390,z:2.55,duration:1.5,ease:'power2.inOut'},60.2);
+home(56.2,13960,540);
+say('#line6',57.0,'kiri');label('#nm6',58.4);
+breath(56.9,59.8,1.03);
+unsay('#line6',59.7);unlabel('#nm6',59.7);
+tl.to(lap6,{opacity:0,duration:.5,stagger:{each:.002,from:'random'}},59.6);
+mendarat('#k6',59.9,{from:{x:0,y:260,rotate:4,scale:.95},dur:.7,float:false});
+tl.to(C,{x:13970,y:470,z:1.5,duration:1.4,ease:'power2.inOut'},60.3);
 tl.to('#k6',{opacity:0,duration:.3},61.7);
 tl.to({},{duration:.01},DUR);
 

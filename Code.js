@@ -5868,8 +5868,10 @@ var AKR_SYARAT_TAHAP1 = [
     deskripsi: 'Nama jurnal dan penerbit bersifat ilmiah serta identik dengan data pada Portal ISSN.' },
   { k: 's2b', berlaku: 'baru', label: 'Terbit minimal 3 tahun berturut-turut',
     deskripsi: 'Jurnal telah terbit sekurang-kurangnya 3 tahun berturut-turut, dihitung mundur dari tanggal pengajuan.' },
-  { k: 's2u', berlaku: 'ulang', label: 'Terbitan 3 tahun terakhir lengkap',
-    deskripsi: 'Seluruh nomor terbitan dalam rentang 3 tahun terakhir tersedia dan dapat diakses.' },
+  { k: 's2u', berlaku: 'ulang', label: 'Tiga nomor terbitan terakhir lengkap',
+    deskripsi: 'Tiga nomor terbitan terakhir tersedia lengkap dan dapat diakses. Pada reakreditasi, ' +
+      'ketiga nomor inilah yang dinilai asesor — berbeda dari akreditasi baru yang dinilai ' +
+      'atas terbitan 3 tahun terakhir.' },
   { k: 's3', berlaku: 'semua', label: 'Frekuensi & isi terbitan',
     deskripsi: 'Frekuensi sesuai e-ISSN, terbit sedikitnya 2 kali setahun, dan setiap terbitan memuat sedikitnya 5 artikel.' },
   { k: 's4', berlaku: 'semua', label: 'Laman editor & mitra bestari',

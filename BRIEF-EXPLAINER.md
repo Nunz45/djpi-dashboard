@@ -84,37 +84,36 @@ jadi satu bidang penuh, kamera menarik mundur. Sekali saja.
 
 ---
 
-## Rundown — 6 adegan, 60 detik
+## Rundown — 6 adegan, 62 detik (revisi 3)
 
-| Detik | Adegan | Kalimat | Visual |
+Judul: **Persiapan Akreditasi & Reakreditasi Jurnal UPI**. Strukturnya memisah lalu menyatu:
+posisi → dua jalur yang berbeda → keduanya bertemu di rubrik yang sama → ajakan. Urutannya
+tidak bisa ditukar.
+
+| Detik | Adegan | Kalimat di layar | Visual |
 |---|---|---|---|
-| 0–9 | Pembuka | "UPI mengelola 173 jurnal ilmiah." | satu kartu mendarat, kamera mundur |
-| 9–20 | Volume | "Setiap tahun terbit sekitar 2.700 artikel." | **momen istimewa** — kartu membanjir jadi bidang penuh |
-| 20–31 | Akreditasi | "110 di antaranya terakreditasi nasional." | bidang menyusut jadi enam batang SINTA 1–6 |
-| 31–42 | Indeksasi | "25 terindeks DOAJ, 137 terdaftar di Garuda, 3 masuk kuartil internasional." | tiga kolom **sejajar**, masing-masing dengan baris sumber |
-| 42–52 | Jangkauan | "Dari kampus pusat sampai lima kampus daerah." | kartu berpindah jadi sebaran geografis |
-| 52–60 | Penutup | "Katalognya terbuka untuk siapa pun." | bidang penuh + alamat direktori |
+| 0–9 | Posisi | "110 sudah, 63 belum." | 173 sel mendarat lalu **memisah** jadi dua rumpun: 110 merah, 63 emas |
+| 9–21 | Jalur akreditasi baru | "Mulai dari tiga tahun terbit." | kartu Akreditasi Baru · 63 jurnal; syarat masuk dan jendela penilaian |
+| 21–33 | Jalur reakreditasi | "Ajukan enam bulan sebelum SK habis." | garis waktu: penanda tenggat, jeda enam bulan, penanda SK habis |
+| 33–45 | Satu rubrik | "Dua jalur, satu rubrik yang sama." | blok 46 + 54, lalu empat ambang peringkat |
+| 45–55 | Bagian terberat | "Bagian terberat dibaca, bukan diklaim." | blok 54 sendirian |
+| 55–62 | Ajakan | "Mulai dari daftar periksa-nya." | 173 sel kembali + kartu "Jurnal Anda", match cut ke detik nol |
 
-**Aturan yang dipasang di rundown, bukan diserahkan ke naskah:**
+**Sumber tiap butir, diperiksa ke `Code.js` sebelum dipakai:**
 
-- Adegan 4 menampilkan tiga indeks **sejajar, bukan bertingkat**. DOAJ hanya menerima jurnal
-  akses terbuka penuh, jadi ia bukan tahap menuju Scopus.
-- **Garuda 137 diberi label "terdaftar", bukan "terverifikasi".** Angka itu berasal dari
-  `urlValid_(linkGaruda)` — pemeriksaan bentuk URL, sama lemahnya dengan cara lama menghitung
-  DOAJ, dan tidak ada sheet verifikasi Garuda. DOAJ boleh disebut "terverifikasi" karena
-  `Verifikasi_DOAJ` ada dan selisihnya hanya 3.
-- Angka 2.687 disebut "sekitar 2.700" dan berasal dari 140 jurnal yang melaporkan. Naskah tidak
-  boleh menyiratkan seluruh 173 terhitung.
-- Penyebut 173. Tujuh jurnal `BELUM DIKELOLA` tidak ikut dan tidak disebut.
-- Tidak ada `timeliness`, tidak ada nama jurnal yang SK-nya mendekati habis.
+| Butir | Sumber |
+|---|---|
+| 110 terakreditasi, 63 belum, dari 173 dikelola | `angkaExplainer()` |
+| Akreditasi baru: terbit ≥3 tahun berturut-turut | syarat `s2b` |
+| Akreditasi baru: dinilai atas terbitan 3 tahun terakhir | catatan unsur Tata Kelola & disinsentif |
+| Reakreditasi: ajukan ≥6 bulan sebelum SK habis | `akrTenggatUlang` (`berakhir.getMonth() - 6`) |
+| Reakreditasi: dinilai atas 3 nomor terbitan terakhir | syarat `s2u`, diperbarui atas keputusan Anda |
+| Tata Kelola 46 + Mutu Artikel 54 = 100 | rubrik §28 |
+| Ambang Peringkat 1–4: 90 / 80 / 70 / 60 | `rubrikAkreditasi_().peringkat` |
 
-**APC keluar dari enam adegan.** Contoh isinya menunjukkan pola yang bisa diurai otomatis
-("USD 1000", "Rp 750,000", "Gratis"), tetapi dari 12 contoh hanya satu yang gratis. Dugaan bahwa
-"tidak memungut biaya" adalah kekuatan portofolio kemungkinan besar salah, dan 41 kolom kosong
-membuat angkanya rapuh. Kalau nanti diklasifikasi manual dan hasilnya bagus, ini bisa jadi adegan
-ketujuh atau menggantikan adegan 5.
-
----
+`[CATATAN]` Syarat `s2u` di `Code.js` semula berbunyi "Terbitan 3 tahun terakhir lengkap".
+Diperbarui jadi tiga nomor terbitan terakhir supaya rubrik aplikasi dan video tidak
+bertentangan. Kalau juknis ARJUNA ternyata menyebut lain, keduanya perlu diralat bersamaan.
 
 ## Langkah berikutnya
 

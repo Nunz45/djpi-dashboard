@@ -1,54 +1,54 @@
-# Naskah Narasi — Bagaimana Jurnal Naik Peringkat
+# Naskah Narasi — Persiapan Akreditasi & Reakreditasi Jurnal UPI
 
 Durasi 62 detik. Nada: tenang, menjelaskan, tidak promosi.
 
-**Aturan yang dipegang naskah ini:** narasi tidak pernah mengulang kalimat yang sudah tertulis di
-layar. Layar membawa klaimnya, suara membawa sebabnya. Kalau sebuah baris terasa seperti membaca
-teks di layar, baris itu salah.
+**Aturan naskah ini:** narasi tidak pernah mengulang kalimat yang sudah tertulis di layar.
+Layar membawa klaimnya, suara membawa sebabnya. Kalau sebuah baris terasa seperti membaca teks
+di layar, baris itu salah.
 
 ---
 
-**[0:00 – 0:08]** · layar: *Kenapa berhenti di SINTA 3?*
+**[0:00 – 0:09]** · layar: *110 sudah, 63 belum*
 
-> Setiap jurnal terakreditasi punya satu angka di belakang peringkatnya.
-> Angka itu yang menentukan ia berhenti di mana.
+> Dari jurnal yang dikelola UPI, sebagian sudah memegang SK akreditasi dan sebagian belum.
+> Keduanya menempuh jalan yang berbeda.
 
-**[0:08 – 0:20]** · layar: *Nilai akreditasi dijumlah dari dua bagian* · 46 + 54
+**[0:09 – 0:21]** · layar: *Mulai dari tiga tahun terbit*
 
-> Empat puluh enam poin dinilai dari cara jurnal dikelola: susunan penyunting,
-> proses telaah, ketepatan terbit.
-> Lima puluh empat sisanya dinilai dari isi artikelnya sendiri.
+> Jurnal yang belum terakreditasi masuk lewat jalur akreditasi baru.
+> Syaratnya sudah terbit tiga tahun berturut-turut, dan yang dinilai
+> adalah seluruh terbitan dalam tiga tahun itu.
 
-**[0:20 – 0:32]** · layar: *Tiap peringkat punya ambangnya* · balok mendarat di garis 80
+**[0:21 – 0:33]** · layar: *Ajukan enam bulan sebelum SK habis*
 
-> Selisihnya bisa dihitung. Kalau tata kelola sebuah jurnal bernilai tiga puluh enam,
-> untuk naik ke Peringkat dua ia butuh sekurangnya empat puluh empat dari lima puluh empat.
-> Itu bukan tebakan, itu pengurangan.
+> Yang sudah terakreditasi menempuh reakreditasi.
+> Jangan menunggu SK berakhir: pengajuan sudah harus masuk enam bulan sebelumnya.
+> Dan yang dibaca asesor bukan seluruh arsip, melainkan tiga nomor terbitan terakhir.
 
-**[0:32 – 0:44]** · layar: *110 dari 173 sudah melewati garis*
+**[0:33 – 0:45]** · layar: *Dua jalur, satu rubrik yang sama*
 
-> Di UPI, seratus sepuluh jurnal sudah melewati garis enam puluh.
-> Enam puluh tiga lainnya belum — dan sebagian besar tertahan di bagian yang sama.
+> Setelah masuk, keduanya dinilai dengan rubrik yang sama.
+> Empat puluh enam poin dari cara jurnal dikelola, lima puluh empat dari isi artikelnya.
 
-**[0:44 – 0:54]** · layar: *Bagian terberat dibaca, bukan diklaim*
+**[0:45 – 0:55]** · layar: *Bagian terberat dibaca, bukan diklaim*
 
-> Mutu artikel tidak bisa dinyatakan sendiri oleh pengelola.
-> Asesor membacanya, satu artikel demi satu artikel, dari terbitan tiga tahun terakhir.
+> Bagian yang lebih besar itu tidak bisa dinyatakan sendiri oleh pengelola.
+> Asesor membacanya, satu artikel demi satu artikel.
 
-**[0:54 – 1:02]** · layar: *DJPI mendampingi 63 jurnal berikutnya*
+**[0:55 – 1:02]** · layar: *Mulai dari daftar periksa-nya*
 
-> Karena itu pendampingan dimulai dari artikel, bukan dari borang.
-> Cek posisi jurnal Anda di ejournal titik upi titik e-d-u.
+> Menu Persiapan Akreditasi menghitung posisi jurnal Anda terhadap ambang itu,
+> lalu menyusun daftar kerjanya. Cek di ejournal titik upi titik e-d-u.
 
 ---
 
 ## Catatan untuk pembaca naskah
 
-- **Bagian 0:20–0:32 adalah inti video.** Di situlah penonton mengerti bahwa peringkat itu
-  aritmetika, bukan penilaian kabur. Baca pelan, beri jeda sebelum "itu pengurangan".
+- **Bagian 0:21–0:33 adalah butir paling berguna di seluruh video.** Enam bulan itu tenggat yang
+  sering terlewat. Baca pelan, beri jeda sebelum "enam bulan sebelumnya".
 - **Jangan menaikkan nada di angka.** Angka bekerja karena datar.
-- "Enam puluh tiga lainnya belum" jangan dibaca seperti kabar buruk. Itu premis pekerjaan
-  DJPI, dan adegan terakhir menjawabnya.
+- "63 belum" jangan dibaca seperti kabar buruk. Itu premis pekerjaan DJPI, dan adegan terakhir
+  menjawabnya.
 - Jeda satu ketuk di tiap pergantian bagian; transisi kamera berlangsung di situ.
 - Rekam satu berkas utuh, bukan enam potongan.
 
