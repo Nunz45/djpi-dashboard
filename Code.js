@@ -1400,8 +1400,15 @@ function buatToken_(prefix, muatan, ttl) {
   var token = prefix + Utilities.getUuid();
   muatan.expires = Date.now() + ttl * 1000;
   var json = JSON.stringify(muatan);
-  try { CacheService.getScriptCache().put(token, json, ttl); } catch (err) { /* utama */ }
-  try { CacheService.getUserCache().put(token, json, ttl); } catch (err) { /* cadangan */ }
+  var okSkrip = false;
+  // Kegagalan put TIDAK boleh diam. Sebelumnya catch-nya kosong, sehingga token
+  // dikembalikan seolah tersimpan, URL dirakit, tab terbuka, dan tidak ada satu
+  // pun jejak ketika ternyata tidak pernah tersimpan.
+  try { CacheService.getScriptCache().put(token, json, ttl); okSkrip = true; }
+  catch (err) { console.error('buatToken_: put ke script cache gagal -- ' + err); }
+  try { CacheService.getUserCache().put(token, json, ttl); }
+  catch (err) { console.warn('buatToken_: put ke user cache gagal -- ' + err); }
+  if (!okSkrip) console.error('buatToken_: token ' + token.slice(0, 5) + '... tidak tersimpan di script cache');
   return token;
 }
 
@@ -1436,9 +1443,78 @@ function aksiEdit_(muatan, aksi) {
   return (muatan && muatan.samaran) ? (aksi + '_ATAS_NAMA') : aksi;
 }
 
+/**
+ * Rahasia penanda tangan token, per proyek. Dibuat sekali saat pertama dipakai.
+ */
+function rahasiaToken_() {
+  var prop = PropertiesService.getScriptProperties();
+  var r = prop.getProperty('TOKEN_SECRET');
+  if (!r) { r = Utilities.getUuid() + Utilities.getUuid(); prop.setProperty('TOKEN_SECRET', r); }
+  return r;
+}
+
+/**
+ * Padding '=' SENGAJA dipertahankan. base64DecodeWebSafe menuntut panjang yang
+ * benar, dan token ini selalu melewati encodeURIComponent sebelum masuk URL
+ * sehingga '=' tidak mengganggu.
+ */
+function b64_(nilai) {
+  return Utilities.base64EncodeWebSafe(nilai);
+}
+
+/**
+ * Token BERTANDA TANGAN, bukan token yang disimpan.
+ *
+ * Token biasa dititipkan ke cache, lalu dicari lagi saat dipakai. Cara itu punya
+ * satu kelas kegagalan yang sulit dilacak: token bisa hilang antara ditulis dan
+ * dibaca -- digusur karena cache penuh, atau dicari di penyimpanan yang bukan
+ * tempatnya ditulis. Gejalanya selalu sama, "sesi berakhir", tanpa petunjuk mana
+ * dari keduanya.
+ *
+ * Token bertanda tangan tidak menyimpan apa pun. Muatannya dibawa di dalam token
+ * itu sendiri, dan keasliannya dibuktikan HMAC memakai rahasia milik proyek.
+ * Tidak ada yang bisa hilang, tidak ada TTL cache, tidak ada soal cache milik
+ * siapa. Kedaluwarsanya ada di dalam muatan dan diverifikasi saat dibaca.
+ *
+ * Konsekuensi yang diterima: token tidak bisa dicabut sebelum kedaluwarsa, jadi
+ * logout tidak berpengaruh padanya. Karena itu bentuk ini dipakai HANYA untuk
+ * sesi mode atas nama yang umurnya pendek, bukan untuk sesi login biasa.
+ */
+function buatTokenTtd_(prefix, muatan, ttl) {
+  var isi = {};
+  Object.keys(muatan).forEach(function (k) { isi[k] = muatan[k]; });
+  isi.expires = Date.now() + ttl * 1000;
+  var badan = b64_(JSON.stringify(isi));
+  return prefix + badan + '.' +
+    b64_(Utilities.computeHmacSha256Signature(badan, rahasiaToken_()));
+}
+
+/** Kebalikan buatTokenTtd_. Mengembalikan muatan, atau null bila tidak sah. */
+function bacaTokenTtd_(token, prefix) {
+  var inti = token.slice(prefix.length);
+  var pisah = inti.lastIndexOf('.');
+  if (pisah < 1) return null;
+  var badan = inti.slice(0, pisah);
+  var ttd = inti.slice(pisah + 1);
+
+  var harap = b64_(Utilities.computeHmacSha256Signature(badan, rahasiaToken_()));
+  if (!samaAman_(ttd, harap)) return null;
+
+  try {
+    var isi = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(badan)).getDataAsString());
+    if (!isi.expires || isi.expires < Date.now()) return null;
+    return isi;
+  } catch (err) { return null; }
+}
+
 function bacaToken_(token, prefix) {
   if (!token || typeof token !== 'string') return null;
   if (prefix && token.indexOf(prefix) !== 0) return null;
+
+  // Token bertanda tangan dikenali dari titik pemisah dan diverifikasi tanpa
+  // menyentuh penyimpanan apa pun.
+  if (prefix && token.indexOf('.') > prefix.length) return bacaTokenTtd_(token, prefix);
+
   var mentah = null;
   try { mentah = CacheService.getScriptCache().get(token); } catch (err) { mentah = null; }
   if (!mentah) {
@@ -1461,6 +1537,28 @@ function diagnosaToken_(token, prefix) {
   var potong = token.slice(0, 5) + '...(' + token.length + ' karakter)';
   if (prefix && token.indexOf(prefix) !== 0) return 'awalan salah, diharap ' + prefix + ', dapat ' + potong;
 
+  // Token bertanda tangan tidak disimpan di mana pun, jadi pertanyaannya bukan
+  // "ada di cache atau tidak" melainkan "tanda tangannya cocok atau tidak".
+  if (token.indexOf('.') > prefix.length) {
+    var inti = token.slice(prefix.length);
+    var pisah = inti.lastIndexOf('.');
+    var badan = inti.slice(0, pisah);
+    var cocok = samaAman_(inti.slice(pisah + 1),
+      b64_(Utilities.computeHmacSha256Signature(badan, rahasiaToken_())));
+    if (!cocok) {
+      return 'token bertanda tangan, tetapi TANDA TANGANNYA TIDAK COCOK. ' +
+        'Berarti token dibuat oleh proyek Apps Script lain -- rahasia penanda ' +
+        'tangan berbeda. Proyek yang melayani halaman ini: ' + ScriptApp.getScriptId();
+    }
+    try {
+      var isi = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(badan)).getDataAsString());
+      var sisaT = Math.round((isi.expires - Date.now()) / 1000);
+      return 'token bertanda tangan sah, tetapi sudah kedaluwarsa ' + (-sisaT) + ' detik lalu';
+    } catch (err) {
+      return 'token bertanda tangan sah, tetapi muatannya tidak bisa diurai';
+    }
+  }
+
   var diSkrip = null, diUser = null;
   try { diSkrip = CacheService.getScriptCache().get(token); } catch (err) { diSkrip = null; }
   try { diUser = CacheService.getUserCache().get(token); } catch (err) { diUser = null; }
@@ -1468,7 +1566,8 @@ function diagnosaToken_(token, prefix) {
   if (!diSkrip && !diUser) {
     return 'token ' + potong + ' TIDAK ADA di script cache maupun user cache. ' +
       'Berarti tulisan dan pembacaan terjadi pada penyimpanan yang berbeda, ' +
-      'atau entrinya sudah hilang. Jalankan ujiTokenLangkah1_() lalu ujiTokenLangkah2_().';
+      'atau entrinya sudah hilang. Proyek yang melayani halaman ini: ' +
+      ScriptApp.getScriptId();
   }
 
   var mentah = diSkrip || diUser;
@@ -1790,9 +1889,13 @@ function mulaiAtasNamaPengelola(token, namaJurnal) {
     };
 
     catatAktivitas_(profile.email, jurnal.namaJurnal, 'MULAI_ATAS_NAMA',
-      'Admin membuka panel pengelola dan dapat menulis atas nama jurnal ini. Berlaku 15 menit.');
+      'Admin membuka panel pengelola dan dapat menulis atas nama jurnal ini. Berlaku ' +
+      Math.round(CACHE.SAMARAN_TTL / 60) + ' menit.');
 
-    var tok = buatToken_('edit_', muatan, CACHE.SAMARAN_TTL);
+    // Bertanda tangan, bukan disimpan: mode atas nama harus menyeberang dari
+    // eksekusi tombol ke eksekusi doGet tab baru, dan penyeberangan lewat cache
+    // itulah yang selama ini gagal.
+    var tok = buatTokenTtd_('edit_', muatan, CACHE.SAMARAN_TTL);
     var query = '?page=pengelola&t=' + encodeURIComponent(tok) + '&atasnama=1';
     var dasarDomain = urlWebAppDomain_('upi.edu');
 
@@ -1805,7 +1908,9 @@ function mulaiAtasNamaPengelola(token, namaJurnal) {
       urlAlt: dasarDomain ? (dasarDomain + query) : '',
       namaJurnal: jurnal.namaJurnal,
       emailPengelola: jurnal.email || '',
-      berlakuMenit: Math.round(CACHE.SAMARAN_TTL / 60)
+      berlakuMenit: Math.round(CACHE.SAMARAN_TTL / 60),
+      // untuk dibandingkan dengan proyek yang melayani halaman tujuan
+      idProyek: ScriptApp.getScriptId()
     };
   } catch (err) {
     return { ok: false, message: 'Gagal membuka panel pengelola: ' + err.message };
