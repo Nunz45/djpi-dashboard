@@ -110,8 +110,8 @@ html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
 
     <!-- ========== 1 — POSISI (0–9) · pusat 960,540 ========== -->
     <div id="lap1"></div>
-    <div class="hand" id="c1a" style="left:250px;top:170px;font-size:52px">sudah terakreditasi</div>
-    <div class="hand" id="c1b" style="left:1180px;top:240px;font-size:52px">belum</div>
+    <div class="hand" id="c1a" style="left:214px;top:150px;font-size:50px">sudah terakreditasi</div>
+    <div class="hand" id="c1b" style="left:1214px;top:215px;font-size:50px">belum</div>
     <div class="line t tebal" id="line1" style="left:150px;top:800px;width:1660px;font-size:98px"><span class="hl"><i></i>110 sudah</span>, 63 belum.</div>
     <div class="name" id="nm1" style="left:154px;top:950px">173 jurnal yang dikelola UPI</div>
 
@@ -155,7 +155,7 @@ html,body{margin:0;height:100%;background:#0a0a0a;overflow:hidden}
     <div class="kartu" id="k6" style="left:13640px;top:300px;width:660px;height:190px">
       <b>Jurnal Anda</b><i>Cek posisinya</i>
     </div>
-    <div class="line t tebal" id="line6" style="left:13060px;top:700px;width:1720px;font-size:88px">Mulai dari <span class="hl"><i></i>daftar periksa</span>-nya.</div>
+    <div class="line t tebal" id="line6" style="left:13060px;top:700px;width:1720px;font-size:88px">Mulai dari <span class="hl"><i></i>daftar periksanya</span>.</div>
     <div class="name" id="nm6" style="left:13064px;top:880px">Menu Persiapan Akreditasi · ejournal.upi.edu</div>
 
     <div class="sapu" id="sapu1"></div>
@@ -188,12 +188,56 @@ function buatLapangan(host,x0,y0){
 }
 const lap1=buatLapangan($('#lap1'),260,200);
 const lap6=buatLapangan($('#lap6'),13290,190);
+lap6.forEach(function(d){d._sx=0;d._sy=0;d._gx=0;d._gy=0;});
 // Tujuan saat lapangan MEMISAH jadi dua rumpun — inilah yang menyiapkan dua jalur.
-const tujuan=lap1.map(function(d,i){
+lap1.forEach(function(d,i){
   const L=parseFloat(d.style.left),T=parseFloat(d.style.top);
-  if(i<110){const c=i%12,r=Math.floor(i/12);return{x:200+c*62-L,y:250+r*52-T};}
-  const j=i-110,c=j%9,r=Math.floor(j/9);return{x:1180+c*62-L,y:320+r*52-T};
+  if(i<110){const c=i%12,r=Math.floor(i/12);d._sx=200+c*62-L;d._sy=250+r*52-T;}
+  else{const j=i-110,c=j%9,r=Math.floor(j/9);d._sx=1180+c*62-L;d._sy=320+r*52-T;}
+  d._gx=d._sx;d._gy=d._sy;
 });
+
+/* ---------- kartu menyusun diri jadi angka ----------
+   Titik diambil dari bentuk gliph lewat canvas, bukan ditata tangan: jumlah
+   kartu yang membentuk angka SAMA dengan angka yang dibentuknya, jadi penonton
+   yang menghitung akan menemukan hitungan yang benar.
+   Dihitung sekali setelah font siap, tidak pernah di jalur render. */
+function titikAngka(teks,jumlah,tinggiPx){
+  const cv=document.createElement('canvas');
+  cv.width=2000;cv.height=Math.ceil(tinggiPx*1.35);
+  const ctx=cv.getContext('2d');
+  const F='900 '+tinggiPx+'px Archivo, system-ui, sans-serif';
+  ctx.font=F;ctx.textBaseline='top';ctx.fillStyle='#000';
+  const lebar=Math.ceil(ctx.measureText(teks).width);
+  const tinggi=Math.ceil(tinggiPx*1.25);
+  ctx.fillText(teks,0,0);
+  const d=ctx.getImageData(0,0,lebar,tinggi).data;
+  let langkah=40,kandidat=[];
+  for(let coba=0;coba<38;coba++){
+    kandidat=[];
+    for(let y=0;y<tinggi;y+=langkah)for(let x=0;x<lebar;x+=langkah){
+      if(d[(y*lebar+x)*4+3]>140)kandidat.push({x:x,y:y});
+    }
+    if(kandidat.length>=jumlah)break;
+    langkah=Math.max(3,langkah-1);
+  }
+  if(!kandidat.length)return null;
+  // Ambil merata sepanjang daftar supaya sebarannya rata di seluruh gliph.
+  const out=[];
+  for(let i=0;i<jumlah;i++)out.push(kandidat[Math.floor(i*kandidat.length/jumlah)]||kandidat[kandidat.length-1]);
+  return {titik:out,lebar:lebar,tinggi:tinggi};
+}
+
+/* Sasaran gliph disimpan di elemennya; tween membacanya lewat nilai fungsi,
+   sehingga dievaluasi setelah font selesai dimuat. */
+function pasangSasaran(kartu,mulai,jumlah,teks,x0,y0,tinggiPx){
+  const g=titikAngka(teks,jumlah,tinggiPx);
+  for(let i=0;i<jumlah;i++){
+    const el=kartu[mulai+i],L=parseFloat(el.style.left),T=parseFloat(el.style.top);
+    if(g){el._gx=x0+g.titik[i].x-L;el._gy=y0+g.titik[i].y-T;}
+    else{el._gx=el._sx;el._gy=el._sy;}   // gagal mencuplik: pakai rumpun biasa
+  }
+}
 
 /* ---------- adegan 3: garis waktu tenggat reakreditasi ---------- */
 $('#garisWaktu').innerHTML=
@@ -299,9 +343,11 @@ lap1.forEach(function(m,i){
     {opacity:1,y:0,scale:1,duration:.45,ease:'power3.out',immediateRender:false},.25+i*.005);
 });
 home(1.6,960,540);
+// Kartu terbang menyusun dua angka: 110 kartu jadi "110", 63 kartu jadi "63".
 lap1.forEach(function(m,i){
-  tl.to(m,{x:tujuan[i].x,y:tujuan[i].y,duration:.9,ease:'power3.inOut'},
-    2.6+(i<110?0:.25)+rnd(i+3)*.25);
+  tl.to(m,{x:function(){return m._gx;},y:function(){return m._gy;},
+    scale:.82,rotate:0,duration:1.0,ease:'power3.inOut'},
+    2.5+(i<110?0:.3)+rnd(i+3)*.3);
 });
 label('#c1a',4.0);label('#c1b',4.3);
 say('#line1',5.0,'pop');label('#nm1',6.3);
@@ -362,8 +408,13 @@ pergi('#bC',53.9,{y:-640});
 
 /* --- 6. AJAKAN (55-62) - object wipe, lalu match cut ke detik nol --- */
 sapu('#sapu2',55.2,13960,470,{dari:2400,ke:-1300});
+// Penutup mengulang gerak pembuka: kartu merakit diri jadi angka totalnya.
+// 110 kartu pertama merah dan 63 terakhir emas, dan titik gliph dicuplik dari
+// atas ke bawah — jadi proporsi sudah/belum terbaca di dalam angka 173 itu sendiri.
 lap6.forEach(function(m,i){
-  tl.fromTo(m,{opacity:0,scale:.6},{opacity:1,scale:1,duration:.4,ease:'power3.out',immediateRender:false},55.4+i*.003);
+  tl.fromTo(m,{opacity:0,scale:.5,y:-70-rnd(i)*60},
+    {opacity:1,scale:.82,x:function(){return m._gx;},y:function(){return m._gy;},
+     duration:.55,ease:'power3.out',immediateRender:false},55.4+i*.004);
 });
 home(56.2,13960,540);
 say('#line6',57.0,'kiri');label('#nm6',58.4);
@@ -387,7 +438,7 @@ if(q.has('debug')){const dbg=$('#dbg');dbg.style.display='flex';const sc=$('#dSc
   sc.addEventListener('pointerdown',()=>{drag=true;tl.pause();});addEventListener('pointerup',()=>drag=false);
   sc.addEventListener('input',()=>{tl.pause();tl.time(sc.value/1000*DUR);});$('#dPlay').onclick=()=>tl.paused()?tl.play():tl.pause();}
 tl.pause(0,false);applyCam();
-document.fonts.ready.then(()=>{window.OPENER.ready=true;if(q.has('clean'))return;
+document.fonts.ready.then(()=>{pasangSasaran(lap1,0,110,'110',205,250,430);pasangSasaran(lap1,110,63,'63',1215,315,375);pasangSasaran(lap6,0,173,'173',13530,230,430);window.OPENER.ready=true;if(q.has('clean'))return;
   if(!hasVO){start();return;}
   vo.play().then(()=>{audioOn=true;vo.currentTime=0;tl.play(0);}).catch(()=>{const go=()=>{removeEventListener('pointerdown',go);removeEventListener('keydown',go);start();};addEventListener('pointerdown',go);addEventListener('keydown',go);});});
 </script>
