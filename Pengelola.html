@@ -1170,6 +1170,9 @@
 
 <script>
 var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
+// Dari server, bukan dari location.search: iframe sandbox tidak melihat
+// parameter query URL frame teratas.
+var ATAS_NAMA_AWAL = <?= JSON.stringify(atasNamaAwal) ?>;
 
 const { createApp } = Vue;
 
@@ -1291,7 +1294,7 @@ const appPengelola = createApp({
     // sesi darurat admin), atau dari localStorage bila pengelola sebelumnya
     // sudah login di perangkat yang sama.
     var tersimpan = '';
-    var atasNama = /[?&]atasnama=1/.test(location.search);
+    var atasNama = ATAS_NAMA_AWAL;
     this.atasNama = atasNama;
 
     // Mode atas nama: token hanya dari URL, tidak pernah dari localStorage dan
@@ -1320,6 +1323,22 @@ const appPengelola = createApp({
       nama = localStorage.getItem('djpi_pengelola_jurnal') || '';
       mail = localStorage.getItem('djpi_pengelola_email') || '';
     } catch (e) {}
+
+    // Token dari URL tanpa nama jurnal di localStorage: jangan biarkan pengguna
+    // mendarat di layar PIN padahal tokennya sah. Nama jurnalnya ada di dalam
+    // token, jadi tanyakan saja ke server. Ini juga jalur sesi darurat admin.
+    if (TOKEN_AWAL && !nama) {
+      this.token = TOKEN_AWAL;
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
+          this.namaJurnalAktif = res.detail.namaJurnal;
+          this.simpanSesi(TOKEN_AWAL, res.detail.namaJurnal);
+        })
+        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat: ' + err.message; })
+        .getJournalDetailForEditor(TOKEN_AWAL);
+      return;
+    }
 
     if (token && nama) {
       this.token = token;

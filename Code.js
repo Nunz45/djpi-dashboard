@@ -288,6 +288,12 @@ function doGet(e) {
   // pengiriman PIN lewat email sedang bermasalah. Lihat buatSesiDarurat().
   t.tokenAwal = (e && e.parameter && e.parameter.t) ? String(e.parameter.t) : '';
 
+  // Penanda mode "bertindak atas nama pengelola". WAJIB disuntikkan dari sini:
+  // halaman berjalan di dalam iframe sandbox googleusercontent.com, dan
+  // location.search milik iframe itu KOSONG. Parameter query hanya ada di URL
+  // frame teratas yang beda origin, jadi klien tidak bisa membacanya sendiri.
+  t.atasNamaAwal = (e && e.parameter && e.parameter.atasnama === '1');
+
   return t.evaluate()
     .setTitle(judul)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
