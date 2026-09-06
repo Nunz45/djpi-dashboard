@@ -12,3 +12,6 @@ __pycache__/
 
 # Pintasan Windows yang kadang terbuat saat membuka berkas dari Explorer
 *.lnk
+
+# hasil antara penguraian SK (dibangun ulang oleh sk-akreditasi/2-urai-sk.py)
+sk-akreditasi/sk-upi-mentah.json

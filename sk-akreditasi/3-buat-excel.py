@@ -1,11 +1,10 @@
-import json, re, io, os
+import json, re, io, os, csv, datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 d = json.load(open('sk-upi-mentah.json', encoding='utf-8'))
 
-# --- sisa nomor baris di depan nama, dibersihkan berulang ---
 for b in d:
     s = b['namaJurnal']
     for _ in range(3):
@@ -20,132 +19,237 @@ def masaBerlaku(b):
         return 'Vol %s No %s Tahun %s s.d. Vol %s No %s Tahun %s' % (
             b['volMulai'], b['noMulai'], b['tahunMulai'], b['volAkhir'], b['noAkhir'], b['tahunAkhir'])
     if b['asalAkhir'].startswith('DITURUNKAN'):
-        return 'mulai Vol %s No %s Tahun %s — berakhir sekitar %s (diturunkan, tidak tertulis di SK)' % (
+        return 'mulai Vol %s No %s Tahun %s - berakhir sekitar %s (diturunkan, tidak tertulis di SK)' % (
             b['volMulai'], b['noMulai'], b['tahunMulai'], b['tahunAkhir'])
     return 'tidak tercantum di SK'
 
+TAHUN_INI = datetime.date.today().year
 for b in d:
     b['masaBerlaku'] = masaBerlaku(b)
 
-# --- catatan yang berlaku = SK terbaru per e-ISSN; sisanya jadi riwayat ---
+# catatan yang berlaku = SK TERBARU per e-ISSN. Bukan yang tahun akhirnya paling
+# jauh: penurunan peringkat bisa memperpendek masa berlaku, dan penomoran volume
+# bisa mengulang dari awal sehingga tidak bisa dipakai mengurutkan.
 terbaru = {}
 for b in sorted(d, key=lambda x: x['urut']):
     terbaru[b['eIssn']] = b
 berlaku = sorted(terbaru.values(), key=lambda x: (-x['urut'], x['namaJurnal'].lower()))
 for b in berlaku:
     b['jumlahSk'] = sum(1 for x in d if x['eIssn'] == b['eIssn'])
-
-MARUN = 'FF7F0000'; KERTAS = 'FFF4EFEB'; EMAS = 'FFFBF3DF'
-tepi = Border(*[Side(style='thin', color='FFD8D0C8')] * 4)
-
-def tulisSheet(ws, kolom, data, lebar):
-    for i, k in enumerate(kolom, 1):
-        c = ws.cell(1, i, k)
-        c.font = Font(bold=True, color='FFFFFFFF', size=10)
-        c.fill = PatternFill('solid', fgColor=MARUN)
-        c.alignment = Alignment(vertical='center', wrap_text=True)
-        ws.column_dimensions[get_column_letter(i)].width = lebar[i - 1]
-    ws.row_dimensions[1].height = 30
-    for r, row in enumerate(data, 2):
-        for i, v in enumerate(row, 1):
-            c = ws.cell(r, i, v)
-            c.alignment = Alignment(vertical='top', wrap_text=(i in (1, 3)))
-            c.border = tepi
-            c.font = Font(size=10)
-        if r % 2 == 0:
-            for i in range(1, len(kolom) + 1):
-                ws.cell(r, i).fill = PatternFill('solid', fgColor=KERTAS)
-    ws.freeze_panes = 'A2'
-    ws.auto_filter.ref = 'A1:%s%d' % (get_column_letter(len(kolom)), len(data) + 1)
-
-wb = Workbook()
-
-# ---------- Sheet 1: yang berlaku ----------
-ws = wb.active; ws.title = 'Masa Berlaku'
-kolom = ['Nama Jurnal', 'Nomor SK', 'Masa Berlaku', 'e-ISSN', 'Peringkat',
-         'Jenis Penetapan', 'Periode SK', 'Tanggal SK', 'Sumber Tanggal Akhir',
-         'Jumlah SK', 'Perlu Dicek', 'Berkas Sumber']
-data = [[b['namaJurnal'], b['nomorSk'], b['masaBerlaku'], b['eIssn'],
-         ('SINTA ' + b['peringkat']) if b['peringkat'] else '',
-         b['jenis'], b['periode'], b['tanggalSk'], b['asalAkhir'],
-         b['jumlahSk'], b['perluDicek'], b['berkas']] for b in berlaku]
-tulisSheet(ws, kolom, data, [44, 22, 46, 12, 11, 22, 18, 17, 26, 10, 11, 40])
-# tandai baris yang akhirnya diturunkan / tidak ada
-for r, b in enumerate(berlaku, 2):
-    if b['asalAkhir'] != 'tertulis di SK':
-        for i in (3, 9):
-            ws.cell(r, i).fill = PatternFill('solid', fgColor=EMAS)
-
-# ---------- Sheet 2: riwayat lengkap ----------
-ws2 = wb.create_sheet('Riwayat Semua SK')
-kolom2 = ['Nama Jurnal', 'Nomor SK', 'Masa Berlaku', 'e-ISSN', 'Peringkat',
-          'Jenis Penetapan', 'Periode SK', 'Tanggal SK', 'Sumber Tanggal Akhir', 'Status']
-d2 = sorted(d, key=lambda x: (x['eIssn'], x['urut']))
-data2 = []
-for b in d2:
-    st = 'BERLAKU' if terbaru.get(b['eIssn']) is b else 'digantikan SK berikutnya'
-    data2.append([b['namaJurnal'], b['nomorSk'], b['masaBerlaku'], b['eIssn'],
-                  ('SINTA ' + b['peringkat']) if b['peringkat'] else '',
-                  b['jenis'], b['periode'], b['tanggalSk'], b['asalAkhir'], st])
-tulisSheet(ws2, kolom2, data2, [44, 22, 46, 12, 11, 22, 18, 17, 26, 24])
-
-# ---------- Sheet 3: catatan ----------
-ws3 = wb.create_sheet('Catatan & Keterbatasan')
-ws3.column_dimensions['A'].width = 120
-catatan = [
- ('JUDUL', 'Daftar Jurnal UPI Menurut SK Akreditasi/Reakreditasi SINTA'),
- ('', ''),
- ('H', 'Cara berkas ini dibuat'),
- ('', '1. SK diunduh dari tautan pada "Daftar SK Akreditasi dan Reakreditasi SINTA.md", disimpan di'),
- ('', '   C:\\Users\\Asus\\Documents\\SK Akreditasi bersama SK yang sudah Anda punya sebelumnya.'),
- ('', '2. Teks lampiran diurai dengan PyMuPDF. Jangkarnya e-ISSN, bukan nama jurnal, karena hanya'),
- ('', '   e-ISSN yang bentuknya seragam di seluruh periode.'),
- ('', '3. Baris disaring dengan mencocokkan penerbit ke "Universitas Pendidikan Indonesia".'),
- ('', '   Pencocokan dilakukan setelah spasi dinormalkan, karena PDF memecah isi sel jadi'),
- ('', '   beberapa baris sehingga pencarian biasa menghasilkan negatif palsu.'),
- ('', ''),
- ('H', 'Tiga format lampiran, dan akibatnya pada kolom Masa Berlaku'),
- ('', 'SK 2018      : hanya memuat peringkat dan penerbit. TIDAK ADA rentang volume sama sekali.'),
- ('', 'SK 2019-2020 : memuat "mulai Volume X Nomor Y Tahun Z" saja, tanpa "sampai".'),
- ('', '               Tahun berakhirnya DITURUNKAN (awal + 5 tahun) dan ditandai kuning.'),
- ('', 'SK 2021 ke atas: memuat rentang penuh "mulai ... sampai ...". Ini yang paling tepercaya.'),
- ('', ''),
- ('H', 'Yang perlu diperhatikan sebelum dipakai mengambil keputusan'),
- ('', '- Baris berlatar kuning berarti tanggal akhirnya TIDAK tertulis di SK. Jangan dipakai'),
- ('', '  menghitung tenggat sebelum diperiksa ke sertifikat jurnal yang bersangkutan.'),
- ('', '- SK memuat volume dan nomor, bukan bulan. Bulan pastinya baru bisa dihitung kalau'),
- ('', '  frekuensi terbit jurnal diketahui.'),
- ('', '- Kolom "Perlu Dicek" bertanda ya berarti penguraian nama gagal dan harus dibaca manual.'),
- ('', '- Sheet "Riwayat Semua SK" memperlihatkan seluruh penetapan per jurnal, termasuk yang'),
- ('', '  sudah digantikan, supaya perpindahan peringkat terlihat.'),
- ('', ''),
- ('H', 'SK yang belum berhasil didapat'),
- ('', '- 2018 Periode III (34/E/KPT/2018): tautan acuan mengarah ke Scribd, bukan PDF.'),
- ('', '- 2022 Periode I (105/E/KPT/2022): cermin repositori menolak unduhan.'),
- ('', '- 2025 Periode II (295/C/C3/KPT/2026 dan 156/C/C3/KPT/2026): acuan hanya memberi tautan'),
- ('', '  pengumuman, bukan PDF. Anda punya berkasnya di folder SK Akreditasi tetapi teksnya'),
- ('', '  belum bisa diurai; perlu diperiksa manual.'),
- ('', '- 2021 Periode II dan 2019 Periode III terunduh, tetapi tidak menghasilkan baris UPI.'),
- ('', '  Perlu dicek apakah memang tidak ada jurnal UPI di sana, atau lampirannya berupa gambar.'),
-]
-r = 1
-for jenis, t in catatan:
-    c = ws3.cell(r, 1, t)
-    if jenis == 'JUDUL':
-        c.font = Font(bold=True, size=14, color=MARUN)
-    elif jenis == 'H':
-        c.font = Font(bold=True, size=11, color=MARUN)
+    th = b['tahunAkhir']
+    if not th:
+        b['perhatian'] = 'tanggal akhir tidak diketahui'
+    elif int(th) < TAHUN_INI:
+        b['perhatian'] = 'SUDAH LEWAT'
+    elif int(th) == TAHUN_INI:
+        b['perhatian'] = 'berakhir tahun ini'
+    elif int(th) == TAHUN_INI + 1:
+        b['perhatian'] = 'berakhir tahun depan'
     else:
-        c.font = Font(size=10)
-    r += 1
+        b['perhatian'] = ''
 
-TUJUAN = r'C:\Users\Asus\Documents\Daftar Jurnal UPI - Masa Berlaku Akreditasi SINTA.xlsx'
+MARUN='FF7F0000'; KERTAS='FFF4EFEB'; EMAS='FFFBF3DF'; MERAH='FFFBECEC'
+tepi = Border(*[Side(style='thin', color='FFD8D0C8')]*4)
+
+def tulis(ws, kolom, data, lebar, bungkus=(1,3)):
+    for i,k in enumerate(kolom,1):
+        c=ws.cell(1,i,k); c.font=Font(bold=True,color='FFFFFFFF',size=10)
+        c.fill=PatternFill('solid',fgColor=MARUN)
+        c.alignment=Alignment(vertical='center',wrap_text=True)
+        ws.column_dimensions[get_column_letter(i)].width=lebar[i-1]
+    ws.row_dimensions[1].height=30
+    for r,row in enumerate(data,2):
+        for i,v in enumerate(row,1):
+            c=ws.cell(r,i,v); c.border=tepi; c.font=Font(size=10)
+            c.alignment=Alignment(vertical='top',wrap_text=(i in bungkus))
+        if r%2==0:
+            for i in range(1,len(kolom)+1): ws.cell(r,i).fill=PatternFill('solid',fgColor=KERTAS)
+    ws.freeze_panes='A2'
+    ws.auto_filter.ref='A1:%s%d'%(get_column_letter(len(kolom)),len(data)+1)
+
+wb=Workbook()
+
+# ---------- 1. Masa Berlaku ----------
+ws=wb.active; ws.title='Masa Berlaku'
+kol=['Nama Jurnal','Nomor SK','Masa Berlaku','e-ISSN','Peringkat','Jenis Penetapan',
+     'Periode SK','Tanggal SK','Sumber Tanggal Akhir','Perhatian','Jumlah SK','Perlu Dicek','Berkas Sumber']
+data=[[b['namaJurnal'],b['nomorSk'],b['masaBerlaku'],b['eIssn'],
+       ('SINTA '+b['peringkat']) if b['peringkat'] else '',b['jenis'],b['periode'],
+       b['tanggalSk'],b['asalAkhir'],b['perhatian'],b['jumlahSk'],b['perluDicek'],b['berkas']]
+      for b in berlaku]
+tulis(ws,kol,data,[44,22,46,12,11,26,18,17,26,22,10,11,38])
+for r,b in enumerate(berlaku,2):
+    if b['asalAkhir']!='tertulis di SK':
+        for i in (3,9): ws.cell(r,i).fill=PatternFill('solid',fgColor=EMAS)
+    if b['perhatian'] in ('SUDAH LEWAT','berakhir tahun ini'):
+        ws.cell(r,10).fill=PatternFill('solid',fgColor=MERAH)
+        ws.cell(r,10).font=Font(size=10,bold=True,color=MARUN)
+
+# ---------- 2. Riwayat ----------
+ws2=wb.create_sheet('Riwayat Semua SK')
+kol2=['Nama Jurnal','Nomor SK','Masa Berlaku','e-ISSN','Peringkat','Jenis Penetapan',
+      'Periode SK','Tanggal SK','Sumber Tanggal Akhir','Status Rekam','Digantikan Oleh']
+d2=sorted(d,key=lambda x:(x['eIssn'],x['urut']))
+data2=[]
+for b in d2:
+    aktif = terbaru.get(b['eIssn']) is b
+    data2.append([b['namaJurnal'],b['nomorSk'],b['masaBerlaku'],b['eIssn'],
+                  ('SINTA '+b['peringkat']) if b['peringkat'] else '',b['jenis'],
+                  b['periode'],b['tanggalSk'],b['asalAkhir'],
+                  'BERLAKU' if aktif else 'digantikan',
+                  '' if aktif else terbaru[b['eIssn']]['nomorSk']])
+tulis(ws2,kol2,data2,[44,22,46,12,11,26,18,17,26,14,22])
+
+# ---------- 3. Cek silang roster SINTA ----------
+def kunci(n):
+    n=re.sub(r'\([^)]*\)',' ',n or '')
+    n=re.sub(r'[^a-z0-9 ]',' ',n.lower())
+    return re.sub(r'\s+',' ',n).strip()
+
+roster=[]
+CSV=r'C:\Users\Asus\Desktop\daftar_jurnal_upi_sinta.csv'
+if os.path.exists(CSV):
+    with io.open(CSV,encoding='utf-8-sig',newline='') as f:
+        for row in csv.DictReader(f):
+            nm=(row.get('Nama Jurnal') or '').strip()
+            if nm: roster.append(nm)
+
+petaSk={kunci(b['namaJurnal']):b for b in berlaku}
+ws3=wb.create_sheet('Cek Silang Roster SINTA')
+kol3=['Nama Jurnal (roster SINTA)','Ketemu di SK?','Nomor SK','Masa Berlaku','Catatan']
+data3=[]
+for nm in sorted(roster,key=str.lower):
+    k=kunci(nm); hit=petaSk.get(k)
+    if not hit:
+        for kk,vv in petaSk.items():
+            if kk and (kk in k or k in kk) and abs(len(kk)-len(k))<25: hit=vv; break
+    data3.append([nm,'ya' if hit else 'TIDAK',
+                  hit['nomorSk'] if hit else '',
+                  hit['masaBerlaku'] if hit else '',
+                  '' if hit else 'periode SK belum tersedia, atau nama berbeda, atau belum terakreditasi'])
+tulis(ws3,kol3,data3,[52,14,22,46,52],bungkus=(1,4,5))
+
+# ---------- 4. Pemeriksaan ----------
+ws4=wb.create_sheet('Pemeriksaan')
+ws4.column_dimensions['A'].width=64; ws4.column_dimensions['B'].width=14; ws4.column_dimensions['C'].width=58
+uji=[]
+def U(nama,lolos,gagal,ket=''):
+    uji.append([nama,'LOLOS' if not gagal else '%d menyimpang'%gagal,ket])
+
+g=0; ket=[]
+for b in d:
+    if b['asalAkhir']=='tertulis di SK':
+        dv=int(b['volAkhir'])-int(b['volMulai']); dt=int(b['tahunAkhir'])-int(b['tahunMulai'])
+        if dv not in (4,5) or dt not in (4,5) or abs(dv-dt)>1:
+            g+=1; ket.append('%s (Vol%s->%s, %s->%s)'%(b['namaJurnal'][:34],b['volMulai'],b['volAkhir'],b['tahunMulai'],b['tahunAkhir']))
+U('Selisih volume dan tahun sama-sama 4 atau 5', True, g, '; '.join(ket[:3]))
+
+g=sum(1 for b in d if 'mulai' in b['masaBerlaku'] and b['urut']>=2021 and b['asalAkhir']!='tertulis di SK')
+U('SK 2021+ selalu punya klausa "sampai"', True, g, 'kalau ada, itu kegagalan penguraian bukan data')
+
+g=sum(1 for b in berlaku if b['perluDicek'])
+U('Nama jurnal terurai utuh', True, g, 'baris bertanda ya perlu dibaca manual')
+
+pasangan={}
+for b in d: pasangan.setdefault((b['nomorSk'],b['eIssn']),0); pasangan[(b['nomorSk'],b['eIssn'])]+=1
+g=sum(1 for v in pasangan.values() if v>1)
+U('Tidak ada e-ISSN ganda dalam satu SK', True, g)
+
+g=sum(1 for b in d if not re.match(r'^\d{7}[\dX]$', b['eIssn']))
+U('Format e-ISSN 8 karakter', True, g)
+
+ganda=[e for e in {b['eIssn'] for b in d} if sum(1 for x in d if x['eIssn']==e)>1]
+U('Jurnal dengan lebih dari satu SK', True, 0, '%d jurnal — lihat sheet Riwayat'%len(ganda))
+
+r=1
+ws4.cell(r,1,'Pemeriksaan otomatis atas berkas ini').font=Font(bold=True,size=13,color=MARUN); r+=2
+for nm,hasil,k in uji:
+    ws4.cell(r,1,nm).font=Font(size=10)
+    c=ws4.cell(r,2,hasil); c.font=Font(size=10,bold=True,color=('FF1F5A2A' if hasil=='LOLOS' else MARUN))
+    ws4.cell(r,3,k).font=Font(size=9,color='FF6B615C'); r+=1
+r+=1
+for t in [
+ 'Yang BELUM diperiksa dan perlu dikerjakan manual:',
+ '- Nomor terbitan akhir harus <= jumlah nomor per tahun jurnal tersebut. Kalau SK menyebut',
+ '  Nomor 12 sementara jurnal terbit 2 kali setahun, penurunan bulannya akan meleset jauh.',
+ '  Pemeriksaan ini butuh kolom frekuensi terbit dari direktori, tidak ada di berkas ini.',
+ '- Peringkat di SK vs peringkat di direktori. Beda berarti direktori kedaluwarsa atau salah jurnal.',
+ '- Baris dari SK 2025 Periode II belum masuk sama sekali (lihat Catatan).',
+]:
+    ws4.cell(r,1,t).font=Font(size=10, bold=t.endswith(':')); r+=1
+
+# ---------- 5. Catatan ----------
+ws5=wb.create_sheet('Catatan & Keterbatasan'); ws5.column_dimensions['A'].width=118
+catatan=[
+ ('J','Daftar Jurnal UPI Menurut SK Akreditasi/Reakreditasi SINTA'),
+ ('',''),
+ ('H','Cara berkas ini dibuat'),
+ ('','SK diunduh dari tautan pada "Daftar SK Akreditasi dan Reakreditasi SINTA.md" ke folder'),
+ ('','C:\\Users\\Asus\\Documents\\SK Akreditasi, digabung dengan SK yang sudah ada di sana.'),
+ ('','Lampiran diurai dengan PyMuPDF; jangkarnya e-ISSN, bukan nama jurnal.'),
+ ('','Skrip ada di djpi-dashboard\\sk-akreditasi dan bisa dijalankan ulang saat SK baru terbit.'),
+ ('',''),
+ ('H','Dua jebakan yang sempat membuat hasil ini salah'),
+ ('','1. Pencarian penerbit harus dilakukan setelah spasi dinormalkan. PDF memecah isi sel jadi'),
+ ('','   beberapa baris, sehingga "Universitas \\nPendidikan \\nIndonesia" tidak cocok dengan'),
+ ('','   pencarian biasa. Versi pertama melaporkan nol jurnal UPI di hampir semua SK.'),
+ ('','2. Menuntut frasa penuh "Universitas Pendidikan Indonesia" melewatkan "UPI Kampus Cibiru",'),
+ ('','   "UPI Press", dan "FPOK UPI". Saringan sekarang dua lapis: terima UPI singkat, tetapi'),
+ ('','   tolak "Universitas Putra Indonesia YPTK", "Institut Pendidikan Indonesia Garut", dan'),
+ ('','   "Universitas Pendidikan Ganesha" yang bukan milik UPI.'),
+ ('',''),
+ ('H','Tiga format lampiran, dan akibatnya pada kolom Masa Berlaku'),
+ ('','SK 2018        : hanya peringkat dan penerbit. TIDAK ADA rentang volume sama sekali.'),
+ ('','SK 2019-2020   : hanya "mulai Volume X Nomor Y Tahun Z", tanpa "sampai". Tahun akhir'),
+ ('','                 DITURUNKAN (awal + 5 tahun) dan diberi latar kuning.'),
+ ('','SK 2021 ke atas: rentang penuh "mulai ... sampai ...". Ini yang paling tepercaya.'),
+ ('',''),
+ ('H','Yang harus diperhatikan sebelum dipakai mengambil keputusan'),
+ ('','- Baris berlatar kuning: tanggal akhirnya tidak tertulis di SK. Jangan dipakai menghitung'),
+ ('','  tenggat sebelum diperiksa ke sertifikat jurnal yang bersangkutan.'),
+ ('','- SK memuat volume dan nomor, BUKAN bulan. Bulan pastinya baru bisa dihitung kalau'),
+ ('','  frekuensi terbit jurnal diketahui. Jangan menganggap masa berlaku habis 31 Desember.'),
+ ('','- Masa berlaku dihitung dari VOLUME YANG DINILAI, bukan dari tanggal SK. Karena itu ada'),
+ ('','  jurnal yang SK-nya baru terbit tetapi masa berlakunya tinggal satu dua tahun. Urutkan'),
+ ('','  berdasarkan kolom Perhatian, jangan berdasarkan tanggal SK.'),
+ ('','- Rekam yang berlaku dipilih dari SK TERBARU, bukan dari tahun akhir terjauh. Penurunan'),
+ ('','  peringkat bisa memperpendek masa berlaku, dan penomoran volume bisa mengulang dari awal.'),
+ ('',''),
+ ('H','SK yang belum masuk berkas ini'),
+ ('','- 2018 Periode III (34/E/KPT/2018): tautan acuan mengarah ke Scribd, bukan PDF.'),
+ ('','- 2022 Periode I (105/E/KPT/2022): cermin repositori menolak unduhan.'),
+ ('','- 2025 Periode II: DUA SK berbeda, bukan dua versi satu dokumen.'),
+ ('','    295/C/C3/KPT/2026 (2 Januari 2026) untuk REAKREDITASI, PDF-nya belum didapat.'),
+ ('','    156/C/C3/KPT/2026 (7 April 2026) untuk AKREDITASI BARU peringkat 3 sampai 6.'),
+ ('','    Berkas 156 ada di folder Anda tetapi berupa PINDAIAN 217 halaman tanpa lapisan teks;'),
+ ('','    hasil konversinya ke xlsx sudah ada tetapi memuat salah baca OCR pada angka volume.'),
+ ('','    Baris dari periode ini HARUS dimasukkan manual setelah diperiksa ke PDF-nya.'),
+ ('','- Peringkat 1 dan 2 periode 2 tahun 2025 tidak ada di berkas mana pun.'),
+ ('','- 2019 Periode IV dan V, 2022 Periode IV, 2023 Periode III-IV, 2024 Periode III,'),
+ ('','  dan 2026 Periode I tidak tercantum di daftar acuan.'),
+ ('','- 2021 Periode II dan 2019 Periode III terunduh tetapi tidak menghasilkan baris UPI:'),
+ ('','  lapisan teksnya rusak berkolom. Perlu diperiksa manual.'),
+ ('',''),
+ ('H','Sumber lain yang jangan dijadikan acuan utama'),
+ ('','Folder "Hasil reakreditasi periode 2" berisi 17 tangkapan layar WhatsApp bertanggal'),
+ ('','8 April 2026, sehari setelah SK 156 terbit. Berguna untuk pembanding, tetapi tidak bisa'),
+ ('','dilampirkan pada pengajuan resmi.'),
+]
+r=1
+for j,t in catatan:
+    c=ws5.cell(r,1,t)
+    c.font=Font(bold=True,size=14,color=MARUN) if j=='J' else (
+           Font(bold=True,size=11,color=MARUN) if j=='H' else Font(size=10))
+    r+=1
+
+TUJUAN=r'C:\Users\Asus\Documents\Daftar Jurnal UPI - Masa Berlaku Akreditasi SINTA.xlsx'
 wb.save(TUJUAN)
-print('Excel ditulis: %s' % TUJUAN)
-print('  Sheet "Masa Berlaku"      : %d jurnal' % len(berlaku))
-print('  Sheet "Riwayat Semua SK"  : %d penetapan' % len(d2))
+print('Excel ditulis: %s'%TUJUAN)
+print('  Masa Berlaku          : %d jurnal'%len(berlaku))
+print('  Riwayat Semua SK      : %d penetapan'%len(d2))
+print('  Cek Silang Roster     : %d nama, %d tidak ketemu di SK'%(
+      len(data3), sum(1 for x in data3 if x[1]=='TIDAK')))
 print()
-print('  akhir tertulis di SK      : %d' % sum(1 for b in berlaku if b['asalAkhir'] == 'tertulis di SK'))
-print('  akhir diturunkan          : %d' % sum(1 for b in berlaku if b['asalAkhir'].startswith('DITURUNKAN')))
-print('  akhir tidak ada           : %d' % sum(1 for b in berlaku if b['asalAkhir'] == 'tidak ada'))
-print('  nama perlu dicek manual   : %d' % sum(1 for b in berlaku if b['perluDicek']))
+for k in ['tertulis di SK','DITURUNKAN (awal + 5 tahun)','tidak ada']:
+    print('  akhir %-30s %d'%(k,sum(1 for b in berlaku if b['asalAkhir']==k)))
+print('  SUDAH LEWAT / berakhir tahun ini : %d'%sum(1 for b in berlaku if b['perhatian'] in ('SUDAH LEWAT','berakhir tahun ini')))

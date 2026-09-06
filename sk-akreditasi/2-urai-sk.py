@@ -32,7 +32,30 @@ BERKAS = [
  (2025.1, '2025 Periode I',   '10/C/C3/DT.05.00/2025','21 Maret 2025',    'SK 2025-I (10-C-C3-2025).pdf'),
 ]
 
-UPI  = re.compile(r'universitas\s+pendidikan\s+indonesia', re.I)
+# Penerbit UPI ditulis dengan banyak bentuk. Menuntut frasa penuh
+# "Universitas Pendidikan Indonesia" melewatkan "UPI Kampus Cibiru",
+# "UPI Press", dan "Departemen Pendidikan Olahraga-FPOK UPI".
+# Sebaliknya, menerima "UPI" polos akan ikut menarik "Majalah Ilmiah UPI YPTK"
+# milik Universitas Putra Indonesia Padang. Karena itu dua lapis.
+UPI_PENUH = re.compile(r'universitas\s+pendidikan\s+indonesia', re.I)
+UPI_SINGKAT = re.compile(r'\bUPI\b')
+BUKAN_UPI = re.compile(
+    r'(institut\s+(teknologi\s+)?pendidikan\s+indonesia'
+    r'|pendidikan\s+ganesha'
+    r'|putra\s+indonesia'
+    r'|YPTK'
+    r'|wise\s+pendidikan'
+    r'|sean\s+institute'
+    r'|masyarakat\s+penelitian\s+pendidikan\s+indonesia)', re.I)
+
+def milikUpi(ekor):
+    if UPI_PENUH.search(ekor):
+        return True
+    return bool(UPI_SINGKAT.search(ekor)) and not BUKAN_UPI.search(ekor)
+
+# Nomor SK dibaca dari kepala dokumen, bukan dari tabel acuan. Satu entri di
+# daftar acuan tertulis "-" padahal berkasnya sendiri memuat 200/M/KPT/2020.
+NOMOR_DOK = re.compile(r'NOMOR\s+([0-9]+\s*/\s*[A-Za-z0-9./]+)', re.I)
 ISSN = re.compile(r'\b(\d{7}[\dXx])\b')
 PENUH = re.compile(r'mulai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})\s+'
                    r'sampai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})', re.I)
@@ -40,7 +63,8 @@ AWAL  = re.compile(r'mulai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})', 
 PERINGKAT = re.compile(r'Peringkat\s+(\d)\b', re.I)
 BAGIAN = re.compile(r'Peringkat\s+(\d)\s*\((?:Satu|Dua|Tiga|Empat|Lima|Enam)\)', re.I)
 JENIS = re.compile(r'(Reakreditasi\s+Naik\s+Peringkat|Reakreditasi\s+Turun\s+Peringkat|'
-                   r'Reakreditasi\s+Tetap|Reakreditasi|Akreditasi\s+Baru|Akreditasi)', re.I)
+                   r'Reakreditasi\s+Tetap|Reakreditasi|Akreditasi\s+Baru'
+                   r'|Peringkat\s+\d\s+Terindeks\s+Bereputasi\s+Internasional|Akreditasi)', re.I)
 
 def bersih(t):
     t = re.sub(r'\s+', ' ', t)
@@ -65,7 +89,13 @@ for urut, periode, nomor, tglSk, berkas in BERKAS:
         print('LEWAT %s (berkas tidak ada)' % periode); continue
     d = pymupdf.open(path)
     teks = bersih(' '.join(d[i].get_text() for i in range(d.page_count)))
+    kepalaDok = bersih(' '.join(d[i].get_text() for i in range(min(3, d.page_count))))
     d.close()
+    md = NOMOR_DOK.search(kepalaDok)
+    nomorDok = re.sub(r'\s*/\s*', '/', md.group(1)).rstrip('.') if md else ''
+    if nomorDok and 'belum tercatat' in nomor:
+        print('   nomor SK dipulihkan dari dokumen: %s' % nomorDok)
+        nomor = nomorDok
 
     # peta posisi -> peringkat dari judul bagian (dipakai format 2018)
     bagian = [(m.start(), m.group(1)) for m in BAGIAN.finditer(teks)]
@@ -74,7 +104,7 @@ for urut, periode, nomor, tglSk, berkas in BERKAS:
     n = 0
     for i, (a, b, issn) in enumerate(pos):
         ekor = teks[b: pos[i+1][0] if i+1 < len(pos) else min(len(teks), b+900)]
-        if not UPI.search(ekor):
+        if not milikUpi(ekor):
             continue
         kepala = teks[(pos[i-1][1] if i else max(0, a-400)):a]
         m = re.search(r'(?:^|\s)(\d{1,4})\s+(.{3,200})$', kepala)
@@ -91,6 +121,7 @@ for urut, periode, nomor, tglSk, berkas in BERKAS:
         rec = {
             'urut': urut, 'periode': periode, 'nomorSk': nomor, 'tanggalSk': tglSk,
             'berkas': berkas, 'namaJurnal': nama, 'eIssn': issn.upper(),
+            'penerbitCuplikan': re.sub(r'\s+',' ',ekor[:120]).strip(),
             'jenis': (j.group(1) if j else '').title(),
             'peringkat': pk[0] if pk else '',
             'volMulai': '', 'noMulai': '', 'tahunMulai': '',
