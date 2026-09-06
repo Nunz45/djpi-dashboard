@@ -15,3 +15,7 @@ __pycache__/
 
 # hasil antara penguraian SK (dibangun ulang oleh sk-akreditasi/2-urai-sk.py)
 sk-akreditasi/sk-upi-mentah.json
+
+sk-akreditasi/utama.csv
+sk-akreditasi/tambahan.csv
+sk-akreditasi/cek-silang.json

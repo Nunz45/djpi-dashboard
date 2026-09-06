@@ -61,6 +61,9 @@ PENUH = re.compile(r'mulai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})\s+
                    r'sampai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})', re.I)
 AWAL  = re.compile(r'mulai\s+Volume\s+(\d+)\s+Nomor\s+(\d+)\s+Tahun\s+(\d{4})', re.I)
 PERINGKAT = re.compile(r'Peringkat\s+(\d)\b', re.I)
+# "Naik Peringkat dari Peringkat 4 ke Peringkat 3" -> yang berlaku adalah 3.
+# Mengambil kemunculan pertama akan selalu memberi peringkat LAMA.
+PERINGKAT_BARU = re.compile(r'dari\s+[Pp]eringkat\s+\d\s+ke\s+(?:[Pp]eringkat\s+)?(\d)', re.I)
 BAGIAN = re.compile(r'Peringkat\s+(\d)\s*\((?:Satu|Dua|Tiga|Empat|Lima|Enam)\)', re.I)
 JENIS = re.compile(r'(Reakreditasi\s+Naik\s+Peringkat|Reakreditasi\s+Turun\s+Peringkat|'
                    r'Reakreditasi\s+Tetap|Reakreditasi|Akreditasi\s+Baru'
@@ -113,7 +116,8 @@ for urut, periode, nomor, tglSk, berkas in BERKAS:
         p = PENUH.search(ekor)
         w = AWAL.search(ekor)
         j = JENIS.search(ekor)
-        pk = PERINGKAT.findall(ekor)
+        mb = PERINGKAT_BARU.search(ekor)
+        pk = [mb.group(1)] if mb else PERINGKAT.findall(ekor)
         if not pk:
             sblm = [g for s_, g in bagian if s_ < a]
             pk = [sblm[-1]] if sblm else []

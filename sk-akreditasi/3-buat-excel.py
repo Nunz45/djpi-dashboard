@@ -100,34 +100,41 @@ for b in d2:
                   '' if aktif else terbaru[b['eIssn']]['nomorSk']])
 tulis(ws2,kol2,data2,[44,22,46,12,11,26,18,17,26,14,22])
 
-# ---------- 3. Cek silang roster SINTA ----------
-def kunci(n):
-    n=re.sub(r'\([^)]*\)',' ',n or '')
-    n=re.sub(r'[^a-z0-9 ]',' ',n.lower())
-    return re.sub(r'\s+',' ',n).strip()
+# ---------- 3. Cek silang dengan Sheet1 direktori ----------
+# Sheet1 adalah acuan yang dipakai aplikasi, jadi lembar ini dibangun DARI Sheet1
+# dan bukan dari hasil urai SK. Jurnal yang tidak ketemu jadi temuan bernama,
+# bukan baris yang hilang diam-diam.
+cs = {}
+if os.path.exists('cek-silang.json'):
+    cs = json.load(open('cek-silang.json', encoding='utf-8'))
 
-roster=[]
-CSV=r'C:\Users\Asus\Desktop\daftar_jurnal_upi_sinta.csv'
-if os.path.exists(CSV):
-    with io.open(CSV,encoding='utf-8-sig',newline='') as f:
-        for row in csv.DictReader(f):
-            nm=(row.get('Nama Jurnal') or '').strip()
-            if nm: roster.append(nm)
+if cs:
+    ws3 = wb.create_sheet('Cek Silang Sheet1')
+    kol3 = ['Nama Jurnal (Sheet1)', 'Kluster', 'e-ISSN', 'Status di Sheet1',
+            'Peringkat menurut SK', 'Nomor SK', 'Periode SK', 'Masa Berlaku menurut SK',
+            'Tanggal Expired di Sheet1', 'Frekuensi Terbit', 'Terbit/Tahun',
+            'Perkiraan Bulan Berakhir', 'Cara Gabung', 'Selisih yang Ditemukan']
+    data3 = [[h['nama'], h['kluster'], h['eIssn'], h['statusSheet1'], h['peringkatSk'],
+              h['nomorSk'], h['periodeSk'], h['masaBerlaku'], h['tanggalExpiredSheet1'],
+              h['issue'], h['terbitPerTahun'], h['perkiraanBulanBerakhir'],
+              h['caraGabung'], h['catatan']] for h in cs['hasil']]
+    tulis(ws3, kol3, data3, [40,14,12,15,17,26,16,40,17,20,12,16,16,58],
+          bungkus=(1,8,14))
+    for r, h in enumerate(cs['hasil'], 2):
+        if h['catatan']:
+            ws3.cell(r,14).fill = PatternFill('solid', fgColor=MERAH)
+        if h['caraGabung'] == 'nama jurnal':
+            ws3.cell(r,13).fill = PatternFill('solid', fgColor=EMAS)
 
-petaSk={kunci(b['namaJurnal']):b for b in berlaku}
-ws3=wb.create_sheet('Cek Silang Roster SINTA')
-kol3=['Nama Jurnal (roster SINTA)','Ketemu di SK?','Nomor SK','Masa Berlaku','Catatan']
-data3=[]
-for nm in sorted(roster,key=str.lower):
-    k=kunci(nm); hit=petaSk.get(k)
-    if not hit:
-        for kk,vv in petaSk.items():
-            if kk and (kk in k or k in kk) and abs(len(kk)-len(k))<25: hit=vv; break
-    data3.append([nm,'ya' if hit else 'TIDAK',
-                  hit['nomorSk'] if hit else '',
-                  hit['masaBerlaku'] if hit else '',
-                  '' if hit else 'periode SK belum tersedia, atau nama berbeda, atau belum terakreditasi'])
-tulis(ws3,kol3,data3,[52,14,22,46,52],bungkus=(1,4,5))
+    if cs.get('yatim'):
+        ws3b = wb.create_sheet('Ada di SK Tapi Tidak di Sheet1')
+        kol3b = ['Nama Jurnal (dari SK)', 'e-ISSN', 'Peringkat', 'Nomor SK',
+                 'Periode SK', 'Cuplikan Penerbit di SK']
+        data3b = [[y['namaJurnal'], y['eIssn'],
+                   ('SINTA ' + y['peringkat']) if y['peringkat'] else '',
+                   y['nomorSk'], y['periode'], y.get('penerbitCuplikan','')]
+                  for y in cs['yatim']]
+        tulis(ws3b, kol3b, data3b, [46,12,11,26,18,64], bungkus=(1,6))
 
 # ---------- 4. Pemeriksaan ----------
 ws4=wb.create_sheet('Pemeriksaan')
@@ -247,8 +254,10 @@ wb.save(TUJUAN)
 print('Excel ditulis: %s'%TUJUAN)
 print('  Masa Berlaku          : %d jurnal'%len(berlaku))
 print('  Riwayat Semua SK      : %d penetapan'%len(d2))
-print('  Cek Silang Roster     : %d nama, %d tidak ketemu di SK'%(
-      len(data3), sum(1 for x in data3 if x[1]=='TIDAK')))
+if cs:
+    print('  Cek Silang Sheet1     : %d baris, %d punya selisih'%(
+          len(cs['hasil']), sum(1 for h in cs['hasil'] if h['catatan'])))
+    print('  Ada di SK tapi tidak di Sheet1 : %d'%len(cs.get('yatim',[])))
 print()
 for k in ['tertulis di SK','DITURUNKAN (awal + 5 tahun)','tidak ada']:
     print('  akhir %-30s %d'%(k,sum(1 for b in berlaku if b['asalAkhir']==k)))
