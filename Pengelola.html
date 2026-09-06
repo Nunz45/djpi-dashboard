@@ -840,36 +840,38 @@
                     placeholder="Tempel tautan halaman jurnal, atau tulis catatan singkat"
                     v-model="persiapanAkr.jawaban.tahap1[s.k].catatan" @input="jadwalkanSimpan">
                 </div>
-              </div>
-            </div>
 
-            <!-- ===== LANGKAH 3 — Tahap 2 Pemeriksaan (baca saja) ===== -->
-            <div v-show="akrLangkah === 3" class="card akr-langkah">
-              <div class="card-head">
-                <div>
-                  <h2 class="card-title">Tahap 2 — Pemeriksaan</h2>
-                  <p class="card-note">
-                    Tahap ini dikerjakan ARJUNA, bukan Anda. Daftar berikut supaya Anda tahu apa yang
-                    akan diperiksa.
-                  </p>
-                </div>
-                <span class="badge badge-none">Baca saja</span>
-              </div>
-              <div class="card-pad">
-                <div v-for="p in persiapanAkr.rubrik.tahap2" :key="p.k" class="akr-periksa">
-                  <div class="akr-unit-head">
-                    <div><span class="badge badge-none">{{ p.k }}</span> <span class="teks-tebal">{{ p.nama }}</span></div>
+                <!-- Tahap 2 dikerjakan ARJUNA, bukan pengelola. Dulu ia memakai satu
+                     langkah penuh dari enam dan bertanda selesai:false permanen, sehingga
+                     jejak stepper tidak pernah bisa hijau seluruhnya. Sekarang jadi panel
+                     lipat di sini: isinya tetap utuh, tetapi tidak lagi menuntut langkah. -->
+                <details class="akr-lipat">
+                  <summary>
+                    <span class="teks-tebal">Yang akan diperiksa ARJUNA pada Tahap 2</span>
+                    <span class="badge badge-none">Baca saja</span>
+                  </summary>
+                  <div class="akr-lipat-isi">
+                    <p class="card-note">
+                      Tahap ini dikerjakan ARJUNA setelah pengajuan Anda masuk. Daftar berikut supaya
+                      Anda tahu apa yang akan dilihat, terutama butir kelayakan yang paling sering
+                      mementalkan pengajuan.
+                    </p>
+                    <div v-for="pp in persiapanAkr.rubrik.tahap2" :key="pp.k" class="akr-periksa">
+                      <div class="akr-unit-head">
+                        <div><span class="badge badge-none">{{ pp.k }}</span> <span class="teks-tebal">{{ pp.nama }}</span></div>
+                      </div>
+                      <p class="card-note">{{ pp.tujuan }} {{ pp.catatan }}</p>
+                      <ul class="akr-daftar">
+                        <li v-for="(b, i) in pp.butir" :key="i">{{ b }}</li>
+                      </ul>
+                    </div>
                   </div>
-                  <p class="card-note">{{ p.tujuan }} {{ p.catatan }}</p>
-                  <ul class="akr-daftar">
-                    <li v-for="(b, i) in p.butir" :key="i">{{ b }}</li>
-                  </ul>
-                </div>
+                </details>
               </div>
             </div>
 
-            <!-- ===== LANGKAH 4 — Tahap 3.1 Tata Kelola ===== -->
-            <div v-show="akrLangkah === 4" class="card akr-langkah">
+            <!-- ===== LANGKAH 3 — Tahap 3.1 Tata Kelola ===== -->
+            <div v-show="akrLangkah === 3" class="card akr-langkah">
               <div class="card-head">
                 <div>
                   <h2 class="card-title">Tahap 3.1 — Tata Kelola
@@ -969,8 +971,8 @@
               </div>
             </div>
 
-            <!-- ===== LANGKAH 5 — Tahap 3.2 Mutu Artikel ===== -->
-            <div v-show="akrLangkah === 5" class="akr-langkah">
+            <!-- ===== LANGKAH 4 — Tahap 3.2 Mutu Artikel ===== -->
+            <div v-show="akrLangkah === 4" class="akr-langkah">
               <!-- hasil pemeriksaan DJPI atas artikel terbit -->
               <div v-if="praAsesmen.totalArtikel" class="card mb-16">
                 <div class="card-head">
@@ -1043,12 +1045,12 @@
                     </h2>
                     <p class="card-note">
                       Asesor menilai bagian ini dengan membaca sampel artikel terbitan tiga tahun
-                      terakhir, jadi tidak ada isian nilai di sini. Pakai daftar berikut untuk
-                      memeriksa artikel Anda sendiri.
+                      terakhir, jadi tidak ada isian nilai di sini. Periksa artikel Anda sendiri
+                      terhadap tiap butir, lalu tulis apa yang Anda temukan.
                     </p>
                   </div>
                   <span class="badge badge-none">
-                    {{ akrMutuDicek }} dari {{ persiapanAkr.rubrik.mutuArtikel.length }} sudah diperiksa
+                    {{ akrMutuDicek }} dari {{ persiapanAkr.rubrik.mutuArtikel.length }} butir dicatat
                   </span>
                 </div>
                 <div class="card-pad">
@@ -1057,20 +1059,32 @@
                     temuan per artikel akan muncul di atas daftar periksa ini.
                   </p>
 
-                  <label v-for="m in persiapanAkr.rubrik.mutuArtikel" :key="m.k" class="akr-mutu">
-                    <input type="checkbox" v-model="persiapanAkr.jawaban.mutu[m.k]" @change="jadwalkanSimpan">
+                  <div class="alert alert-info mb-16">
+                    Kolom di bawah dulu berupa kotak centang. Centang tidak menyimpan apa pun yang
+                    bisa dibagi ke sesama redaksi atau ditindaklanjuti, jadi diganti kolom catatan.
+                    Tulis artikel mana yang Anda periksa dan apa temuannya; isian ini ikut tercetak
+                    di lembar persiapan.
+                  </div>
+
+                  <div v-for="m in persiapanAkr.rubrik.mutuArtikel" :key="m.k" class="akr-mutu">
                     <div>
-                      <div><span class="badge badge-none">{{ m.k }}</span> <span class="teks-tebal">{{ m.nama }}</span></div>
+                      <div><span class="badge badge-none">{{ m.k }}</span> <span class="teks-tebal">{{ m.nama }}</span>
+                        <span v-if="persiapanAkr.jawaban.mutu[m.k]" class="badge badge-ok">Dicatat</span>
+                      </div>
                       <div class="card-note">{{ m.rubrik }}</div>
+                      <label class="label label-kecil" :for="'mutu-' + m.k">Temuan Anda</label>
+                      <textarea :id="'mutu-' + m.k" class="input akr-catatan" rows="2"
+                        placeholder="Contoh: diperiksa 3 artikel Vol 12 No 1; dua di antaranya rujukannya di bawah 15 entri"
+                        v-model="persiapanAkr.jawaban.mutu[m.k]" @input="jadwalkanSimpan"></textarea>
                     </div>
-                  </label>
+                  </div>
                   <div class="alert alert-info mt-8"><b>Catatan asesor &amp; disinsentif.</b> {{ persiapanAkr.rubrik.disinsentif }}</div>
                 </div>
               </div>
             </div>
 
-            <!-- ===== LANGKAH 6 — Tinjau & simpan ===== -->
-            <div v-show="akrLangkah === 6" class="card akr-langkah">
+            <!-- ===== LANGKAH 5 — Tinjau & simpan ===== -->
+            <div v-show="akrLangkah === 5" class="card akr-langkah">
               <kartu-kepala judul="Tinjau sebelum menyimpan" catatan="Periksa kembali seluruh jawaban Anda. Tekan Ubah pada bagian mana pun untuk
                     memperbaikinya." />
               <div class="card-pad">
@@ -1141,7 +1155,7 @@
                     <span class="akr-rev-judul">Tahap 3.1 — Tata Kelola</span>
                     <span class="badge" :class="akrUnsurDinilai === persiapanAkr.rubrik.tataKelola.length ? 'badge-ok' : 'badge-warn'">
                       {{ akrUnsurDinilai }} dari {{ persiapanAkr.rubrik.tataKelola.length }} unsur</span>
-                    <button type="button" class="btn btn-sm" @click="ubahDariTinjauan(4)">Ubah</button>
+                    <button type="button" class="btn btn-sm" @click="ubahDariTinjauan(3)">Ubah</button>
                   </div>
                   <div class="akr-rev-isi">
                     <div class="akr-rev-baris"><span>Perkiraan nilai</span>
@@ -1160,11 +1174,11 @@
                 <div class="akr-rev">
                   <div class="akr-rev-head">
                     <span class="akr-rev-judul">Tahap 3.2 — Mutu Artikel</span>
-                    <button type="button" class="btn btn-sm" @click="ubahDariTinjauan(5)">Ubah</button>
+                    <button type="button" class="btn btn-sm" @click="ubahDariTinjauan(4)">Ubah</button>
                   </div>
                   <div class="akr-rev-isi">
                     <div class="akr-rev-baris"><span>Daftar periksa mandiri</span>
-                      <b>{{ akrMutuDicek }} dari {{ persiapanAkr.rubrik.mutuArtikel.length }} diperiksa</b></div>
+                      <b>{{ akrMutuDicek }} dari {{ persiapanAkr.rubrik.mutuArtikel.length }} butir dicatat</b></div>
                     <div class="akr-rev-baris"><span>Pemeriksaan DJPI atas artikel terbit</span>
                       <b v-if="praAsesmen.totalArtikel">{{ praAsesmen.totalArtikel }} artikel ·
                         {{ praAsesmen.totalPerluPerbaikan }} butir perlu perbaikan</b>
@@ -1207,7 +1221,7 @@
                 <template v-else>Belum pernah disimpan</template>
               </span>
               <button v-if="akrLangkah > 1" type="button" class="btn" @click="langkahMundur">Sebelumnya</button>
-              <button v-if="akrLangkah < 6" type="button" class="btn btn-primer" @click="langkahMaju">
+              <button v-if="akrLangkah < 5" type="button" class="btn btn-primer" @click="langkahMaju">
                 {{ akrLabelLanjut }}
               </button>
               <template v-else>
@@ -1297,13 +1311,16 @@
 
           <h2>Tahap 3.2 — Mutu Artikel ({{ persiapanAkr.rubrik.mutuArtikelMaks }} dari 100)</h2>
           <p class="akr-cetak-nb">
-            Daftar periksa mandiri: {{ akrMutuDicek }} dari
-            {{ persiapanAkr.rubrik.mutuArtikel.length }} butir sudah diperiksa.
+            Catatan pemeriksaan mandiri: {{ akrMutuDicek }} dari
+            {{ persiapanAkr.rubrik.mutuArtikel.length }} butir sudah dicatat.
           </p>
           <table class="akr-cetak-tabel">
             <tr v-for="m in persiapanAkr.rubrik.mutuArtikel" :key="m.k">
               <th>{{ m.k }} · {{ m.nama }}</th>
-              <td>{{ persiapanAkr.jawaban.mutu[m.k] ? 'Sudah diperiksa' : 'Belum diperiksa' }}</td>
+              <td>
+                <template v-if="persiapanAkr.jawaban.mutu[m.k]">{{ persiapanAkr.jawaban.mutu[m.k] }}</template>
+                <template v-else>Belum dicatat</template>
+              </td>
             </tr>
           </table>
 
@@ -1500,6 +1517,8 @@ const appPengelola = createApp({
       // dan penanda sesi berakhir yang TIDAK menghancurkan isian di layar
       akrDraf: null,
       akrCetakWaktu: '',
+      // halaman tinjauan sudah pernah dibuka pada sesi ini
+      akrSudahDitinjau: false,
       akrSesiBerakhir: false,
       // hasil deteksi tabrakan dari server; isian di layar dibiarkan utuh
       akrKonflik: null
@@ -1684,7 +1703,9 @@ const appPengelola = createApp({
       });
       return urut.map((g) => peta[g]);
     },
-    // Enam baris stepper beserta keterangan progres masing-masing.
+    // Lima baris stepper beserta keterangan progres masing-masing. Tahap 2 tidak
+    // lagi jadi langkah tersendiri: ia dikerjakan ARJUNA, tidak pernah bisa
+    // ditandai selesai, dan kini jadi panel lipat di dalam langkah 2.
     akrLangkahDaftar() {
       var a = this.persiapanAkr;
       var totalUnsur = a.rubrik ? a.rubrik.tataKelola.length : 14;
@@ -1695,21 +1716,23 @@ const appPengelola = createApp({
           ket: tglOk ? 'Lengkap' : 'Tanggal SK belum diisi' },
         { n: 2, nama: 'Tahap 1 — Pengajuan', selesai: this.akrSyaratSiap,
           ket: this.akrSyaratLolos + ' dari ' + this.akrSyaratBerlaku.length + ' terisi' },
-        { n: 3, nama: 'Tahap 2 — Pemeriksaan', selesai: false, ket: 'Baca saja' },
-        { n: 4, nama: 'Tahap 3.1 — Tata Kelola', selesai: this.akrUnsurDinilai === totalUnsur,
+        { n: 3, nama: 'Tahap 3.1 — Tata Kelola', selesai: this.akrUnsurDinilai === totalUnsur,
           ket: this.akrUnsurDinilai + ' dari ' + totalUnsur + ' unsur' },
-        { n: 5, nama: 'Tahap 3.2 — Mutu Artikel', selesai: this.akrMutuDicek === totalMutu,
+        { n: 4, nama: 'Tahap 3.2 — Mutu Artikel', selesai: this.akrMutuDicek === totalMutu,
           ket: this.praAsesmen.totalPerluPerbaikan
             ? this.praAsesmen.totalPerluPerbaikan + ' temuan menunggu'
-            : this.akrMutuDicek + ' dari ' + totalMutu + ' diperiksa' },
-        { n: 6, nama: 'Tinjau & simpan', selesai: !!a.terakhirDisimpan,
-          ket: a.terakhirDisimpan ? 'Tersimpan ' + a.terakhirDisimpan : 'Belum ditinjau' }
+            : this.akrMutuDicek + ' dari ' + totalMutu + ' dicatat' },
+        // Dulu bertanda selesai begitu simpan otomatis pertama jalan, jauh
+        // sebelum halaman tinjauan pernah dibuka.
+        { n: 5, nama: 'Tinjau & simpan', selesai: this.akrSudahDitinjau && !!a.terakhirDisimpan,
+          ket: !this.akrSudahDitinjau ? 'Belum ditinjau'
+            : (a.terakhirDisimpan ? 'Tersimpan ' + a.terakhirDisimpan : 'Belum disimpan') }
       ];
     },
     akrLabelLanjut() {
       var peta = {
-        1: 'Lanjut ke Tahap 1', 2: 'Lanjut ke Tahap 2', 3: 'Lanjut ke Tahap 3.1',
-        4: 'Lanjut ke Tahap 3.2', 5: 'Lanjut ke tinjauan'
+        1: 'Lanjut ke Tahap 1', 2: 'Lanjut ke Tahap 3.1',
+        3: 'Lanjut ke Tahap 3.2', 4: 'Lanjut ke tinjauan'
       };
       return peta[this.akrLangkah] || 'Lanjut';
     },
@@ -1772,8 +1795,12 @@ const appPengelola = createApp({
         { artikel: [], totalArtikel: 0, totalPerluPerbaikan: 0, terakhirDiperbarui: '' };
     },
     akrMutuDicek() {
+      var r = this.persiapanAkr.rubrik;
       var mutu = this.persiapanAkr.jawaban.mutu || {};
-      return Object.keys(mutu).filter((k) => mutu[k]).length;
+      if (!r) return 0;
+      // Dihitung dari catatan yang benar-benar ditulis. Versi lama menghitung
+      // kotak tercentang, yang bisa penuh 16 dari 16 tanpa memuat satu temuan pun.
+      return r.mutuArtikel.filter((m) => String(mutu[m.k] || '').trim()).length;
     },
     // Hitung mundur ke tenggat pengajuan ulang (6 bulan sebelum masa berlaku berakhir).
     akrTenggatUlang() {
@@ -1844,14 +1871,14 @@ const appPengelola = createApp({
       // daftar ini — sehingga jurnal yang Tata Kelolanya penuh melihat daftar
       // kosong seolah tidak ada pekerjaan tersisa.
       var mutu = a.jawaban.mutu || {};
-      var belumDicek = a.rubrik.mutuArtikel.filter((m) => !mutu[m.k]);
+      var belumDicek = a.rubrik.mutuArtikel.filter((m) => !String(mutu[m.k] || '').trim());
       if (belumDicek.length) {
         out.push({
           tipe: 'Mutu Artikel', kode: '', kunci: 'mutu-belum', selisih: 0,
           teks: belumDicek.length + ' dari ' + a.rubrik.mutuArtikel.length +
-            ' butir belum Anda periksa — bagian ini bernilai ' +
+            ' butir belum ada catatan temuannya — bagian ini bernilai ' +
             (a.rubrik.mutuArtikelMaks || 54) + ' dari 100.',
-          saran: 'Butir yang belum diperiksa: ' + belumDicek.map((m) => m.k).join(', ') + '.'
+          saran: 'Butir yang belum dicatat: ' + belumDicek.map((m) => m.k).join(', ') + '.'
         });
       }
       if (this.praAsesmen.totalPerluPerbaikan) {
@@ -1936,6 +1963,7 @@ const appPengelola = createApp({
       this.akrArtikelTerbuka = -1;
       this.akrTampilSemuaButir = false;
       this.akrLangkah = 1;
+      this.akrSudahDitinjau = false;
       this.akrDariTinjauan = false;
       this.akrGrupBuka = 'A';
     },
@@ -2362,7 +2390,14 @@ const appPengelola = createApp({
           res.rubrik.syaratTahap1.forEach((s) => { if (!j.tahap1[s.k]) j.tahap1[s.k] = { jawab: '', catatan: '' }; });
           res.rubrik.tataKelola.forEach((u) => { if (!j.tataKelola[u.k]) j.tataKelola[u.k] = { nilai: '', catatan: '' }; });
           res.rubrik.cope.forEach((c) => { if (j.cope[c.k] === undefined) j.cope[c.k] = false; });
-          res.rubrik.mutuArtikel.forEach((m) => { if (j.mutu[m.k] === undefined) j.mutu[m.k] = false; });
+          // Butir Mutu Artikel kini menyimpan catatan temuan, bukan boolean.
+          // Baris lama berisi true/false; keduanya tidak memuat informasi apa pun
+          // yang bisa dipindahkan ke catatan, jadi dijadikan kosong. Yang hilang
+          // hanya tanda centang, dan itu memang yang sedang dihapus.
+          res.rubrik.mutuArtikel.forEach((m) => {
+            var v = j.mutu[m.k];
+            j.mutu[m.k] = (typeof v === 'string') ? v : '';
+          });
 
           a.jawaban = j;
           a.dimuat = true;
@@ -2395,21 +2430,23 @@ const appPengelola = createApp({
       this.jadwalkanSimpan();
     },
 
-    // ---- navigasi enam langkah ----
+    // ---- navigasi lima langkah ----
     keLangkah(n) {
       if (n === this.akrLangkah) return;
       this.akrLangkah = n;
-      if (n !== 6) this.persiapanAkr.pesan = '';
+      // Langkah tinjauan hanya dianggap sudah dilihat kalau benar-benar dibuka.
+      if (n === 5) this.akrSudahDitinjau = true;
+      if (n !== 5) this.persiapanAkr.pesan = '';
       this.simpanDiam();
       this.keAtas();
     },
     langkahMaju() {
       if (this.akrDariTinjauan) { this.kembaliKeTinjauan(); return; }
-      if (this.akrLangkah < 6) this.keLangkah(this.akrLangkah + 1);
+      if (this.akrLangkah < 5) this.keLangkah(this.akrLangkah + 1);
     },
     langkahMundur() { if (this.akrLangkah > 1) this.keLangkah(this.akrLangkah - 1); },
     ubahDariTinjauan(n) { this.akrDariTinjauan = true; this.keLangkah(n); },
-    kembaliKeTinjauan() { this.akrDariTinjauan = false; this.keLangkah(6); },
+    kembaliKeTinjauan() { this.akrDariTinjauan = false; this.keLangkah(5); },
     /**
      * Halaman ini disajikan HtmlService di dalam iframe sandbox, dan dokumen
      * iframe sering tidak punya guliran sendiri -- yang bergulir adalah halaman
@@ -3006,16 +3043,11 @@ body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
 
 .akr-mutu {
   display: flex; gap: 10px; align-items: flex-start;
-  padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
 }
 .akr-mutu:last-of-type { border-bottom: 0; }
-.akr-mutu input { margin-top: 3px; flex: none; }
-
-.akr-ringkas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.akr-ringkas > div {
-  padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
-}
-.akr-ringkas .teks-tebal { font-size: 20px; margin-top: 3px; font-family: var(--font-mono); }
+.akr-mutu > div { flex: 1; min-width: 0; }
+.akr-mutu textarea { width: 100%; resize: vertical; }
 
 .akr-perbaikan { margin: 8px 0 0; padding-left: 20px; }
 .akr-perbaikan li { margin-bottom: 8px; font-size: 13px; }
@@ -3063,7 +3095,6 @@ body.dark .akr-st.selesai .akr-st-bul { background: #173420; color: #7ebb90; }
   .akr-nav-status { flex: 1 0 100%; margin-bottom: 4px; }
   .akr-nav .btn { flex: 1; }
   .akr-cope { grid-template-columns: 1fr; }
-  .akr-ringkas { grid-template-columns: 1fr; }
   .akr-unit-head { flex-direction: column; }
 }
 

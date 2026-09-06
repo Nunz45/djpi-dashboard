@@ -5859,7 +5859,7 @@ var SHEET_PERSIAPAN_AKREDITASI = 'Persiapan_Akreditasi';
 
 var PERSIAPAN_AKR_HEADER = [
   'Nama Jurnal', 'Email Pengelola', 'Jenis Pengajuan', 'Tanggal Berakhir SK',
-  'Jawaban (JSON)', 'Kesiapan Tata Kelola (%)', 'Syarat Gerbang Terpenuhi', 'Terakhir Disimpan'
+  'Jawaban (JSON)', 'Nilai Tata Kelola (dari 46)', 'Syarat Gerbang Terpenuhi', 'Terakhir Disimpan'
 ];
 
 /* -- Syarat Tahap 1: gerbang, semua wajib "ya" --------------------------- */
@@ -6342,8 +6342,8 @@ function getPersiapanAkreditasi(token) {
         tglBerakhirSk: (nilai[3] instanceof Date)
           ? Utilities.formatDate(nilai[3], TZ, 'yyyy-MM-dd') : str_(nilai[3]),
         jawaban: jawaban,
-        kesiapan: angka_(nilai[5]),
-        gerbang: str_(nilai[6]),
+        // Nilai Tata Kelola dan status gerbang tidak dikirim: klien menghitungnya
+        // sendiri dari jawaban, dan dua field ini tidak pernah dibaca di sana.
         terakhirDisimpan: (nilai[7] instanceof Date)
           ? Utilities.formatDate(nilai[7], TZ, 'yyyy-MM-dd HH:mm') : str_(nilai[7])
       };
@@ -6387,7 +6387,11 @@ function simpanPersiapanAkreditasi(token, payload) {
   var tglBerakhir = str_(payload.tglBerakhirSk).substring(0, 10);
   var jawaban = (payload.jawaban && typeof payload.jawaban === 'object') ? payload.jawaban : {};
 
-  // Kesiapan Tata Kelola = sum(nilai level terpilih) / 46
+  // Nilai Tata Kelola: jumlah level terpilih, disimpan MENTAH dari 46.
+  //
+  // Dulu kolom ini berisi persen. Angka 0-100 itu berada di rentang yang sama
+  // dengan skala nilai akreditasi, sehingga "85%" terbaca sebagai nilai 85 dan
+  // mengesankan Peringkat 2, padahal 85% x 46 = 39,1 dari 100.
   var tk = jawaban.tataKelola || {};
   var total = 0;
   AKR_TATA_KELOLA.forEach(function (u) {
@@ -6395,7 +6399,7 @@ function simpanPersiapanAkreditasi(token, payload) {
     var n = (v && typeof v === 'object') ? Number(v.nilai) : Number(v);
     if (!isNaN(n)) total += Math.max(0, Math.min(n, u.maks));
   });
-  var kesiapan = Math.round((total / AKR_TATA_KELOLA_MAKS) * 100);
+  var nilaiTk = Math.round(total * 10) / 10;
 
   // Syarat gerbang: hitung yang "ya" dari syarat yang berlaku untuk jenis pengajuan
   var t1 = jawaban.tahap1 || {};
@@ -6423,7 +6427,7 @@ function simpanPersiapanAkreditasi(token, payload) {
     var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
     var barisData = [
       aman_(muatan.namaJurnal), aman_(pelakuEdit_(muatan)), jenis, aman_(tglBerakhir),
-      jsonJawab, kesiapan, gerbang, stempel
+      jsonJawab, nilaiTk, gerbang, stempel
     ];
 
     var baris = cariBarisPersiapanAkr_(sh, muatan.namaJurnal);
@@ -6460,10 +6464,10 @@ function simpanPersiapanAkreditasi(token, payload) {
     SpreadsheetApp.flush();
 
     catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'PERSIAPAN_AKREDITASI'),
-      JSON.stringify({ jenis: jenis, kesiapan: kesiapan, gerbang: gerbang }));
+      JSON.stringify({ jenis: jenis, nilaiTataKelola: nilaiTk, gerbang: gerbang }));
 
     return { ok: true, message: 'Isian persiapan akreditasi tersimpan.',
-             kesiapan: kesiapan, gerbang: gerbang, terakhirDisimpan: stempel };
+             nilaiTataKelola: nilaiTk, gerbang: gerbang, terakhirDisimpan: stempel };
   } catch (err) {
     return { ok: false, message: 'Gagal menyimpan: ' + err.message };
   } finally {
@@ -6638,7 +6642,6 @@ function praAsesmenJurnal_(namaJurnal) {
     var a = peta[k];
     a.butir.sort(function (x, y) { return String(x.kode).localeCompare(String(y.kode)); });
     a.perluPerbaikan = a.butir.filter(function (x) { return x.status === 'perlu perbaikan'; }).length;
-    a.baik = a.butir.filter(function (x) { return x.status === 'baik'; }).length;
     a.perluDicek = a.butir.filter(function (x) { return x.status === 'perlu dicek'; }).length;
     a.jumlahButir = a.butir.length;
     return a;
@@ -6658,6 +6661,9 @@ function praAsesmenJurnal_(namaJurnal) {
  * karena nama jurnal yang tidak cocok membuat temuan tidak pernah tampil ke pengelola.
  */
 function cekPraAsesmen() {
+  // Cache dibuang lebih dulu supaya diagnostik membaca sheet yang baru
+  // ditempel, bukan salinan lama yang masih hidup sampai 900 detik.
+  bersihkanCachePraAsesmen_();
   var baris = bacaPraAsesmen_();
   if (!baris.length) {
     var pesan = 'Sheet "' + SHEET.PRA_ASESMEN + '" kosong atau belum ada. ' +
