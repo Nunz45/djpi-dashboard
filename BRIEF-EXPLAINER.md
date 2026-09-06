@@ -1,9 +1,9 @@
-# Style Brief & Rundown — Video Explainer Profil Jurnal UPI
+# Style Brief & Rundown — Persiapan Akreditasi & Reakreditasi Jurnal UPI
 
-Revisi 2, setelah `angkaExplainer()` dijalankan. Untuk disetujui **sebelum** kode ditulis.
+Revisi 3. Video sudah dibangun; berkas ini jadi catatan keputusannya.
 
-Format: katalog putih · 16:9 · 60 detik · narasi menyusul.
-Starter: `assets/starter-explainer-katalog.html`.
+Format: katalog putih · 16:9 · 62 detik · narasi menyusul.
+Starter: `assets/starter-explainer-katalog.html` (skill bang-motion).
 Keluaran: satu `index.html` autoplay + loop. MP4 menyusul bila ffmpeg dipasang.
 
 ---
@@ -26,28 +26,19 @@ Keluaran: satu `index.html` autoplay + loop. MP4 menyusul bila ffmpeg dipasang.
 
 ---
 
-## Dua koreksi terhadap revisi 1
+## Riwayat keputusan
 
-**1. Tidak ada cover, jadi entitas visualnya berubah.** Fungsi impor cover dibuang dari sistem ini
-awal sesi karena sudah pindah ke Litabmas. Revisi 1 membangun seluruh konsep di atas aset yang
-tidak ada.
+**Cover tidak dipakai.** Fungsi impor cover dibuang dari sistem ini karena sudah pindah ke
+Litabmas, dan `angkaExplainer()` melaporkan 0 dari 173. Entitas visualnya jadi sel dan kartu
+tipografi — lebih ringan dan selalu terender.
 
-Penggantinya: **kartu tipografi**. Tiap jurnal jadi kartu putih berisi nama jurnal (Archivo Black),
-kluster, dan e-ISSN. Gaya katalog putih tetap utuh — katalog kartu memang tidak harus bergambar —
-dan tanda tangan gerak "kartu mendarat" justru tetap hidup. Bonus: 173 kartu teks jauh lebih
-ringan daripada 173 gambar, dan selalu terender.
+**Kolom kluster tidak dipakai.** Isinya mencampur delapan bidang keilmuan, lima kampus daerah,
+dua unit, dan tiga nama jurnal. Adegan sebaran geografis sempat dibuat lalu dibuang bersama
+struktur lama.
 
-**2. Kolom kluster mencampur tiga hal.** Delapan bidang keilmuan (ECONOMY, EDUCATION, LANGUAGE,
-SOCIAL, SCIENCE, TECH, SPORTS, ARTS), lima kampus daerah (CIBIRU, SUMEDANG, TASIKMALAYA, SERANG,
-PURWAKARTA), dua unit (SPS, DPPM), dan tiga nama jurnal yang diberi kluster sendiri (IJOST, IJAL,
-AJSE). Menyebut semuanya "kluster keilmuan" salah.
-
-`[PERLU KEPUTUSAN]` Dua pilihan untuk adegan 5: sebut **delapan bidang keilmuan** saja dan
-kampus daerah disebut satu kalimat terpisah, atau ceritakan sebarannya sebagai "pusat dan lima
-kampus daerah" yang justru jadi cerita tersendiri. Saya condong ke yang kedua — jangkauan
-geografis lebih menarik daripada daftar bidang, dan tidak ada universitas lain yang punya itu.
-
----
+**Dari sensus jadi mekanisme.** Versi pertama mendaftar enam angka; dua grill menunjukkan
+adegannya bisa ditukar urutannya tanpa kehilangan apa pun. Versi ini menjelaskan satu hal —
+bagaimana jurnal masuk dan dinilai — dan urutannya mengikat.
 
 ## Style brief
 
@@ -76,11 +67,12 @@ gerak, sesuai aturan skill.
 **Permukaan latar.** Menu §7d c + f: kertas hangat, dua blob marun opacity ≤ .12, grain
 `feTurbulence` multiply opacity .10. Dua lapis.
 
-**Transisi.** Push-through kamera menembus kisi kartu (berkedalaman), dan cut ke instrumen
-(deretan lencana SINTA, peta kampus). Tanpa balok datar menyapu.
+**Transisi.** Tiga jenis, satu berkedalaman sungguhan: push-through lewat `translateZ` +
+`perspective`, object wipe berupa kartu besar melewati lensa, dan whip `rotateY`. Tanpa balok
+datar menyapu.
 
-**Momen istimewa.** Adegan 2: 2.687 kartu kecil membanjir masuk dari luar layar dan mengendap
-jadi satu bidang penuh, kamera menarik mundur. Sekali saja.
+**Momen istimewa.** Adegan 1: 173 sel mendarat lalu memisah jadi dua rumpun. Sekali saja, dan
+sekaligus menjadi premis seluruh video.
 
 ---
 
@@ -115,12 +107,10 @@ tidak bisa ditukar.
 Diperbarui jadi tiga nomor terbitan terakhir supaya rubrik aplikasi dan video tidak
 bertentangan. Kalau juknis ARJUNA ternyata menyebut lain, keduanya perlu diralat bersamaan.
 
-## Langkah berikutnya
+## Yang tersisa
 
-1. Anda putuskan `[PERLU KEPUTUSAN]` soal kluster di atas.
-2. Anda setujui atau koreksi style brief dan rundown.
-3. Baru kode ditulis, dari `starter-explainer-katalog.html`.
-4. Naskah VO diserahkan bersama `index.html`; Anda rekam, kirim balik, timeline disinkronkan.
-
-ffmpeg dan puppeteer belum terpasang. Tanpa keduanya hasilnya tetap `index.html` yang bisa
-ditonton; hanya MP4 dan potret verifikasi otomatis yang belum ada.
+1. Rekam narasi dari `explainer/vo-script.md`, simpan sebagai `explainer/vo.mp3`, lalu kabari
+   saya untuk disinkronkan.
+2. Pasang ffmpeg dan puppeteer bila ingin MP4. Tanpa itu `index.html` tetap bisa ditonton
+   dengan klik dua kali.
+3. Periksa butir `[CATATAN]` di atas terhadap juknis ARJUNA.
