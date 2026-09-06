@@ -53,6 +53,7 @@ var CACHE = {
   PIN_TTL: 300,
   SESSION_TTL: 14400,
   EDIT_TTL: 3600,
+  SAMARAN_TTL: 900,   // sesi admin atas nama pengelola, sengaja pendek (15 menit)
   PENCAIRAN_LOG: 'pencairan_apc_log_v1',
   PENCAIRAN_LOG_TTL: 600,
   TERBITAN_LOG: 'terbitan_log_v1',
@@ -134,12 +135,21 @@ var STATUS_DRAFT_PROFIL = { KOSONG: '', MENUNGGU: 'MENUNGGU_REVIEW', DITOLAK: 'D
 /** Field yang boleh disunting pengelola jurnal (token edit). */
 var EDITABLE_PENGELOLA = [
   'linkOjs', 'issn', 'eIssn', 'pIssn', 'linkGaruda', 'linkDoaj', 'apc', 'linkApc',
-  'namaPengelola', 'email', 'jadwalTerbitan', 'issue',
+  'namaPengelola', 'jadwalTerbitan', 'issue',
   'artikelPerIssue', 'artikelPerTahun', 'coverUrlDraft', 'scopeDraft'
 ];
+/*
+ * 'email' SENGAJA tidak ada di daftar di atas, dan jangan dikembalikan.
+ * Kolom itu adalah tujuan pengiriman PIN (requestPengelolaPin -> GmailApp.sendEmail).
+ * Selama pengelola boleh mengubahnya, siapa pun yang memegang token edit_ bisa
+ * mengalihkan PIN berikutnya ke alamat mana pun -- emailValid_ hanya memeriksa
+ * bentuk x@y.z, tanpa batasan domain -- sehingga jurnal berpindah tangan tanpa
+ * sepengetahuan pemilik lama. Perubahan email kini hanya lewat admin.
+ */
 
 /** Tambahan yang boleh disunting admin (token session). */
 var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
+  'email',
   'kluster', 'unitPengelola', 'statusOjs', 'catatanMigrasi',
   'statusAkreditasi', 'masaBerlakuSk', 'tanggalExpired',
   'timeliness', 'performa', 'kuartil'
@@ -1273,6 +1283,32 @@ function buatToken_(prefix, muatan, ttl) {
  * Sesi disimpan di cache, dan cache dapat digusur sebelum TTL habis — sesi
  * putus lebih cepat harus diperlakukan sebagai keadaan normal.
  */
+/**
+ * Identitas PELAKU dari muatan token edit_.
+ *
+ * Muatan edit_ memisahkan dua hal yang dulu ditumpuk di satu field:
+ *   muatan.email  DATA  -- alamat pengelola jurnal. Dipakai sebagai tujuan
+ *                          pengiriman dan disimpan ke kolom sheet. TIDAK pernah
+ *                          berubah saat admin menyamar, supaya tanda terima DOI
+ *                          tetap sampai ke pengelola dan kolom sheet tidak tercemar.
+ *   muatan.aktor  PELAKU -- siapa yang benar-benar menekan tombol. Dipakai untuk
+ *                          SEMUA pencatatan. Saat penyamaran, ini email admin.
+ *
+ * Token lama yang belum punya aktor tetap jalan: jatuh kembali ke email.
+ */
+function pelakuEdit_(muatan) {
+  if (!muatan) return '';
+  if (muatan.samaran && muatan.aktor) {
+    return muatan.aktor + ' (atas nama ' + muatan.email + ')';
+  }
+  return muatan.aktor || muatan.email || '';
+}
+
+/** Sufiks aksi supaya baris penyamaran bisa disaring tanpa mengurai kolom email. */
+function aksiEdit_(muatan, aksi) {
+  return (muatan && muatan.samaran) ? (aksi + '_ATAS_NAMA') : aksi;
+}
+
 function bacaToken_(token, prefix) {
   if (!token || typeof token !== 'string') return null;
   if (prefix && token.indexOf(prefix) !== 0) return null;
@@ -1348,6 +1384,65 @@ function catatPinSalah_(kunciBasis) {
 /* ==========================================================================
    8. LOGIN ADMIN
    ========================================================================== */
+
+/**
+ * Diagnostik: memeriksa apakah kolom Akses_Kluster terisi untuk setiap admin.
+ * Jalankan dari editor Apps Script sebelum memutuskan membuat isSuperadmin
+ * fail-closed.
+ *
+ * Aturan yang berlaku SEKARANG (bacaDaftarAdmin_): sel kosong ATAU kolomnya
+ * tidak ada sama sekali membuat admin itu superadmin. Jadi kalau laporan di
+ * bawah menyebut banyak baris kosong, membuat aturannya fail-closed akan
+ * mengunci mereka semua sekaligus -- termasuk kemungkinan Anda sendiri.
+ */
+function cekAksesAdmin_() {
+  var sh = sheetWajib_(SHEET.ADMIN);
+  var nilai = sh.getDataRange().getValues();
+  if (nilai.length < 2) return 'Sheet ' + SHEET.ADMIN + ' kosong.';
+
+  var header = nilai[0].map(norm_);
+  var iEmail = header.indexOf('EMAIL_ADMIN');
+  var iAkses = header.indexOf('AKSES_KLUSTER');
+
+  var garis = [];
+  garis.push('Kolom EMAIL_ADMIN   : ' + (iEmail === -1 ? 'TIDAK ADA' : 'kolom ke-' + (iEmail + 1)));
+  garis.push('Kolom AKSES_KLUSTER : ' + (iAkses === -1 ? 'TIDAK ADA -- SEMUA admin jadi superadmin' : 'kolom ke-' + (iAkses + 1)));
+  garis.push('');
+
+  var kosong = [], all = [], berkluster = [];
+  for (var r = 1; r < nilai.length; r++) {
+    var email = str_(nilai[r][iEmail]).toLowerCase();
+    if (!email) continue;
+    var akses = (iAkses === -1) ? '' : str_(nilai[r][iAkses]);
+    if (!akses) kosong.push(email);
+    else if (norm_(akses) === 'ALL') all.push(email);
+    else berkluster.push(email + '  ->  ' + akses);
+  }
+
+  garis.push('Superadmin karena sel KOSONG (' + kosong.length + '):');
+  kosong.forEach(function (e) { garis.push('  ' + e); });
+  garis.push('');
+  garis.push('Superadmin karena ditulis ALL (' + all.length + '):');
+  all.forEach(function (e) { garis.push('  ' + e); });
+  garis.push('');
+  garis.push('Admin berkluster (' + berkluster.length + '):');
+  berkluster.forEach(function (e) { garis.push('  ' + e); });
+  garis.push('');
+
+  if (kosong.length) {
+    garis.push('KESIMPULAN: ' + kosong.length + ' baris bergantung pada sel kosong. Isi kolomnya');
+    garis.push('lebih dulu -- "ALL" untuk yang memang superadmin, nama kluster untuk sisanya --');
+    garis.push('baru aturan fail-closed aman dinyalakan.');
+  } else {
+    garis.push('KESIMPULAN: tidak ada baris yang bergantung pada sel kosong.');
+    garis.push('Aturan fail-closed aman dinyalakan.');
+  }
+
+  var ringkas = garis.join(String.fromCharCode(10));
+  console.log(ringkas);
+  return ringkas;
+}
+
 
 function bacaDaftarAdmin_() {
   var sh = sheetWajib_(SHEET.ADMIN);
@@ -1453,6 +1548,61 @@ function bolehAksesKluster_(profile, kluster) {
   if (profile.isSuperadmin) return true;
   return profile.aksesKluster.indexOf(norm_(kluster)) !== -1;
 }
+
+/* ==========================================================================
+   BERTINDAK ATAS NAMA PENGELOLA
+   --------------------------------------------------------------------------
+   Admin membuka panel Pengelola untuk satu jurnal, dan boleh menulis di sana.
+   Token yang diterbitkan berjenis edit_ seperti login pengelola biasa, tetapi
+   muatannya memisahkan dua hal:
+
+     email  = alamat pengelola jurnal. Tetap dipakai sebagai tujuan pengiriman
+              dan kolom sheet, supaya tanda terima DOI tidak nyasar ke admin
+              dan data operasional tidak tercemar.
+     aktor  = email admin yang benar-benar bertindak. Dipakai untuk seluruh
+              pencatatan lewat pelakuEdit_(), sehingga log tidak pernah
+              menuding pengelola atas perbuatan admin.
+
+   Dibatasi superadmin. Selama sel Akses_Kluster yang kosong masih dihitung
+   sebagai superadmin (lihat cekAksesAdmin_), membuka ini untuk admin kluster
+   berarti membukanya bagi setiap baris sheet yang cacat pengisiannya.
+
+   TTL sengaja 15 menit, bukan satu jam seperti login pengelola biasa.
+   ========================================================================== */
+
+function mulaiAtasNamaPengelola(token, namaJurnal) {
+  var profile = bacaToken_(token, 'session_');
+  if (!profile) return sesiHabis_();
+  if (!profile.isSuperadmin) {
+    return { ok: false, message: 'Hanya superadmin yang dapat bertindak atas nama pengelola.' };
+  }
+
+  try {
+    var jurnal = cariJurnal_(bacaDataJurnal_(), namaJurnal)[0];
+    if (!jurnal) return { ok: false, message: 'Jurnal tidak ditemukan.' };
+
+    var muatan = {
+      namaJurnal: jurnal.namaJurnal,
+      email: jurnal.email || '',      // DATA: tujuan pengiriman, tetap pengelola
+      aktor: profile.email,           // PELAKU: yang tercatat di seluruh log
+      samaran: true
+    };
+
+    catatAktivitas_(profile.email, jurnal.namaJurnal, 'MULAI_ATAS_NAMA',
+      'Admin membuka panel pengelola dan dapat menulis atas nama jurnal ini. Berlaku 15 menit.');
+
+    return {
+      ok: true,
+      token: buatToken_('edit_', muatan, CACHE.SAMARAN_TTL),
+      namaJurnal: jurnal.namaJurnal,
+      emailPengelola: jurnal.email || '',
+      berlakuMenit: Math.round(CACHE.SAMARAN_TTL / 60)
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal membuka panel pengelola: ' + err.message };
+  }
+}
+
 
 /* ==========================================================================
    9. LOGIN PENGELOLA JURNAL
@@ -1893,7 +2043,7 @@ function simpanPerubahanJurnal(token, namaJurnal, changes) {
   var edit = sesi ? null : bacaToken_(token, 'edit_');
   if (!sesi && !edit) return sesiHabis_();
 
-  var pelaku = sesi ? sesi.email : edit.email;
+  var pelaku = sesi ? sesi.email : pelakuEdit_(edit);
   var izin = sesi ? EDITABLE_ADMIN : EDITABLE_PENGELOLA;
 
   if (edit && norm_(edit.namaJurnal) !== norm_(namaJurnal)) {
@@ -3067,7 +3217,7 @@ function simpanUsulanDoi(token, payload) {
     sheet.appendRow(row);
     SpreadsheetApp.flush();
 
-    catatAktivitas_(muatan.email, muatan.namaJurnal, 'AJUKAN_DOI',
+    catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'AJUKAN_DOI'),
       idUsulan + ' — ' + record.jenis_konten + ', ' + record.jumlah_doi + ' DOI');
 
     const barisKe = sheet.getLastRow();
@@ -3635,7 +3785,7 @@ function logApcEntry(token, entry) {
   var edit = sesi ? null : bacaToken_(token, 'edit_');
   if (!sesi && !edit) return sesiHabis_();
 
-  var pelaku = sesi ? sesi.email : edit.email;
+  var pelaku = sesi ? sesi.email : pelakuEdit_(edit);
   if (!entry || typeof entry !== 'object') return { ok: false, message: 'Data laporan kosong.' };
 
   var nama = str_(entry.namaJurnal);
@@ -3850,11 +4000,11 @@ function logProgressTerbitan(token, entry) {
     var sh = sheetWajib_(SHEET.LOG_TERBITAN);
     sh.appendRow([
       Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'),
-      aman_(muatan.email), aman_(muatan.namaJurnal), aman_(edisi), status, aman_(catatan)
+      aman_(pelakuEdit_(muatan)), aman_(muatan.namaJurnal), aman_(edisi), status, aman_(catatan)
     ]);
     SpreadsheetApp.flush();
 
-    catatAktivitas_(muatan.email, muatan.namaJurnal, 'LAPOR_PROGRESS_TERBITAN',
+    catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'LAPOR_PROGRESS_TERBITAN'),
       JSON.stringify({ edisi: edisi, status: status }));
     bersihkanCacheTerbitan_();
 
@@ -5872,7 +6022,7 @@ function simpanPersiapanAkreditasi(token, payload) {
     var sh = getPersiapanAkreditasiSheet_();
     var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
     var barisData = [
-      aman_(muatan.namaJurnal), aman_(muatan.email), jenis, aman_(tglBerakhir),
+      aman_(muatan.namaJurnal), aman_(pelakuEdit_(muatan)), jenis, aman_(tglBerakhir),
       jsonJawab, kesiapan, gerbang, stempel
     ];
 
@@ -5881,7 +6031,7 @@ function simpanPersiapanAkreditasi(token, payload) {
     else sh.appendRow(barisData);
     SpreadsheetApp.flush();
 
-    catatAktivitas_(muatan.email, muatan.namaJurnal, 'PERSIAPAN_AKREDITASI',
+    catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'PERSIAPAN_AKREDITASI'),
       JSON.stringify({ jenis: jenis, kesiapan: kesiapan, gerbang: gerbang }));
 
     return { ok: true, message: 'Isian persiapan akreditasi tersimpan.',

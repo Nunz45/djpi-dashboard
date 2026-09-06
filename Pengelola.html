@@ -182,7 +182,24 @@
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
           </button>
           <div class="app-atas-judul">{{ judulMenu }}</div>
+
+          <!-- Penanda mode atas nama. Ditaruh di dalam .app-atas yang sudah
+               position:sticky, jadi ikut lengket saat digulir tanpa CSS baru.
+               Warna --warn: merah adalah warna merek UPI dan emas sudah berarti
+               prestasi, keduanya salah arti di sini. -->
+          <span v-if="atasNama" class="badge badge-warn atas-nama-tanda">
+            <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+            <span class="atas-nama-panjang">Mode admin &middot; atas nama {{ namaJurnalAktif }}</span>
+            <span class="atas-nama-pendek">Mode admin</span>
+          </span>
+
           <div class="app-atas-alat">
+            <!-- Tautan biasa, bukan window.close(): penutupan tab lewat skrip
+                 gagal di banyak WebView Android. Tab Dashboard beserta token
+                 adminnya tetap hidup di tab sebelah. -->
+            <a v-if="atasNama" class="btn btn-sm" href="<?= urlDashboard ?>" target="_top">
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Selesai
+            </a>
             <button type="button" class="ikon-btn" @click="gantiTema" :title="'Tema: ' + labelTema" aria-label="Ganti tema">
               <i :class="ikonTema" aria-hidden="true"></i>
             </button>
@@ -1187,6 +1204,9 @@ const appPengelola = createApp({
       galatPanel: '',
       toastPanel: '',
       navMobileTerbuka: false,   // drawer sidebar di layar sempit
+      // mode admin bertindak atas nama pengelola. Tokennya TIDAK disimpan ke
+      // localStorage supaya tidak lengket di perangkat setelah tab ditutup.
+      atasNama: false,
       tema: 'auto',              // auto | light | dark (preferensi tampilan, disimpan localStorage)
 
       // --- panel Sunting Data Jurnal ---
@@ -1271,6 +1291,28 @@ const appPengelola = createApp({
     // sesi darurat admin), atau dari localStorage bila pengelola sebelumnya
     // sudah login di perangkat yang sama.
     var tersimpan = '';
+    var atasNama = /[?&]atasnama=1/.test(location.search);
+    this.atasNama = atasNama;
+
+    // Mode atas nama: token hanya dari URL, tidak pernah dari localStorage dan
+    // tidak pernah ditulis ke sana. Nama jurnal diambil dari server lewat token,
+    // bukan dari localStorage -- di perangkat bersama, nilai yang tertinggal di
+    // sana bisa menunjuk jurnal yang berbeda dari yang ditunjuk token.
+    if (atasNama) {
+      if (!TOKEN_AWAL) return;
+      this.token = TOKEN_AWAL;
+      try { document.title = '[ATAS NAMA] ' + document.title; } catch (e) {}
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res || !res.ok) { this.galatPanel = (res && res.message) || 'Sesi tidak berlaku.'; return; }
+          this.namaJurnalAktif = res.detail.namaJurnal;
+          this.masukKeMenu();
+        })
+        .withFailureHandler((err) => { this.galatPanel = 'Gagal memuat: ' + err.message; })
+        .getJournalDetailForEditor(TOKEN_AWAL);
+      return;
+    }
+
     try { tersimpan = localStorage.getItem('djpi_pengelola_token') || ''; } catch (e) {}
     var token = TOKEN_AWAL || tersimpan;
     var nama = '', mail = '';
@@ -1559,11 +1601,21 @@ const appPengelola = createApp({
     },
 
     keluar() {
-      try {
-        localStorage.removeItem('djpi_pengelola_token');
-        localStorage.removeItem('djpi_pengelola_jurnal');
-        localStorage.removeItem('djpi_pengelola_email');
-      } catch (e) {}
+      // Token wajib dicabut di server, bukan cuma dilupakan di klien. Sebelumnya
+      // hanya localStorage yang dihapus sementara tokennya tetap sah sampai TTL
+      // habis, sehingga salinan yang terlanjur beredar masih bisa dipakai.
+      if (this.token) {
+        try { google.script.run.withFailureHandler(function () {}).logout(this.token); } catch (e) {}
+      }
+      // Mode atas nama tidak pernah menulis ke localStorage; jangan sampai admin
+      // yang keluar ikut melogout sesi pengelola asli di perangkat yang sama.
+      if (!this.atasNama) {
+        try {
+          localStorage.removeItem('djpi_pengelola_token');
+          localStorage.removeItem('djpi_pengelola_jurnal');
+          localStorage.removeItem('djpi_pengelola_email');
+        } catch (e) {}
+      }
       this.token = ''; this.namaJurnalAktif = '';
       this.tahap = 'login'; this.emailInput = ''; this.pin = '';
       this.tokenPilih = ''; this.daftarJurnalPilihan = [];
@@ -2247,6 +2299,14 @@ appPengelola.mount('#app');
 
 /* alur enam langkah: stepper menempel di kiri, isi langkah di kanan */
 .akr-alur { display: grid; grid-template-columns: 262px minmax(0, 1fr); gap: 18px; align-items: start; }
+/* penanda mode atas nama */
+.atas-nama-tanda { display: inline-flex; align-items: center; gap: 6px; }
+.atas-nama-pendek { display: none; }
+@media (max-width: 680px) {
+  .atas-nama-panjang { display: none; }
+  .atas-nama-pendek { display: inline; }
+}
+
 .akr-posisi { display: none; }
 @media (max-width: 900px) {
   .akr-posisi { display: block; margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--muted); }

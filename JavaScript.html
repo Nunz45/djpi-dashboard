@@ -89,6 +89,7 @@ var appDjpi = Vue.createApp({
     memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:'',
     // baru: state tab Review Profil Jurnal (draft cover/scope, superadmin-only)
     draftProfilJurnal:[],memuatDraftProfil:false,galatDraftProfil:'',
+    membukaAtasNama:false,
     draftProfilTerpilih:null,memprosesDraftProfil:false,catatanTolakDraftInput:''
   };},
   computed:{
@@ -355,6 +356,26 @@ var appDjpi = Vue.createApp({
       }).catch(function(e){s.sedangKirim=false;s.pesanGalat='Gagal menghubungi server: '+e;});
     },
     kembaliKeLogin:function(){this.tahap='login';this.pin='';this.pesanGalat='';this.pesanInfo='';},
+    // Membuka panel Pengelola untuk satu jurnal, dengan hak tulis, atas nama admin.
+    // Tab baru: tab ini beserta token adminnya yang hanya di memori tetap hidup,
+    // sehingga "kembali jadi diri sendiri" cukup dengan menutup tab yang baru.
+    bukaAtasNamaPengelola:function(){
+      var s=this, j=this.jurnalTerpilih;
+      if(!j || this.membukaAtasNama) return;
+      if(!confirm('Buka panel pengelola untuk "'+j.namaJurnal+'"?'+String.fromCharCode(10)+String.fromCharCode(10)+
+        'Anda akan dapat menyimpan data atas nama jurnal ini. Setiap tindakan tercatat di Log_Aktivitas '+
+        'atas nama Anda, bukan atas nama pengelola. Sesi berlaku 15 menit.')) return;
+      this.membukaAtasNama=true;
+      gs('mulaiAtasNamaPengelola', this.token, j.namaJurnal)
+        .then(function(r){
+          if(!r || !r.ok){ alert((r&&r.message)||'Gagal membuka panel pengelola.'); return; }
+          var url=URL_PENGELOLA+(URL_PENGELOLA.indexOf('?')===-1?'?':'&')+'t='+encodeURIComponent(r.token)+'&atasnama=1';
+          window.open(url,'_blank','noopener');
+        })
+        .catch(function(err){ alert('Gagal membuka panel pengelola: '+((err&&err.message)||err)); })
+        .finally(function(){ s.membukaAtasNama=false; });
+    },
+
     keluar:function(){var t=this.token;this.hancurkanGrafik();this.token='';this.profile=null;this.data=null;this.tahap='login';if(t)gs('logout',t).catch(function(){});},
     sesiBerakhir:function(){this.hancurkanGrafik();this.token='';this.profile=null;this.data=null;this.tahap='login';this.pesanInfo='Sesi berakhir. Silakan masuk kembali.';},
     muatDashboard:function(){

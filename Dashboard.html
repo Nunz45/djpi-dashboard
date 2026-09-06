@@ -1691,6 +1691,13 @@
 
         <template v-else>
           <button type="button" class="btn" @click="tutupModal">Tutup</button>
+          <!-- Superadmin saja. Dibuka di tab baru supaya tab Dashboard beserta
+               token adminnya yang hanya ada di memori tetap hidup. -->
+          <button v-if="profile && profile.isSuperadmin" type="button" class="btn"
+            :disabled="membukaAtasNama" @click="bukaAtasNamaPengelola">
+            <span v-if="membukaAtasNama" class="spinner spinner-gelap" aria-hidden="true"></span>
+            {{ membukaAtasNama ? 'Membuka…' : 'Bertindak atas nama pengelola' }}
+          </button>
           <button type="button" class="btn btn-emas" @click="bukaFormApc">Catat APC</button>
           <button type="button" class="btn btn-primer" @click="mulaiSunting">Sunting data</button>
         </template>
@@ -1804,6 +1811,9 @@
 
 <script>
   var TOKEN_AWAL = <?= JSON.stringify(tokenAwal) ?>;
+  // URL absolut wajib: halaman berjalan di iframe sandbox googleusercontent.com,
+  // sehingga href relatif mengarah ke origin sandbox dan menghasilkan halaman kosong.
+  var URL_PENGELOLA = <?= JSON.stringify(urlPengelola) ?>;
 
   // ============================================================
   // CATATAN PENTING — baca ini sebelum menempel file ini
