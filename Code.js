@@ -171,15 +171,25 @@ var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
  * Perilakunya juga pernah berubah diam-diam antara /exec dan /dev lintas versi
  * runtime, jadi tidak ada satu bentuk pun yang bisa diandalkan.
  *
- * Solusinya: simpan URL /exec yang sebenarnya sekali lewat setUrlWebApp_(),
- * dan pakai getUrl() hanya sebagai cadangan supaya aplikasi tetap jalan sebelum
- * disetel.
+ * Solusinya: pakai URL /exec yang sebenarnya. Urutan sumbernya:
+ *   1. Script Property URL_WEBAPP, bila disetel lewat setUrlWebApp_()
+ *   2. URL_WEBAPP_TETAP di bawah -- nilai bawaan, cukup untuk deployment sekarang
+ *   3. getUrl(), cadangan terakhir yang justru bermasalah
+ *
+ * ID deployment hanya berubah saat membuat deployment BARU, bukan saat
+ * memperbarui versi. Jadi nilai tetap ini stabil. Kalau suatu saat berubah,
+ * jalankan setUrlWebApp_() -- propertinya menang atas nilai tetap, tanpa
+ * perlu menyunting kode.
  */
+var URL_WEBAPP_TETAP =
+  'https://script.google.com/macros/s/AKfycbzItggyDD1lM1ua0iiqFdfW9Str5XNAmefTvIsnbnNaNNpa36Y-F0CjTXlpRTe5YRTt9g/exec';
+
 function urlWebApp_() {
   try {
     var tersimpan = PropertiesService.getScriptProperties().getProperty('URL_WEBAPP');
     if (tersimpan) return String(tersimpan).trim();
-  } catch (err) { /* properti tidak terbaca, jatuh ke cadangan */ }
+  } catch (err) { /* properti tidak terbaca, jatuh ke nilai tetap */ }
+  if (URL_WEBAPP_TETAP) return URL_WEBAPP_TETAP;
   try { return ScriptApp.getService().getUrl() || ''; } catch (err) { return ''; }
 }
 
@@ -213,15 +223,16 @@ function cekUrlWebApp_() {
   var bawaan = '';
   try { bawaan = ScriptApp.getService().getUrl() || ''; } catch (e) {}
   var pesan = [
-    'URL tersimpan (dipakai)   : ' + (tersimpan || '(belum disetel)'),
-    'getUrl() bawaan (cadangan): ' + (bawaan || '(kosong)'),
-    'Yang sedang dipakai       : ' + urlWebApp_()
+    '1. Script Property URL_WEBAPP : ' + (tersimpan || '(belum disetel)'),
+    '2. URL_WEBAPP_TETAP di kode   : ' + (URL_WEBAPP_TETAP || '(kosong)'),
+    '3. getUrl() bawaan            : ' + (bawaan || '(kosong)'),
+    '',
+    'Yang sedang dipakai           : ' + urlWebApp_()
   ];
-  if (!tersimpan) {
+  if (!tersimpan && !URL_WEBAPP_TETAP) {
     pesan.push('');
-    pesan.push('BELUM DISETEL. Selama ini aplikasi bergantung pada getUrl(), yang');
-    pesan.push('bisa menghasilkan halaman "tidak dapat membuka file". Jalankan');
-    pesan.push('setUrlWebApp_() setelah menempelkan URL /exec di dalamnya.');
+    pesan.push('PERINGATAN: keduanya kosong, jadi aplikasi bergantung pada getUrl()');
+    pesan.push('yang bisa menghasilkan halaman "tidak dapat membuka file".');
   }
   var ringkas = pesan.join(String.fromCharCode(10));
   console.log(ringkas);
