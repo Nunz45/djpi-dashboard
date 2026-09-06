@@ -6815,3 +6815,123 @@ function angkaExplainer() {
   console.log(teks);
   return teks;
 }
+
+
+/* ==========================================================================
+   31. UKURAN PEKERJAAN PELENGKAPAN DATA AKREDITASI
+   Dijalankan sekali dari editor Apps Script sebelum tugas dibagi ke staf.
+   Menjawab dua hal: berapa baris yang benar-benar perlu dikerjakan, dan
+   dikelompokkan bagaimana supaya perburuan dokumen SK tidak dikerjakan dua
+   kali oleh orang berbeda.
+   ========================================================================== */
+
+function angkaPersiapanData() {
+  var semua = bacaDataJurnal_();
+  var dikelola = semua.filter(function (j) { return j.kluster !== KLUSTER_KOSONG; });
+  var L = [];
+  function b(k, v) { L.push('  ' + k + ': ' + v); }
+
+  var akr = dikelola.filter(function (j) { return j.terakreditasi; });
+  var belum = dikelola.filter(function (j) { return !j.terakreditasi; });
+
+  L.push('== TUGAS A - BULAN HABIS MASA AKREDITASI (' + akr.length + ' jurnal) ==');
+  var lengkap = 0, tahunSaja = 0, kosong = 0, perSinta = {}, perTahun = {};
+  akr.forEach(function (j) {
+    var s = j.peringkatSinta || '?';
+    perSinta[s] = perSinta[s] || { total: 0, perlu: 0 };
+    perSinta[s].total++;
+    // bacaTanggalLonggar_ MENUNTUT hari. "Juli 2027" akan ditolak dan jatuh ke tahun.
+    var tgl = bacaTanggalLonggar_(j.tanggalExpired);
+    if (tgl) {
+      lengkap++;
+      var th = tgl.getFullYear();
+      perTahun[th] = (perTahun[th] || 0) + 1;
+    } else if (!placeholder_(j.masaBerlakuSk) || !placeholder_(j.tanggalExpired)) {
+      tahunSaja++; perSinta[s].perlu++;
+    } else {
+      kosong++; perSinta[s].perlu++;
+    }
+  });
+  b('Tanggal lengkap, sudah bisa dipakai', lengkap);
+  b('Hanya tahun / tidak terbaca -> PERLU DIKERJAKAN', tahunSaja);
+  b('Kosong sama sekali -> PERLU DIKERJAKAN', kosong);
+  b('TOTAL PERLU DIKERJAKAN', tahunSaja + kosong);
+  L.push('  Pecahan per peringkat (untuk membagi perburuan SK):');
+  Object.keys(perSinta).sort().forEach(function (k) {
+    b('    SINTA ' + k, perSinta[k].perlu + ' perlu dari ' + perSinta[k].total);
+  });
+  if (Object.keys(perTahun).length) {
+    L.push('  Tahun kedaluwarsa yang sudah terbaca:');
+    Object.keys(perTahun).sort().forEach(function (k) { b('    ' + k, perTahun[k] + ' jurnal'); });
+  }
+
+  L.push('== BENTUK ISI KOLOM MASA BERLAKU (contoh apa adanya) ==');
+  var contoh = [], lihat = {};
+  akr.forEach(function (j) {
+    var v = str_(j.masaBerlakuSk) || str_(j.tanggalExpired);
+    if (!v || lihat[v]) return;
+    lihat[v] = 1;
+    if (contoh.length < 18) contoh.push(v);
+  });
+  contoh.forEach(function (c) { L.push('    - ' + c.substring(0, 60)); });
+
+  L.push('== TUGAS B - USIA e-ISSN (' + belum.length + ' jurnal belum terakreditasi) ==');
+  var adaEissn = 0, tanpaEissn = 0, daftarTanpa = [];
+  belum.forEach(function (j) {
+    if (j.eIssnValid) adaEissn++;
+    else { tanpaEissn++; if (daftarTanpa.length < 20) daftarTanpa.push(j.namaJurnal); }
+  });
+  b('Punya e-ISSN tercatat & sah -> tinggal dicari tanggal terbitnya', adaEissn);
+  b('e-ISSN belum tercatat / tidak sah -> dua langkah', tanpaEissn);
+  if (daftarTanpa.length) {
+    L.push('  Contoh yang e-ISSN-nya belum tercatat:');
+    daftarTanpa.forEach(function (n) { L.push('    - ' + n); });
+  }
+
+  L.push('== BARIS GRATIS - KOREKSI PENGELOLA YANG BELUM MASUK Sheet1 ==');
+  // Menu Persiapan Akreditasi meminta pengelola mengoreksi tanggal SK
+  // ('Kalau di SK Anda tertulis tanggal yang lebih tepat, silakan koreksi')
+  // lalu menyimpannya ke sheet Persiapan_Akreditasi. Koreksi itu TIDAK pernah
+  // mengalir balik ke Sheet1. Pengelola memegang sertifikatnya, jadi jawabannya
+  // lebih tepercaya daripada isi direktori.
+  try {
+    var shP = getPersiapanAkreditasiSheet_();
+    var nilaiP = shP.getDataRange().getValues();
+    var petaP = {};
+    for (var r = 1; r < nilaiP.length; r++) {
+      var nm = norm_(nilaiP[r][0]);
+      var tg = (nilaiP[r][3] instanceof Date)
+        ? Utilities.formatDate(nilaiP[r][3], TZ, 'yyyy-MM-dd') : str_(nilaiP[r][3]);
+      if (nm && tg) petaP[nm] = tg;
+    }
+    var gratis = 0, beda = 0, samaSaja = 0;
+    akr.forEach(function (j) {
+      var dariPengelola = petaP[norm_(j.namaJurnal)];
+      if (!dariPengelola) return;
+      var punyaSheet1 = bacaTanggalLonggar_(j.tanggalExpired);
+      if (!punyaSheet1) {
+        gratis++;
+        L.push('    GRATIS  ' + j.namaJurnal + ' -> ' + dariPengelola);
+      } else {
+        var isoSheet1 = Utilities.formatDate(punyaSheet1, TZ, 'yyyy-MM-dd');
+        if (isoSheet1 !== dariPengelola) {
+          beda++;
+          L.push('    BEDA    ' + j.namaJurnal + ' | Sheet1 ' + isoSheet1 + ' | pengelola ' + dariPengelola);
+        } else samaSaja++;
+      }
+    });
+    b('Tanggal dari pengelola yang Sheet1 belum punya', gratis + '  <-- pakai ini dulu, tidak perlu dicari');
+    b('Berbeda dengan Sheet1, perlu diadu', beda);
+    b('Sudah sama', samaSaja);
+  } catch (e) {
+    L.push('    (sheet Persiapan_Akreditasi belum ada atau gagal dibaca: ' + e.message + ')');
+  }
+
+  L.push('== CATATAN ==');
+  L.push('  Format tanggal yang diterima sistem: 2027-07-01, 01/07/2027, atau 1 Juli 2027.');
+  L.push('  "Juli 2027" TANPA hari akan ditolak dan jatuh balik ke ketelitian tahun.');
+
+  var teks = L.join(String.fromCharCode(10));
+  console.log(teks);
+  return teks;
+}
