@@ -1169,12 +1169,17 @@
 </div>
 
 <script>
-  // <?!= ?> WAJIB di sini, bukan <?= ?>. Scriptlet <?= ?> melakukan contextual
-  // escaping: di dalam <script> ia sudah membungkus nilainya menjadi literal
-  // string JS. Ditambah JSON.stringify, nilainya jadi ter-kutip DUA KALI --
-  // TOKEN_AWAL berisi "edit_abc" lengkap dengan tanda kutipnya, sehingga server
-  // menolaknya dengan "awalan salah, diharap edit_". <?!= ?> mencetak apa adanya,
-  // sehingga keluaran JSON.stringify menjadi literal itu sendiri.
+  // PENTING: pakai scriptlet force-print (tanda seru), bukan scriptlet cetak
+  // biasa. Scriptlet cetak biasa melakukan contextual escaping: di dalam <script>
+  // ia sudah membungkus nilainya menjadi literal string JS. Ditambah
+  // JSON.stringify, nilainya jadi ter-kutip DUA KALI -- TOKEN_AWAL berisi
+  // "edit_abc" lengkap dengan tanda kutipnya, sehingga server menolaknya dengan
+  // "awalan salah, diharap edit_". Force-print mencetak apa adanya, sehingga
+  // keluaran JSON.stringify menjadi literal itu sendiri.
+  //
+  // Jangan pernah menuliskan sintaks scriptlet secara harfiah di dalam komentar
+  // berkas ini: mesin template mengurai teks mentah SEBELUM JavaScript berjalan,
+  // sehingga scriptlet di dalam komentar tetap dieksekusi dan memecahkan halaman.
 var TOKEN_AWAL = <?!= JSON.stringify(tokenAwal) ?>;
 // Dari server, bukan dari location.search: iframe sandbox tidak melihat
 // parameter query URL frame teratas.
