@@ -1682,9 +1682,19 @@
            DevTools. Kalau alamatnya berakhiran /dev atau tidak diawali
            script.google.com, berarti URL_WEBAPP belum disetel -- jalankan
            cekUrlWebApp_() dari editor Apps Script. -->
-      <p v-if="urlAtasNama" class="card-note" style="padding:0 var(--space-5);word-break:break-all">
-        Alamat panel: {{ urlAtasNama }}
-      </p>
+      <div v-if="urlAtasNama" class="card-note" style="padding:0 var(--space-5)">
+        <p style="margin:0 0 4px;word-break:break-all">Alamat panel: {{ urlAtasNama }}</p>
+        <!-- Kalau tab baru menampilkan "tidak dapat membuka file" padahal alamat
+             di atas benar, penyebab tersisa yang paling mungkin adalah login
+             beberapa akun Google sekaligus: tab baru memakai akun bawaan, bukan
+             akun yang sedang dipakai di tab ini. Bentuk /a/upi.edu/ memaksa
+             Google memilih akun UPI. -->
+        <p v-if="urlAtasNamaAlt" style="margin:0">
+          Gagal terbuka?
+          <a :href="urlAtasNamaAlt" target="_blank" rel="noopener">Coba alamat khusus akun UPI</a>,
+          atau buka di jendela Samaran dengan satu akun UPI saja.
+        </p>
+      </div>
 
       <div class="modal-foot">
         <template v-if="modeSunting">

@@ -89,7 +89,7 @@ var appDjpi = Vue.createApp({
     memuatTemplateEmail:false,menyimpanTemplateEmail:false,galatTemplateEmail:'',
     // baru: state tab Review Profil Jurnal (draft cover/scope, superadmin-only)
     draftProfilJurnal:[],memuatDraftProfil:false,galatDraftProfil:'',
-    membukaAtasNama:false, urlAtasNama:'', popupGagal:false,
+    membukaAtasNama:false, urlAtasNama:'', urlAtasNamaAlt:'', popupGagal:false,
     draftProfilTerpilih:null,memprosesDraftProfil:false,catatanTolakDraftInput:''
   };},
   computed:{
@@ -369,7 +369,10 @@ var appDjpi = Vue.createApp({
       gs('mulaiAtasNamaPengelola', this.token, j.namaJurnal)
         .then(function(r){
           if(!r || !r.ok){ alert((r&&r.message)||'Gagal membuka panel pengelola.'); return; }
-          var url=URL_PENGELOLA+(URL_PENGELOLA.indexOf('?')===-1?'?':'&')+'t='+encodeURIComponent(r.token)+'&atasnama=1';
+          // URL dirakit server (r.url). URL_PENGELOLA hanya cadangan bila
+          // server versi lama yang belum mengirimkannya.
+          var url=r.url||(URL_PENGELOLA+(URL_PENGELOLA.indexOf('?')===-1?'?':'&')+'t='+encodeURIComponent(r.token)+'&atasnama=1');
+          s.urlAtasNamaAlt=r.urlAlt||'';
           // Simpan URL-nya di state, JANGAN andalkan window.open saja. Kalau URL
           // dasar bermasalah -- getUrl() Apps Script bisa menghasilkan halaman
           // "tidak dapat membuka file" -- popup gagal tanpa pesan dan pengguna
@@ -502,7 +505,7 @@ var appDjpi = Vue.createApp({
     gantiHalaman:function(d){this.halaman=Math.min(this.totalHalaman,Math.max(1,this.halaman+d));},
     bukaJurnal:function(j){this.jurnalTerpilih=j;this.modeSunting=false;this.panelApc=false;this.pesanModal='';this.galatField={};},
     tutupModal:function(){
-      this.urlAtasNama=''; this.popupGagal=false;this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
+      this.urlAtasNama=''; this.urlAtasNamaAlt=''; this.popupGagal=false;this.jurnalTerpilih=null;this.modeSunting=false;this.panelApc=false;this.galatField={};},
     // baru: tutup modal yang sedang terbuka saat tombol Esc ditekan (jadwal terbit > detail jurnal > detail DOI)
     tutupModalEsc:function(e){
       if(e.key!=='Escape')return;

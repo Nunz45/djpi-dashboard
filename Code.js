@@ -184,6 +184,25 @@ var EDITABLE_ADMIN = EDITABLE_PENGELOLA.concat([
 var URL_WEBAPP_TETAP =
   'https://script.google.com/macros/s/AKfycbzItggyDD1lM1ua0iiqFdfW9Str5XNAmefTvIsnbnNaNNpa36Y-F0CjTXlpRTe5YRTt9g/exec';
 
+/**
+ * Varian URL yang mengunci akun ke domain tertentu.
+ *
+ * Saat pengguna login beberapa akun Google sekaligus, membuka URL /exec telanjang
+ * di TAB BARU memakai akun bawaan peramban (/u/0), bukan akun yang sedang dipakai
+ * di tab asal. Kalau akun bawaan itu bukan akun UPI, Google menampilkan
+ * "Maaf, saat ini tidak dapat membuka file" -- padahal URL-nya benar dan rutenya
+ * hidup. Menyisipkan /a/<domain>/ memaksa Google memilih akun berdomain itu.
+ *
+ * Dipakai sebagai alternatif yang ditawarkan ke pengguna, bukan pengganti, karena
+ * bentuk ini hanya benar bila akunnya memang akun Workspace domain tersebut.
+ */
+function urlWebAppDomain_(domain) {
+  var dasar = urlWebApp_();
+  if (!dasar || !domain) return '';
+  if (dasar.indexOf('/a/') !== -1) return dasar;
+  return dasar.replace('https://script.google.com/', 'https://script.google.com/a/' + domain + '/');
+}
+
 function urlWebApp_() {
   try {
     var tersimpan = PropertiesService.getScriptProperties().getProperty('URL_WEBAPP');
@@ -1670,9 +1689,17 @@ function mulaiAtasNamaPengelola(token, namaJurnal) {
     catatAktivitas_(profile.email, jurnal.namaJurnal, 'MULAI_ATAS_NAMA',
       'Admin membuka panel pengelola dan dapat menulis atas nama jurnal ini. Berlaku 15 menit.');
 
+    var tok = buatToken_('edit_', muatan, CACHE.SAMARAN_TTL);
+    var query = '?page=pengelola&t=' + encodeURIComponent(tok) + '&atasnama=1';
+    var dasarDomain = urlWebAppDomain_('upi.edu');
+
     return {
       ok: true,
-      token: buatToken_('edit_', muatan, CACHE.SAMARAN_TTL),
+      token: tok,
+      // URL dirakit di server, bukan di klien, supaya klien tidak perlu menebak
+      // bentuk URL dasarnya. urlAlt memakai /a/upi.edu/ untuk kasus multi-login.
+      url: urlWebApp_() + query,
+      urlAlt: dasarDomain ? (dasarDomain + query) : '',
       namaJurnal: jurnal.namaJurnal,
       emailPengelola: jurnal.email || '',
       berlakuMenit: Math.round(CACHE.SAMARAN_TTL / 60)
