@@ -7067,7 +7067,7 @@ function updateMasaBerlakuSk(tulis) {
 
   var L = [];
   L.push('== PEMBARUAN MASA BERLAKU SK & NOMOR SK ==');
-  L.push(tulis === true ? 'MODE: MENULIS' : 'MODE: LAPORAN SAJA (jalankan updateMasaBerlakuSk(true) untuk menulis)');
+  L.push(tulis === true ? 'MODE: MENULIS' : 'MODE: LAPORAN SAJA (jalankan updateMasaBerlakuSkTULIS() untuk menulis)');
   L.push('Kolom MASA BERLAKU SK ada di kolom ke-' + (iMasa + 1));
 
   // --- pindahkan Catatan Pemisahan ISSN ke kolom baru di ujung kanan ---
@@ -7143,7 +7143,7 @@ function updateMasaBerlakuSk(tulis) {
       JSON.stringify({ diperbarui: diisi, nilaiLama: jejak }).substring(0, 45000));
     L.push('Nilai lama tersimpan di ' + SHEET.AKTIVITAS + ' (aksi UPDATE_MASA_BERLAKU_SK).');
   } else {
-    L.push('Tidak ada yang ditulis. Jalankan updateMasaBerlakuSk(true) bila laporan di atas sudah benar.');
+    L.push('Tidak ada yang ditulis. Jalankan updateMasaBerlakuSkTULIS() bila laporan di atas sudah benar.');
   }
 
   var teks = L.join(String.fromCharCode(10));
