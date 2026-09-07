@@ -33,6 +33,8 @@ fn = '''
    dari terbitan yang bersangkutan, dan harinya selalu tanggal 1.
    ========================================================================== */
 
+var SHEET_CADANGAN_SK = 'Cadangan_Masa_Berlaku';
+
 // [e-ISSN, MASA BERLAKU SK AKREDITASI, Nomor SK]
 var UPDATE_SK = [
 %s
@@ -170,10 +172,28 @@ function updateMasaBerlakuSk(tulis) {
   if (tulis === true) {
     SpreadsheetApp.flush();
     bersihkanCacheJurnal_();
-    // Nilai lama disimpan supaya pembaruan ini bisa ditelusuri dan dibatalkan.
+    // Cadangan ditulis ke sheet tersendiri, SATU BARIS PER JURNAL.
+    // Sebelumnya seluruh muatan dijejalkan ke satu sel Log_Aktivitas lewat
+    // catatAktivitas_, yang memotong detail di 4000 karakter (lihat sekitar
+    // Code.js:2523). Muatannya belasan kilobyte, jadi JSON-nya terpotong di
+    // tengah dan cadangannya tidak bisa dipulihkan sama sekali.
+    var shCad = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CADANGAN_SK);
+    if (!shCad) {
+      shCad = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_CADANGAN_SK);
+      shCad.appendRow(['Waktu', 'Baris', 'Nama Jurnal', 'Masa Berlaku Sebelumnya', 'Nomor SK Sebelumnya']);
+      shCad.setFrozenRows(1);
+    }
+    if (jejak.length) {
+      var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+      var isi = jejak.map(function (j) {
+        return [stempel, j.baris, j.jurnal, j.masaLama, j.nomorLama];
+      });
+      shCad.getRange(shCad.getLastRow() + 1, 1, isi.length, 5).setValues(isi);
+      SpreadsheetApp.flush();
+    }
     catatAktivitas_('SISTEM', '-', 'UPDATE_MASA_BERLAKU_SK',
-      JSON.stringify({ diperbarui: diisi, nilaiLama: jejak }).substring(0, 45000));
-    L.push('Nilai lama tersimpan di ' + SHEET.AKTIVITAS + ' (aksi UPDATE_MASA_BERLAKU_SK).');
+      'diperbarui ' + diisi + ' baris, cadangan di sheet ' + SHEET_CADANGAN_SK);
+    L.push('Nilai lama tersimpan di sheet ' + SHEET_CADANGAN_SK + ', satu baris per jurnal.');
   } else {
     L.push('Tidak ada yang ditulis. Jalankan updateMasaBerlakuSkTULIS() bila laporan di atas sudah benar.');
   }

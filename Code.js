@@ -6953,6 +6953,8 @@ function angkaPersiapanData() {
    dari terbitan yang bersangkutan, dan harinya selalu tanggal 1.
    ========================================================================== */
 
+var SHEET_CADANGAN_SK = 'Cadangan_Masa_Berlaku';
+
 // [e-ISSN, MASA BERLAKU SK AKREDITASI, Nomor SK]
 var UPDATE_SK = [
   ['26854414','Volume 10 Nomor 2 Tahun 2025 sampai Volume 15 Nomor 1 Tahun 2030','355/DST/D.D1/HM.01.01/2026'],
@@ -7181,10 +7183,28 @@ function updateMasaBerlakuSk(tulis) {
   if (tulis === true) {
     SpreadsheetApp.flush();
     bersihkanCacheJurnal_();
-    // Nilai lama disimpan supaya pembaruan ini bisa ditelusuri dan dibatalkan.
+    // Cadangan ditulis ke sheet tersendiri, SATU BARIS PER JURNAL.
+    // Sebelumnya seluruh muatan dijejalkan ke satu sel Log_Aktivitas lewat
+    // catatAktivitas_, yang memotong detail di 4000 karakter (lihat sekitar
+    // Code.js:2523). Muatannya belasan kilobyte, jadi JSON-nya terpotong di
+    // tengah dan cadangannya tidak bisa dipulihkan sama sekali.
+    var shCad = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CADANGAN_SK);
+    if (!shCad) {
+      shCad = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_CADANGAN_SK);
+      shCad.appendRow(['Waktu', 'Baris', 'Nama Jurnal', 'Masa Berlaku Sebelumnya', 'Nomor SK Sebelumnya']);
+      shCad.setFrozenRows(1);
+    }
+    if (jejak.length) {
+      var stempel = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+      var isi = jejak.map(function (j) {
+        return [stempel, j.baris, j.jurnal, j.masaLama, j.nomorLama];
+      });
+      shCad.getRange(shCad.getLastRow() + 1, 1, isi.length, 5).setValues(isi);
+      SpreadsheetApp.flush();
+    }
     catatAktivitas_('SISTEM', '-', 'UPDATE_MASA_BERLAKU_SK',
-      JSON.stringify({ diperbarui: diisi, nilaiLama: jejak }).substring(0, 45000));
-    L.push('Nilai lama tersimpan di ' + SHEET.AKTIVITAS + ' (aksi UPDATE_MASA_BERLAKU_SK).');
+      'diperbarui ' + diisi + ' baris, cadangan di sheet ' + SHEET_CADANGAN_SK);
+    L.push('Nilai lama tersimpan di sheet ' + SHEET_CADANGAN_SK + ', satu baris per jurnal.');
   } else {
     L.push('Tidak ada yang ditulis. Jalankan updateMasaBerlakuSkTULIS() bila laporan di atas sudah benar.');
   }
@@ -7196,48 +7216,52 @@ function updateMasaBerlakuSk(tulis) {
 
 
 /* ==========================================================================
-   33. PEMULIHAN SETELAH PEMBARUAN YANG MEMUNDURKAN DATA
-   updateMasaBerlakuSk dijalankan SEBELUM pengaman anti-mundur terpasang dan
-   sebelum SK 2025 Periode III terkumpul, sehingga sebagian baris tertulis
-   dengan penetapan yang lebih tua daripada yang sudah ada di Sheet1.
+   33. PEMULIHAN BARIS YANG TERMUNDURKAN
+   updateMasaBerlakuSk sempat dijalankan sebelum pengaman anti-mundur terpasang
+   dan sebelum SK 2025 Periode II dan III terkumpul, sehingga sebagian baris
+   tertulis dengan penetapan yang lebih tua daripada yang sudah ada di Sheet1.
 
-   Fungsi ini membaca cadangan di Log_Aktivitas (aksi UPDATE_MASA_BERLAKU_SK)
-   dan mengembalikan HANYA baris yang benar-benar mundur. Baris yang
-   pembaruannya benar dibiarkan.
+   Nilai lama di bawah diambil dari salinan Sheet1 tertanggal 7 September 2026
+   pukul 06.16, yaitu sebelum penulisan itu berjalan. Salinannya disimpan di
+   sk-akreditasi/utama-sebelum-update.csv.
+
+   Cadangan lewat Log_Aktivitas tidak bisa dipakai: catatAktivitas_ memotong
+   detail di 4000 karakter, sehingga JSON-nya terpotong di tengah.
 
    Dua langkah:
      1. pulihkanMasaBerlakuSk()      -> laporan saja
      2. pulihkanMasaBerlakuSkTULIS() -> memulihkan
    ========================================================================== */
 
+// [nomor baris di Sheet1, nama jurnal untuk verifikasi, nilai MASA BERLAKU SK sebelum ditimpa]
+var PULIH_MASA_BERLAKU = [
+  [5,'WaPFi (Wahana Pendidikan Fisika)','Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 2 mulai Volume 10 Nomor 2 Tahun 2025 sampai Volume 15 Nomor 1 Tahun 2030'],
+  [15,'ALSUNIYAT: Jurnal Penelitian Bahasa, Sastra, dan Budaya Arab','Volume 10 Nomor 2 Tahun 2027'],
+  [18,'The International Journal of Business Review (The Jobs Review)','Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 3 mulai Volume 8 Nomor 1 Tahun 2025 sampai Volume 12 Nomor 2 Tahun 2029'],
+  [21,'Review of Islamic Economics and Finance','Vol 5 No 2 Tahun 2022-Vol 10 No 1 Tahun 2027'],
+  [22,'PEDAGOGIA','sampai Volume 18 Nomor 1 Tahun 2026'],
+  [24,'Jurnal Pengabdian Masyarakat PGSD','Reakreditasi Naik Peringkat dari Peringkat 5 ke Peringkat 3 mulai Volume 5 Nomor 2 Tahun 2025 sampai Volume 10 Nomor 1 Tahun 2030'],
+  [26,'Jurnal Pendidikan Manajemen Perkantoran','Sampai Volume 15 Nomor 1 Tahun 2030'],
+  [40,'Indonesian Journal of Educational Research and Technology (IJERT)','sampai Volume 6 Nomor 2 Tahun 2026'],
+  [41,'Indonesian Journal of Community and Special Needs Education','Volume 13 Nomor 2 Tahun 2029'],
+  [43,'FACTUM: Jurnal Sejarah dan Pendidikan Sejarah','Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 3 mulai Volume 14 Nomor 2 Tahun 2025 sampai Volume 19 Nomor 1 Tahun 2030'],
+  [48,'Curricula: Journal of Curriculum Development','Volume 6 Nomor 1 Tahun 2027'],
+  [51,'ASEAN Journal of Science and Engineering Education (AJSEE)','Volume 9 Nomor 2 Tahun 2029'],
+  [53,'TEKMULOGI: Jurnal Pengabdian Masyarakat','Reakreditasi Tetap di Peringkat 4 mulai Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029'],
+  [69,'Jurnal Ilmu Manajemen dan Bisnis','Reakreditasi Tetap di Peringkat 4 mulai Volume 16 Nomor 1 Tahun 2025 sampai Volume 20 Nomor 2 Tahun 2029'],
+  [71,'Jurnal Arsitektur ZONASI','berlaku sampai 2022'],
+  [77,'Journal of Business Management Education (JBME)','sampai Volume 13 Nomor 2 Tahun 2028'],
+  [88,'Artikulasi: Jurnal Pendidikan Bahasa dan Sastra Indonesia','Akreditasi Baru Peringkat 4 mulai Volume 3 Nomor 2 Tahun 2023 sampai Volume 8 Nomor 1 Tahun 2028'],
+  [99,'Jurnal Lentera Karya Edukasi: Jurnal Pengabdian Kepada Masyarakat','10 Nomor 2 Tahun 2029'],
+  [107,'Journal of Applied Food and Nutrition','15 Oktober 2024-15 Oktober 2028'],
+  [111,'Edukids: Jurnal Pertumbuhan, Perkembangan, dan Pendidikan Anak Usia Dini','berlaku sampai edisi April 2026']
+];
+
 function pulihkanMasaBerlakuSkTULIS() {
   return pulihkanMasaBerlakuSk(true);
 }
 
 function pulihkanMasaBerlakuSk(tulis) {
-  var shLog = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.AKTIVITAS);
-  if (!shLog) throw new Error('Sheet ' + SHEET.AKTIVITAS + ' tidak ada.');
-  var log = shLog.getDataRange().getValues();
-
-  // Ambil catatan UPDATE_MASA_BERLAKU_SK yang PALING BARU.
-  var muatan = null;
-  for (var i = log.length - 1; i >= 1; i--) {
-    var barisTeks = log[i].join(' ');
-    if (barisTeks.indexOf('UPDATE_MASA_BERLAKU_SK') !== -1) {
-      for (var c = log[i].length - 1; c >= 0; c--) {
-        var s = String(log[i][c] || '');
-        if (s.indexOf('nilaiLama') !== -1) {
-          try { muatan = JSON.parse(s); } catch (e) { muatan = null; }
-          break;
-        }
-      }
-      if (muatan) break;
-    }
-  }
-  if (!muatan || !muatan.nilaiLama) {
-    throw new Error('Cadangan UPDATE_MASA_BERLAKU_SK tidak ketemu di ' + SHEET.AKTIVITAS + '.');
-  }
-
   var sh = sheetWajib_(SHEET.MAIN);
   var nilai = sh.getDataRange().getValues();
   var header = nilai[0].map(function (h) { return norm_(h); });
@@ -7245,10 +7269,10 @@ function pulihkanMasaBerlakuSk(tulis) {
     for (var i = 0; i < header.length; i++) if (header[i] === norm_(nama)) return i;
     return -1;
   }
+  var iNama  = kolom('NAMA JURNAL');
   var iMasa  = kolom('MASA BERLAKU SK AKREDITASI');
   var iNomor = kolom('Nomor SK');
-  var iNama  = kolom('NAMA JURNAL');
-  if (iMasa < 0 || iNomor < 0) throw new Error('Kolom MASA BERLAKU SK / Nomor SK tidak ketemu.');
+  if (iNama < 0 || iMasa < 0) throw new Error('Kolom NAMA JURNAL / MASA BERLAKU SK tidak ketemu.');
 
   function tahunAkhir_(teks) {
     var t = String(teks === null || teks === undefined ? '' : teks).match(/\b(20\d{2})\b/g);
@@ -7256,36 +7280,47 @@ function pulihkanMasaBerlakuSk(tulis) {
   }
 
   var L = [];
-  L.push('== PEMULIHAN MASA BERLAKU SK ==');
-  L.push(tulis === true ? 'MODE: MEMULIHKAN' : 'MODE: LAPORAN SAJA (jalankan pulihkanMasaBerlakuSkTULIS() untuk memulihkan)');
-  L.push('Cadangan memuat ' + muatan.nilaiLama.length + ' baris.');
+  L.push('== PEMULIHAN BARIS YANG TERMUNDURKAN ==');
+  L.push(tulis === true ? 'MODE: MEMULIHKAN'
+         : 'MODE: LAPORAN SAJA (jalankan pulihkanMasaBerlakuSkTULIS() untuk memulihkan)');
+  L.push('Kandidat: ' + PULIH_MASA_BERLAKU.length + ' baris.');
 
-  var pulih = 0, biar = 0;
-  muatan.nilaiLama.forEach(function (j) {
-    var r = j.baris;                     // 1-based, sama seperti saat dicatat
-    if (r < 2 || r > nilai.length) return;
+  var pulih = 0, lewat = 0, salah = 0;
+  PULIH_MASA_BERLAKU.forEach(function (p) {
+    var r = p[0];
+    if (r < 2 || r > nilai.length) { salah++; return; }
+    var namaKini = str_(nilai[r - 1][iNama]);
+    // Nomor baris bisa bergeser kalau ada penyisipan; nama diverifikasi dulu.
+    if (norm_(namaKini) !== norm_(p[1])) {
+      salah++;
+      L.push('  LEWAT baris ' + r + ': nama tidak cocok. Di sheet "' + namaKini +
+             '", diharapkan "' + p[1] + '". Baris mungkin bergeser.');
+      return;
+    }
     var kini = str_(nilai[r - 1][iMasa]);
-    var lama = str_(j.masaLama);
-    if (!lama) { biar++; return; }       // sebelumnya memang kosong, tidak dipulihkan
-    if (tahunAkhir_(lama) <= tahunAkhir_(kini)) { biar++; return; }
+    if (tahunAkhir_(p[2]) <= tahunAkhir_(kini)) { lewat++; return; }
 
     pulih++;
-    L.push('  baris ' + r + '  ' + str_(nilai[r - 1][iNama]).substring(0, 40));
+    L.push('  baris ' + r + '  ' + namaKini.substring(0, 42));
     L.push('     kini  : ' + kini);
-    L.push('     pulih : ' + lama);
+    L.push('     pulih : ' + p[2]);
     if (tulis === true) {
-      sh.getRange(r, iMasa + 1).setValue(lama);
-      sh.getRange(r, iNomor + 1).setValue(str_(j.nomorLama));
+      sh.getRange(r, iMasa + 1).setValue(p[2]);
+      // Nomor SK ikut dikosongkan: nomor yang tertulis berasal dari SK lama yang
+      // sudah tidak berlaku, dan yang benar belum tentu ada di kumpulan kita.
+      if (iNomor >= 0) sh.getRange(r, iNomor + 1).setValue('');
     }
   });
 
   L.push('');
-  L.push('Dipulihkan          : ' + pulih);
-  L.push('Dibiarkan apa adanya: ' + biar);
+  L.push('Dipulihkan            : ' + pulih);
+  L.push('Sudah benar, dilewati : ' + lewat);
+  L.push('Tidak cocok / di luar : ' + salah);
   if (tulis === true) {
     SpreadsheetApp.flush();
     bersihkanCacheJurnal_();
     catatAktivitas_('SISTEM', '-', 'PULIH_MASA_BERLAKU_SK', 'dipulihkan ' + pulih + ' baris');
+    L.push('Selesai. Jalankan updateMasaBerlakuSk() untuk melihat pembaruan dengan data terbaru.');
   } else {
     L.push('Tidak ada yang ditulis.');
   }
