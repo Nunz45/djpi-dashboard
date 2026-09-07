@@ -15,7 +15,8 @@
   Modul yang AKTIF di draf ini (backend sudah lengkap):
     1. Sunting Data Jurnal      -> getJournalDetailForEditor, simpanPerubahanJurnal
     2. Lapor APC                -> logApcEntry
-    3. Ajukan Aktivasi DOI      -> getUsulanDoiUntukPengelola, simpanUsulanDoi
+    3. Ajukan Aktivasi DOI      -> getUsulanDoiUntukPengelola, simpanUsulanDoi,
+ *                                perbaruiUsulanDoi
     4. Lapor Progress Terbitan  -> getProgressTerbitanUntukPengelola, logProgressTerbitan
 
   Modul yang masih placeholder "Segera Hadir" (backend belum siap):
@@ -342,6 +343,7 @@
                 <th scope="col">Jenis</th>
                 <th scope="col" class="td-num">Jumlah DOI</th>
                 <th scope="col">Status</th>
+                <th scope="col">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -355,6 +357,14 @@
                 <td>
                   <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
                   <div v-if="d.catatan_admin" class="teks-kecil teks-lembut mt-8">{{ d.catatan_admin }}</div>
+                </td>
+                <td>
+                  <button v-if="doiBisaDiedit(d)" type="button" class="btn btn-sm"
+                    :class="{ 'btn-primer': d.status === 'PERLU_REVISI' }"
+                    @click="mulaiEditDoi(d)">
+                    {{ d.status === 'PERLU_REVISI' ? 'Perbaiki' : 'Edit' }}
+                  </button>
+                  <span v-else class="teks-kecil teks-lembut">sudah diproses</span>
                 </td>
               </tr>
             </tbody>
@@ -373,10 +383,13 @@
       <div v-else class="card">
         <div class="card-head">
           <div>
-            <h2 class="card-title">Ajukan Aktivasi DOI</h2>
+            <h2 class="card-title">{{ doiEditId ? 'Perbaiki Usulan DOI' : 'Ajukan Aktivasi DOI' }}</h2>
             <p class="card-note">Langkah {{ langkahDoi }} dari 4 · {{ labelLangkahDoi[langkahDoi - 1] }}</p>
+            <p v-if="doiEditId" class="card-note">
+              Menyunting usulan <b>{{ doiEditId }}</b>. Catatan admin dan statusnya tidak ikut berubah.
+            </p>
           </div>
-          <button type="button" class="btn btn-sm" @click="formDoiTampil = false">Batal</button>
+          <button type="button" class="btn btn-sm" @click="batalFormDoi">Batal</button>
         </div>
 
         <div class="card-pad">
@@ -525,7 +538,7 @@
             <button v-else type="button" class="btn btn-primer"
               :disabled="!langkahDoiValid[3] || menyimpanDoi" @click="kirimUsulanDoi">
               <span v-if="menyimpanDoi" class="spinner" aria-hidden="true"></span>
-              {{ menyimpanDoi ? 'Mengirim…' : 'Kirim usulan' }}
+              {{ menyimpanDoi ? 'Menyimpan…' : (doiEditId ? 'Simpan perubahan' : 'Kirim usulan') }}
             </button>
           </div>
         </div>
@@ -1434,6 +1447,8 @@ const appPengelola = createApp({
 
       // --- panel Ajukan Aktivasi DOI ---
       formDoiTampil: false,
+      // id usulan yang sedang disunting; kosong berarti membuat usulan baru
+      doiEditId: '',
       langkahDoi: 1,
       labelLangkahDoi: ['Jenis konten', 'Identitas pemohon', 'Detail konten', 'Periksa & setujui'],
       formDoi: {},
@@ -2047,9 +2062,45 @@ const appPengelola = createApp({
 
     mulaiFormDoi() {
       this.formDoi = this.bentukAwalFormDoi();
+      this.doiEditId = '';
       this.langkahDoi = 1;
       this.formDoiTampil = true;
       this.galatPanel = '';
+    },
+
+    /** Usulan hanya bisa disunting selama admin belum mengerjakannya. */
+    doiBisaDiedit(d) {
+      return ['MENUNGGU_VALIDASI', 'PERLU_REVISI'].indexOf(String(d.status || '').toUpperCase()) !== -1;
+    },
+
+    mulaiEditDoi(d) {
+      this.formDoi = {
+        jenis_konten: d.jenis_konten || 'artikel',
+        nama_pemohon: d.nama_pemohon || '',
+        whatsapp_pemohon: d.whatsapp_pemohon || '',
+        jabatan_pemohon: d.jabatan_pemohon || '',
+        volume: d.volume || '', nomor: d.nomor || '', tahun: d.tahun || '',
+        tanggal_publikasi: (d.tanggal_publikasi || '').substring(0, 10),
+        judul_artikel: d.judul_artikel || '',
+        penulis: d.penulis || '',
+        url_landing_page: d.url_landing_page || '',
+        jumlah_doi: Number(d.jumlah_doi) || 1,
+        catatan_pengelola: d.catatan_pengelola || '',
+        // Persetujuan dicentang ulang oleh pengelola tiap kali mengirim, karena
+        // isinya berubah dan pernyataan itu menyangkut isi yang dikirim.
+        persetujuan: false
+      };
+      this.doiEditId = d.id_usulan;
+      this.langkahDoi = 1;
+      this.formDoiTampil = true;
+      this.galatPanel = '';
+      this.keAtas();
+    },
+
+    batalFormDoi() {
+      this.formDoiTampil = false;
+      this.doiEditId = '';
+      this.formDoi = this.bentukAwalFormDoi();
     },
 
     rapikanWhatsApp() {
@@ -2096,20 +2147,28 @@ const appPengelola = createApp({
         // dari token edit_, supaya tidak bisa dipalsukan dari sisi klien.
       };
 
-      google.script.run
+      var jalan = google.script.run
         .withSuccessHandler((res) => {
           this.menyimpanDoi = false;
           if (!res.ok) {
             if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            // Usulan keburu diproses admin saat form terbuka: daftar dimuat
+            // ulang supaya tombol Edit-nya ikut hilang.
+            if (res.code === 'TIDAK_BISA_DIEDIT') { this.batalFormDoi(); this.muatRiwayatDoi(); }
             this.galatPanel = res.message; return;
           }
           this.toastPanel = res.message;
-          this.formDoiTampil = false;
-          this.formDoi = this.bentukAwalFormDoi();
+          this.batalFormDoi();
           this.muatRiwayatDoi();
         })
-        .withFailureHandler((err) => { this.menyimpanDoi = false; this.galatPanel = 'Gagal mengirim: ' + err.message; })
-        .simpanUsulanDoi(this.token, payload);
+        .withFailureHandler((err) => { this.menyimpanDoi = false; this.galatPanel = 'Gagal mengirim: ' + err.message; });
+
+      if (this.doiEditId) {
+        payload.id_usulan = this.doiEditId;
+        jalan.perbaruiUsulanDoi(this.token, payload);
+      } else {
+        jalan.simpanUsulanDoi(this.token, payload);
+      }
     },
 
     labelStatusDoi(status) {

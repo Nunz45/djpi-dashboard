@@ -3591,6 +3591,121 @@ function simpanUsulanDoi(token, payload) {
   }
 }
 
+/**
+ * Pengelola memperbaiki usulan DOI miliknya sendiri.
+ *
+ * Hanya boleh saat usulan belum disentuh admin. Setelah masuk SIAP_DIPROSES
+ * ke atas, admin sudah bekerja atas isi yang lama; mengubahnya diam-diam akan
+ * membuat yang dikerjakan berbeda dari yang tampil.
+ *
+ * PERLU_REVISI justru kasus utamanya: admin meminta perbaikan, pengelola
+ * memperbaiki, statusnya kembali ke MENUNGGU_VALIDASI supaya masuk antrean lagi.
+ *
+ * Kolom milik admin (status, catatan_admin, diproses_*, hasil submission)
+ * tidak pernah ditulis dari sini.
+ */
+var DOI_STATUS_BISA_DIEDIT = ['MENUNGGU_VALIDASI', 'PERLU_REVISI'];
+
+function perbaruiUsulanDoi(token, payload) {
+  const muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+
+  if (!payload || typeof payload !== 'object' || !String(payload.id_usulan || '').trim()) {
+    return { ok: false, message: 'Usulan yang akan diperbarui tidak disebutkan.' };
+  }
+  const galat = validasiPayloadDoi_(payload);
+  if (galat) return { ok: false, message: galat };
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) {
+    return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+  }
+
+  try {
+    const sheet = getUsulanDoiSheet_();
+    const info = petaKolomDoi_(sheet);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { ok: false, message: 'Usulan tidak ditemukan.' };
+
+    const idCari = String(payload.id_usulan).trim();
+    const iId = info.peta['id_usulan'];
+    if (iId === undefined) return { ok: false, message: 'Kolom id_usulan tidak ada di sheet.' };
+
+    const kolomId = sheet.getRange(2, iId + 1, lastRow - 1, 1).getValues();
+    var barisKe = -1;
+    for (var i = 0; i < kolomId.length; i++) {
+      if (String(kolomId[i][0]).trim() === idCari) { barisKe = i + 2; break; }
+    }
+    if (barisKe < 0) return { ok: false, message: 'Usulan ' + idCari + ' tidak ditemukan.' };
+
+    const barisLama = sheet.getRange(barisKe, 1, 1, info.lebar).getValues()[0];
+    const lama = barisDoiKeObjek_(info, barisLama);
+
+    // Kepemilikan: usulan hanya bisa disunting oleh jurnal yang mengajukannya.
+    if (norm_(lama.nama_jurnal) !== norm_(muatan.namaJurnal)) {
+      return { ok: false, message: 'Usulan ini bukan milik jurnal Anda.' };
+    }
+
+    const statusLama = String(lama.status || '').trim().toUpperCase();
+    if (DOI_STATUS_BISA_DIEDIT.indexOf(statusLama) === -1) {
+      return {
+        ok: false, code: 'TIDAK_BISA_DIEDIT',
+        message: 'Usulan berstatus "' + statusLama + '" sudah diproses admin dan tidak bisa diubah lagi. ' +
+                 'Hubungi DJPI bila ada yang perlu diperbaiki.'
+      };
+    }
+
+    // Hanya kolom milik pengelola yang ditulis ulang.
+    const baru = {
+      jenis_objek: String(payload.jenis_objek || 'ARTIKEL').trim().toUpperCase(),
+      volume: aman_(payload.volume || ''),
+      nomor: aman_(payload.nomor || ''),
+      tahun: aman_(payload.tahun || ''),
+      judul_artikel: aman_(payload.judul_artikel),
+      penulis: aman_(payload.penulis || ''),
+      url_landing_page: String(payload.url_landing_page).trim(),
+      catatan_pengelola: aman_(payload.catatan_pengelola || ''),
+      nama_pemohon: aman_(payload.nama_pemohon),
+      whatsapp_pemohon: aman_(String(payload.whatsapp_pemohon).replace(/[\s-]/g, '')),
+      jabatan_pemohon: aman_(payload.jabatan_pemohon),
+      jenis_konten: String(payload.jenis_konten).trim(),
+      jumlah_doi: Number(payload.jumlah_doi),
+      tanggal_publikasi: String(payload.tanggal_publikasi).trim()
+    };
+    // Perbaikan atas permintaan admin masuk kembali ke antrean validasi.
+    if (statusLama === 'PERLU_REVISI') baru.status = 'MENUNGGU_VALIDASI';
+
+    var berubah = [];
+    Object.keys(baru).forEach(function (nama) {
+      var idx = info.peta[nama];
+      if (idx === undefined) return;
+      var sebelum = barisLama[idx];
+      if (String(sebelum) === String(baru[nama])) return;
+      sheet.getRange(barisKe, idx + 1).setValue(baru[nama]);
+      berubah.push(nama);
+    });
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'EDIT_USULAN_DOI'),
+      idCari + ' — ' + (berubah.length ? berubah.join(', ') : 'tidak ada perubahan') +
+      (baru.status ? ' | status ' + statusLama + ' -> ' + baru.status : ''));
+
+    const rowBaru = sheet.getRange(barisKe, 1, 1, info.lebar).getValues()[0];
+    return {
+      ok: true,
+      message: berubah.length
+        ? ('Usulan ' + idCari + ' diperbarui.' +
+           (baru.status ? ' Status kembali ke Menunggu Validasi.' : ''))
+        : 'Tidak ada perubahan yang perlu disimpan.',
+      item: barisDoiKeObjek_(info, rowBaru)
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal memperbarui: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function getUsulanDoi(token) {
   const profile = bacaToken_(token, 'session_');
   if (!profile) return sesiHabis_();
