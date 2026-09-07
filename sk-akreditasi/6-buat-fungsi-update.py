@@ -26,7 +26,8 @@ fn = '''
 
    Cara pakai, DUA LANGKAH:
      1. updateMasaBerlakuSk()      -> hanya laporan, tidak menulis apa pun
-     2. updateMasaBerlakuSk(true)  -> menulis, setelah laporannya Anda setujui
+     2. updateMasaBerlakuSkTULIS() -> menulis, setelah laporannya Anda setujui
+        (daftar Run editor hanya memuat fungsi tanpa argumen)
 
    Kolom TANGGAL EXPIRED sengaja TIDAK disentuh: bulan berakhirnya dicari staf
    dari terbitan yang bersangkutan, dan harinya selalu tanggal 1.
@@ -36,6 +37,18 @@ fn = '''
 var UPDATE_SK = [
 %s
 ];
+
+/**
+ * Daftar Run di editor Apps Script hanya memuat fungsi TANPA argumen, jadi
+ * updateMasaBerlakuSk(true) tidak bisa dipilih dari sana. Ini pasangannya.
+ *
+ * Urutannya:
+ *   1. updateMasaBerlakuSk()       -> laporan saja, tidak menulis
+ *   2. updateMasaBerlakuSkTULIS()  -> menulis
+ */
+function updateMasaBerlakuSkTULIS() {
+  return updateMasaBerlakuSk(true);
+}
 
 function updateMasaBerlakuSk(tulis) {
   var sh = sheetWajib_(SHEET.MAIN);

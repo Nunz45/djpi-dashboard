@@ -6946,7 +6946,8 @@ function angkaPersiapanData() {
 
    Cara pakai, DUA LANGKAH:
      1. updateMasaBerlakuSk()      -> hanya laporan, tidak menulis apa pun
-     2. updateMasaBerlakuSk(true)  -> menulis, setelah laporannya Anda setujui
+     2. updateMasaBerlakuSkTULIS() -> menulis, setelah laporannya Anda setujui
+        (daftar Run editor hanya memuat fungsi tanpa argumen)
 
    Kolom TANGGAL EXPIRED sengaja TIDAK disentuh: bulan berakhirnya dicari staf
    dari terbitan yang bersangkutan, dan harinya selalu tanggal 1.
@@ -7030,6 +7031,18 @@ var UPDATE_SK = [
   ['28285778','Volume 20 Nomor 2 Tahun 2022 sampai Volume 25 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
   ['25812823','Volume 2 Nomor 1 Tahun 2018 sampai Volume 6 Nomor 2 Tahun 2022','158/E/KPT/2021']
 ];
+
+/**
+ * Daftar Run di editor Apps Script hanya memuat fungsi TANPA argumen, jadi
+ * updateMasaBerlakuSk(true) tidak bisa dipilih dari sana. Ini pasangannya.
+ *
+ * Urutannya:
+ *   1. updateMasaBerlakuSk()       -> laporan saja, tidak menulis
+ *   2. updateMasaBerlakuSkTULIS()  -> menulis
+ */
+function updateMasaBerlakuSkTULIS() {
+  return updateMasaBerlakuSk(true);
+}
 
 function updateMasaBerlakuSk(tulis) {
   var sh = sheetWajib_(SHEET.MAIN);
