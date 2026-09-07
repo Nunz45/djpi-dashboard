@@ -30,6 +30,8 @@ BERKAS = [
  (2024.1, '2024 Periode I',   '72/E/KPT/2024',        '1 April 2024',     'SK 2024-I (72-E-KPT-2024).pdf'),
  (2024.2, '2024 Periode II',  '177/E/KPT/2024',       '15 Oktober 2024',  'SK 2024-II (177-E-KPT-2024).pdf'),
  (2025.1, '2025 Periode I',   '10/C/C3/DT.05.00/2025','21 Maret 2025',    'SK 2025-I (10-C-C3-2025).pdf'),
+ (2025.22,'2025 Periode II (baru P3-6)','156/C/C3/KPT/2026','7 April 2026',  'SK 2025-II-b (156-C-C3-KPT-2026).pdf'),
+ (2025.3, '2025 Periode III','355/DST/D.D1/HM.01.01/2026','24 Juli 2026',    'SK 2025-III (355-DST-D.D1-HM.01.01-2026).pdf'),
 ]
 
 # Penerbit UPI ditulis dengan banyak bentuk. Menuntut frasa penuh
@@ -37,6 +39,27 @@ BERKAS = [
 # "UPI Press", dan "Departemen Pendidikan Olahraga-FPOK UPI".
 # Sebaliknya, menerima "UPI" polos akan ikut menarik "Majalah Ilmiah UPI YPTK"
 # milik Universitas Putra Indonesia Padang. Karena itu dua lapis.
+# Nama penerbit di lampiran sering ditulis sebagai fakultas, departemen, atau
+# program studi tanpa menyebut universitasnya. Pada SK 2025 Periode III,
+# menyaring lewat nama penerbit hanya menemukan 3 dari 16 baris UPI. Karena itu
+# penanda utamanya adalah daftar e-ISSN milik UPI dari direktori; nama penerbit
+# tinggal jaring kedua.
+def _muatEissnUpi():
+    import csv
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utama.csv')
+    keluar = set()
+    if not os.path.exists(p):
+        return keluar
+    with io.open(p, encoding='utf-8-sig', newline='') as f:
+        for r in csv.DictReader(f):
+            for kol in ('E-ISSN', 'P-ISSN'):
+                v = re.sub(r'[^0-9Xx]', '', str(r.get(kol) or '')).upper()
+                if re.match(r'^\d{7}[\dX]$', v):
+                    keluar.add(v)
+    return keluar
+
+EISSN_UPI = _muatEissnUpi()
+
 UPI_PENUH = re.compile(r'universitas\s+pendidikan\s+indonesia', re.I)
 UPI_SINGKAT = re.compile(r'\bUPI\b')
 BUKAN_UPI = re.compile(
@@ -48,7 +71,10 @@ BUKAN_UPI = re.compile(
     r'|sean\s+institute'
     r'|masyarakat\s+penelitian\s+pendidikan\s+indonesia)', re.I)
 
-def milikUpi(ekor):
+def milikUpi(ekor, eissn=''):
+    # Penanda paling tepercaya: nomor ini memang terdaftar sebagai jurnal UPI.
+    if eissn and eissn in EISSN_UPI:
+        return True
     if UPI_PENUH.search(ekor):
         return True
     return bool(UPI_SINGKAT.search(ekor)) and not BUKAN_UPI.search(ekor)
@@ -107,7 +133,7 @@ for urut, periode, nomor, tglSk, berkas in BERKAS:
     n = 0
     for i, (a, b, issn) in enumerate(pos):
         ekor = teks[b: pos[i+1][0] if i+1 < len(pos) else min(len(teks), b+900)]
-        if not milikUpi(ekor):
+        if not milikUpi(ekor, issn.upper()):
             continue
         kepala = teks[(pos[i-1][1] if i else max(0, a-400)):a]
         m = re.search(r'(?:^|\s)(\d{1,4})\s+(.{3,200})$', kepala)

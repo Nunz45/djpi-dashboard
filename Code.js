@@ -6955,26 +6955,28 @@ function angkaPersiapanData() {
 
 // [e-ISSN, MASA BERLAKU SK AKREDITASI, Nomor SK]
 var UPDATE_SK = [
-  ['26854414','Volume 6 Nomor 2 Tahun 2021 sampai Volume 11 Nomor 1 Tahun 2026','177/E/KPT/2024'],
+  ['26854414','Volume 10 Nomor 2 Tahun 2025 sampai Volume 15 Nomor 1 Tahun 2030','355/DST/D.D1/HM.01.01/2026'],
   ['25024795','Volume 7 Nomor 3 Tahun 2020 sampai Volume 12 Nomor 2 Tahun 2025','158/E/KPT/2021'],
   ['2580071X','Volume 9 Nomor 1 Tahun 2024 sampai Volume 13 Nomor 2 Tahun 2028','10/C/C3/DT.05.00/2025'],
   ['25410342','Volume 15 Nomor 1 Tahun 2023 sampai Volume 19 Nomor 2 Tahun 2027','177/E/KPT/2024'],
   ['26146568','Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026','204/E/KPT/2022'],
   ['26570688','Volume 12 Nomor 2 Tahun 2024 sampai Volume 17 Nomor 1 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
   ['25494562','Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
-  ['2721480X','mulai Volume 1 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)','148/M/KPT/2020'],
+  ['2721480X','Volume 7 Nomor 1 Tahun 2023 sampai Volume 11 Nomor 2 Tahun 2027','152/E/KPT/2023'],
   ['27163970','Volume 1 Nomor 10 Tahun 2023 sampai Volume 6 Nomor 9 Tahun 2028','177/E/KPT/2024'],
-  ['2621413X','Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026','225/E/KPT/2022'],
+  ['2621413X','Volume 8 Nomor 1 Tahun 2025 sampai Volume 12 Nomor 2 Tahun 2029','355/DST/D.D1/HM.01.01/2026'],
   ['26145626','Volume 4 Nomor 2 Tahun 2021 sampai Volume 9 Nomor 1 Tahun 2026','204/E/KPT/2022'],
+  ['30259827','Volume 1 Nomor 2 Tahun 2023 sampai Volume 6 Nomor 1 Tahun 2028','355/DST/D.D1/HM.01.01/2026'],
   ['26571498','Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025','152/E/KPT/2023'],
   ['25797700','mulai Volume 17 Nomor 3 Tahun 2019 (akhir tidak tertulis di SK)','148/M/KPT/2020'],
   ['2541061X','Volume 12 Nomor 3 Tahun 2024 sampai Volume 17 Nomor 2 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
-  ['27755940','Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025','10/C/C3/DT.05.00/2025'],
+  ['27755940','Volume 5 Nomor 2 Tahun 2025 sampai Volume 10 Nomor 1 Tahun 2030','355/DST/D.D1/HM.01.01/2026'],
   ['25414135','Volume 20 Nomor 3 Tahun 2020 sampai Volume 25 Nomor 2 Tahun 2025','158/E/KPT/2021'],
-  ['26564734','Volume 7 Nomor 1 Tahun 2022 sampai Volume 11 Nomor 2 Tahun 2026','225/E/KPT/2022'],
+  ['26564734','Volume 10 Nomor 2 Tahun 2025 sampai Volume 15 Nomor 1 Tahun 2030','355/DST/D.D1/HM.01.01/2026'],
   ['25407694','Volume 32 Nomor 1 Tahun 2023 sampai Volume 36 Nomor 2 Tahun 2027','177/E/KPT/2024'],
+  ['27211401','Volume 6 Nomor 1 Tahun 2024 sampai Volume 10 Nomor 2 Tahun 2028','355/DST/D.D1/HM.01.01/2026'],
   ['26563266','Volume 10 Nomor 1 Tahun 2022 sampai Volume 14 Nomor 2 Tahun 2026','225/E/KPT/2022'],
-  ['27741699','Volume 2 Nomor 2 Tahun 2021 sampai Volume 7 Nomor 1 Tahun 2026','177/E/KPT/2024'],
+  ['27741699','Volume 6 Nomor 1 Tahun 2025 sampai Volume 10 Nomor 2 Tahun 2029','355/DST/D.D1/HM.01.01/2026'],
   ['27154734','Volume 9 Nomor 1 Tahun 2022 sampai Volume 13 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['26544687','Volume 8 Nomor 1 Tahun 2025 sampai Volume 12 Nomor 2 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
   ['25497073','Volume 4 Nomor 1 Tahun 2020 sampai Volume 8 Nomor 2 Tahun 2024','204/E/KPT/2022'],
@@ -6985,51 +6987,66 @@ var UPDATE_SK = [
   ['','Volume 1 Nomor 3 Tahun 2021 sampai Volume 6 Nomor 2 Tahun 2026','72/E/KPT/2024'],
   ['','Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
   ['26157993','Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026','204/E/KPT/2022'],
-  ['2615515X','Volume 10 Nomor 1 Tahun 2021 sampai Volume 14 Nomor 2 Tahun 2025','79/E/KPT/2023'],
+  ['2615515X','Volume 14 Nomor 2 Tahun 2025 sampai Volume 19 Nomor 1 Tahun 2030','355/DST/D.D1/HM.01.01/2026'],
+  ['25020781','mulai Volume 21 Nomor 1 Tahun 2022 (akhir tidak tertulis di SK)','156/C/C3/KPT/2026'],
   ['25795457','Volume 15 Nomor 1 Tahun 2023 sampai Volume 19 Nomor 2 Tahun 2027','177/E/KPT/2024'],
   ['27759024','Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
   ['28307917','mulai Volume 1 Nomor 2 Tahun 2022 (akhir tidak tertulis di SK)','10/C/C3/DT.05.00/2025'],
   ['26218321','Volume 14 Nomor 2 Tahun 2023 sampai Volume 19 Nomor 1 Tahun 2028','10/C/C3/DT.05.00/2025'],
   ['26217260','Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026','177/E/KPT/2024'],
   ['','Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029','295/C/C3/KPT/2026 [PERLU KONFIRMASI]'],
-  ['27770990','Volume 1 Nomor 2 Tahun 2021 sampai Volume 6 Nomor 1 Tahun 2026','177/E/KPT/2024'],
+  ['27770990','Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029','355/DST/D.D1/HM.01.01/2026'],
+  ['26848066','Volume 23 Nomor 2 Tahun 2023 sampai Volume 28 Nomor 1 Tahun 2028','156/C/C3/KPT/2026'],
+  ['26563622','Volume 21 Nomor 2 Tahun 2023 sampai Volume 26 Nomor 1 Tahun 2028','355/DST/D.D1/HM.01.01/2026'],
   ['2775118X','Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['','Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025','79/E/KPT/2023'],
-  ['2503457X','mulai Volume 3 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)','200/M/KPT/2020'],
+  ['2774213X','Volume 10 Nomor 1 Tahun 2023 sampai Volume 14 Nomor 2 Tahun 2027','355/DST/D.D1/HM.01.01/2026'],
+  ['2503457X','Volume 9 Nomor 1 Tahun 2024 sampai Volume 13 Nomor 2 Tahun 2028','355/DST/D.D1/HM.01.01/2026'],
   ['25285653','Volume 18 Nomor 2 Tahun 2023 sampai Volume 23 Nomor 1 Tahun 2028','10/C/C3/DT.05.00/2025'],
   ['25274570','Volume 21 Nomor 1 Tahun 2022 sampai Volume 25 Nomor 2 Tahun 2026','79/E/KPT/2023'],
   ['25285904','Volume 14 Nomor 2 Tahun 2023 sampai Volume 19 Nomor 1 Tahun 2028','10/C/C3/DT.05.00/2025'],
   ['28084284','Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['25278312','Volume 22 Nomor 2 Tahun 2022 sampai Volume 27 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
   ['27762467','Volume 8 Nomor 2 Tahun 2021 sampai Volume 13 Nomor 1 Tahun 2026','177/E/KPT/2024'],
-  ['25033522','Volume 11 Nomor 1 Tahun 2020 sampai Volume 15 Nomor 2 Tahun 2024','158/E/KPT/2021'],
+  ['26571765','mulai Volume 14 Nomor 1 Tahun 2022 (akhir tidak tertulis di SK)','10/C/C3/DT.05.00/2025'],
+  ['25033522','Volume 16 Nomor 1 Tahun 2025 sampai Volume 20 Nomor 2 Tahun 2029','355/DST/D.D1/HM.01.01/2026'],
   ['27768783','Volume 20 Nomor 1 Tahun 2020 sampai Volume 24 Nomor 2 Tahun 2024','225/E/KPT/2022'],
   ['26209934','mulai Volume 1 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)','85/M/KPT/2020'],
   ['25801007','Volume 20 Nomor 2 Tahun 2023 sampai Volume 25 Nomor 1 Tahun 2028','177/E/KPT/2024'],
+  ['30471095','Volume 4 Nomor 3 Tahun 2023 sampai Volume 9 Nomor 2 Tahun 2028','156/C/C3/KPT/2026'],
+  ['27769852','Volume 3 Nomor 1 Tahun 2023 sampai Volume 7 Nomor 2 Tahun 2027','355/DST/D.D1/HM.01.01/2026'],
   ['28294149','Volume 1 Nomor 1 Tahun 2022 sampai Volume 5 Nomor 2 Tahun 2026','72/E/KPT/2024'],
-  ['27153037','mulai Volume 3 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)','148/M/KPT/2020'],
   ['25801279','Volume 5 Nomor 2 Tahun 2023 sampai Volume 10 Nomor 1 Tahun 2028','10/C/C3/DT.05.00/2025'],
   ['','Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025','204/E/KPT/2022'],
   ['27982432','Volume 2 Nomor 2 Tahun 2022 sampai Volume 7 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
   ['26866153','Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
+  ['25275100','Volume 8 Nomor 2 Tahun 2023 sampai Volume 13 Nomor 1 Tahun 2028','355/DST/D.D1/HM.01.01/2026'],
   ['25282182','Volume 12 Nomor 1 Tahun 2022 sampai Volume 16 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['25414593','Volume 8 Nomor 2 Tahun 2023 sampai Volume 13 Nomor 1 Tahun 2028','177/E/KPT/2024'],
   ['26852535','Volume 5 Nomor 1 Tahun 2023 sampai Volume 9 Nomor 2 Tahun 2027','72/E/KPT/2024'],
-  ['2721480X','mulai Volume 1 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)','148/M/KPT/2020'],
+  ['2721480X','Volume 7 Nomor 1 Tahun 2023 sampai Volume 11 Nomor 2 Tahun 2027','152/E/KPT/2023'],
   ['2776026X','Volume 20 Nomor 1 Tahun 2022 sampai Volume 24 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['28072502','Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
+  ['25496360','Volume 9 Nomor 2 Tahun 2024 sampai Volume 14 Nomor 1 Tahun 2029','355/DST/D.D1/HM.01.01/2026'],
   ['27468909','Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['25281178','Volume 10 Nomor 2 Tahun 2022 sampai Volume 15 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
   ['25810553','Volume 6 Nomor 2 Tahun 2022 sampai Volume 11 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
+  ['28307178','Volume 1 Nomor 2 Tahun 2022 sampai Volume 6 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
   ['27769720','Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['27224260','Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['27747891','Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['25284231','Volume 9 Nomor 2 Tahun 2021 sampai Volume 14 Nomor 1 Tahun 2026','177/E/KPT/2024'],
+  ['27764400','Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
   ['27764494','Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026','10/C/C3/DT.05.00/2025'],
+  ['27765326','Volume 3 Nomor 2 Tahun 2023 sampai Volume 8 Nomor 1 Tahun 2028','156/C/C3/KPT/2026'],
+  ['27234088','Volume 4 Nomor 1 Tahun 2023 sampai Volume 8 Nomor 2 Tahun 2027','156/C/C3/KPT/2026'],
   ['27970698','mulai Volume 1 Nomor 3 Tahun 2023 (akhir tidak tertulis di SK)','177/E/KPT/2024'],
+  ['28097386','Volume 5 Nomor 2 Tahun 2023 sampai Volume 10 Nomor 1 Tahun 2028','156/C/C3/KPT/2026'],
+  ['27767078','mulai Volume 3 Nomor 2 Tahun 2023 (akhir tidak tertulis di SK)','156/C/C3/KPT/2026'],
   ['16935284','mulai Volume 15 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)','148/M/KPT/2020'],
   ['28285778','Volume 20 Nomor 2 Tahun 2022 sampai Volume 25 Nomor 1 Tahun 2027','10/C/C3/DT.05.00/2025'],
-  ['25812823','Volume 2 Nomor 1 Tahun 2018 sampai Volume 6 Nomor 2 Tahun 2022','158/E/KPT/2021']
+  ['25812823','Volume 2 Nomor 1 Tahun 2018 sampai Volume 6 Nomor 2 Tahun 2022','158/E/KPT/2021'],
+  ['14121891','Volume 5 Nomor 2 Tahun 2022 sampai Volume 10 Nomor 1 Tahun 2027','152/E/KPT/2023']
 ];
 
 /**
@@ -7070,7 +7087,7 @@ function updateMasaBerlakuSk(tulis) {
   // Tahun berakhir terbesar yang tersirat di sebuah sel, dipakai membandingkan
   // mana yang lebih baru antara isi Sheet1 dan usulan.
   function tahunAkhirDari_(teks) {
-    var t = String(teks === null || teks === undefined ? '' : teks).match(/\b(20\d{2})\b/g);
+    var t = String(teks === null || teks === undefined ? '' : teks).match(/(20\d{2})/g);
     if (!t || !t.length) return 0;
     return Math.max.apply(null, t.map(Number));
   }
@@ -7170,6 +7187,107 @@ function updateMasaBerlakuSk(tulis) {
     L.push('Nilai lama tersimpan di ' + SHEET.AKTIVITAS + ' (aksi UPDATE_MASA_BERLAKU_SK).');
   } else {
     L.push('Tidak ada yang ditulis. Jalankan updateMasaBerlakuSkTULIS() bila laporan di atas sudah benar.');
+  }
+
+  var teks = L.join(String.fromCharCode(10));
+  console.log(teks);
+  return teks;
+}
+
+
+/* ==========================================================================
+   33. PEMULIHAN SETELAH PEMBARUAN YANG MEMUNDURKAN DATA
+   updateMasaBerlakuSk dijalankan SEBELUM pengaman anti-mundur terpasang dan
+   sebelum SK 2025 Periode III terkumpul, sehingga sebagian baris tertulis
+   dengan penetapan yang lebih tua daripada yang sudah ada di Sheet1.
+
+   Fungsi ini membaca cadangan di Log_Aktivitas (aksi UPDATE_MASA_BERLAKU_SK)
+   dan mengembalikan HANYA baris yang benar-benar mundur. Baris yang
+   pembaruannya benar dibiarkan.
+
+   Dua langkah:
+     1. pulihkanMasaBerlakuSk()      -> laporan saja
+     2. pulihkanMasaBerlakuSkTULIS() -> memulihkan
+   ========================================================================== */
+
+function pulihkanMasaBerlakuSkTULIS() {
+  return pulihkanMasaBerlakuSk(true);
+}
+
+function pulihkanMasaBerlakuSk(tulis) {
+  var shLog = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.AKTIVITAS);
+  if (!shLog) throw new Error('Sheet ' + SHEET.AKTIVITAS + ' tidak ada.');
+  var log = shLog.getDataRange().getValues();
+
+  // Ambil catatan UPDATE_MASA_BERLAKU_SK yang PALING BARU.
+  var muatan = null;
+  for (var i = log.length - 1; i >= 1; i--) {
+    var barisTeks = log[i].join(' ');
+    if (barisTeks.indexOf('UPDATE_MASA_BERLAKU_SK') !== -1) {
+      for (var c = log[i].length - 1; c >= 0; c--) {
+        var s = String(log[i][c] || '');
+        if (s.indexOf('nilaiLama') !== -1) {
+          try { muatan = JSON.parse(s); } catch (e) { muatan = null; }
+          break;
+        }
+      }
+      if (muatan) break;
+    }
+  }
+  if (!muatan || !muatan.nilaiLama) {
+    throw new Error('Cadangan UPDATE_MASA_BERLAKU_SK tidak ketemu di ' + SHEET.AKTIVITAS + '.');
+  }
+
+  var sh = sheetWajib_(SHEET.MAIN);
+  var nilai = sh.getDataRange().getValues();
+  var header = nilai[0].map(function (h) { return norm_(h); });
+  function kolom(nama) {
+    for (var i = 0; i < header.length; i++) if (header[i] === norm_(nama)) return i;
+    return -1;
+  }
+  var iMasa  = kolom('MASA BERLAKU SK AKREDITASI');
+  var iNomor = kolom('Nomor SK');
+  var iNama  = kolom('NAMA JURNAL');
+  if (iMasa < 0 || iNomor < 0) throw new Error('Kolom MASA BERLAKU SK / Nomor SK tidak ketemu.');
+
+  function tahunAkhir_(teks) {
+    var t = String(teks === null || teks === undefined ? '' : teks).match(/\b(20\d{2})\b/g);
+    return (t && t.length) ? Math.max.apply(null, t.map(Number)) : 0;
+  }
+
+  var L = [];
+  L.push('== PEMULIHAN MASA BERLAKU SK ==');
+  L.push(tulis === true ? 'MODE: MEMULIHKAN' : 'MODE: LAPORAN SAJA (jalankan pulihkanMasaBerlakuSkTULIS() untuk memulihkan)');
+  L.push('Cadangan memuat ' + muatan.nilaiLama.length + ' baris.');
+
+  var pulih = 0, biar = 0;
+  muatan.nilaiLama.forEach(function (j) {
+    var r = j.baris;                     // 1-based, sama seperti saat dicatat
+    if (r < 2 || r > nilai.length) return;
+    var kini = str_(nilai[r - 1][iMasa]);
+    var lama = str_(j.masaLama);
+    if (!lama) { biar++; return; }       // sebelumnya memang kosong, tidak dipulihkan
+    if (tahunAkhir_(lama) <= tahunAkhir_(kini)) { biar++; return; }
+
+    pulih++;
+    L.push('  baris ' + r + '  ' + str_(nilai[r - 1][iNama]).substring(0, 40));
+    L.push('     kini  : ' + kini);
+    L.push('     pulih : ' + lama);
+    if (tulis === true) {
+      sh.getRange(r, iMasa + 1).setValue(lama);
+      sh.getRange(r, iNomor + 1).setValue(str_(j.nomorLama));
+    }
+  });
+
+  L.push('');
+  L.push('Dipulihkan          : ' + pulih);
+  L.push('Dibiarkan apa adanya: ' + biar);
+  if (tulis === true) {
+    SpreadsheetApp.flush();
+    bersihkanCacheJurnal_();
+    catatAktivitas_('SISTEM', '-', 'PULIH_MASA_BERLAKU_SK', 'dipulihkan ' + pulih + ' baris');
+  } else {
+    L.push('Tidak ada yang ditulis.');
   }
 
   var teks = L.join(String.fromCharCode(10));

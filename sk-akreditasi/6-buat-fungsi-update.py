@@ -185,8 +185,15 @@ function updateMasaBerlakuSk(tulis) {
 ''' % data
 
 s = io.open(CODE, encoding='utf-8', newline='').read()
-if 'function updateMasaBerlakuSk' in s:
-    a = s.index('\n/* ====\n   32. PEMBARUAN'.replace('====', '======================================================================'))
-    s = s[:a]
+if '32. PEMBARUAN MASA BERLAKU SK' in s:
+    # potong dari awal blok komentar section 32 sampai sebelum section 33
+    i = s.index('32. PEMBARUAN MASA BERLAKU SK')
+    i = s.rfind('/* ===', 0, i)
+    j = s.find('33. PEMULIHAN SETELAH PEMBARUAN', i)
+    if j != -1:
+        j = s.rfind('/* ===', i, j)
+        s = s[:i] + s[j:]
+    else:
+        s = s[:i]
 io.open(CODE, 'w', encoding='utf-8', newline='').write(s.rstrip('\n') + '\n' + fn)
 print('Fungsi updateMasaBerlakuSk() ditulis ke Code.js dengan %d usulan.' % len(u))
