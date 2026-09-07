@@ -769,6 +769,11 @@
                   </label>
                   <input id="akrTgl" type="date" class="input" v-model="persiapanAkr.tglBerakhirSk" @change="jadwalkanSimpan">
                   <p class="hint">Akreditasi ulang wajib diajukan paling lambat <b>6 bulan sebelum</b> tanggal ini.</p>
+                  <p v-if="persiapanAkr.jurnal && persiapanAkr.jurnal.nomorSk" class="hint">
+                    Menurut catatan DJPI, akreditasi jurnal ini berlaku sampai
+                    <b>{{ persiapanAkr.jurnal.tanggalExpired || '(tanggal belum tercatat)' }}</b>
+                    berdasarkan <b>SK {{ persiapanAkr.jurnal.nomorSk }}</b>.
+                  </p>
                   <div v-if="akrSumberTeks('tglBerakhirSk')" class="akr-sumber">
                     <dl v-if="akrTanda('tglBerakhirSk') !== 'diubah' && akrSumberData('tglBerakhirSk').length" class="akr-data">
                       <template v-for="d in akrSumberData('tglBerakhirSk')" :key="d.label">

@@ -104,6 +104,7 @@ var FIELD_MAP = {
   catatanMigrasi:  { alias: ['CATATAN MIGRASI'] },
   statusAkreditasi:{ alias: ['STATUS AKREDITASI'], wajib: true },
   masaBerlakuSk:   { alias: ['MASA BERLAKU SK AKREDITASI'] },
+  nomorSk:         { alias: ['Nomor SK'] },
   apc:             { alias: ['Article Processing Charge (APC)', 'Article Processing Charge', 'APC'] },
   linkApc:         { alias: ['Tautan informasi APC'] },
   tanggalExpired:  { alias: ['TANGGAL EXPIRED'] },
@@ -973,6 +974,7 @@ function bacaDataJurnal_() {
       peringkatSinta: peringkatSinta_(statusAkr),
       terakreditasi: terakreditasi_(statusAkr),
       masaBerlakuSk: ambil_(row, map, 'masaBerlakuSk'),
+      nomorSk: ambil_(row, map, 'nomorSk'),
       apc: ambil_(row, map, 'apc'),
       linkApc: linkApc,
       tanggalExpired: ambil_(row, map, 'tanggalExpired'),
@@ -6432,6 +6434,7 @@ function prefillAkreditasi_(namaJurnal) {
       terakreditasi: jurnal.terakreditasi,
       masaBerlakuSk: jurnal.masaBerlakuSk,
       tanggalExpired: jurnal.tanggalExpired,
+      nomorSk: jurnal.nomorSk,
       tglBerakhirIso: tglIso,
       sitasiReferensi: refSit
     }
