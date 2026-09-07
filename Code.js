@@ -7444,3 +7444,63 @@ function pulihkanMasaBerlakuSk(tulis) {
   console.log(teks);
   return teks;
 }
+
+
+/* ==========================================================================
+   34. DIAGNOSTIK TANGGAL EXPIRED
+   Nilai di kolom TANGGAL EXPIRED terekspor sebagai "6/1/2025". Bentuk itu
+   ambigu: bisa berupa sel TANGGAL sungguhan yang ditampilkan Sheets menurut
+   lokal spreadsheet, bisa pula TEKS biasa. Keduanya menghasilkan hasil baca
+   yang BERBEDA di bacaTanggalLonggar_:
+     - sel Date  -> dikembalikan apa adanya, benar
+     - sel teks  -> diurai sebagai HARI/BULAN/TAHUN, sehingga 1 Juni 2025
+                    terbaca sebagai 6 Januari 2025
+   Jalankan sekali untuk memastikan yang mana.
+   ========================================================================== */
+
+function cekTanggalExpired() {
+  var sh = sheetWajib_(SHEET.MAIN);
+  var nilai = sh.getDataRange().getValues();
+  var header = nilai[0].map(function (h) { return norm_(h); });
+  var iNama = header.indexOf(norm_('NAMA JURNAL'));
+  var iExp  = header.indexOf(norm_('TANGGAL EXPIRED'));
+  if (iExp < 0) throw new Error('Kolom TANGGAL EXPIRED tidak ketemu.');
+
+  var L = [];
+  L.push('== DIAGNOSTIK TANGGAL EXPIRED ==');
+  L.push('Zona waktu spreadsheet: ' + SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone());
+  L.push('Zona waktu skrip      : ' + TZ);
+  L.push('');
+
+  var jmlDate = 0, jmlTeks = 0, jmlKosong = 0, contoh = [];
+  for (var r = 1; r < nilai.length; r++) {
+    var v = nilai[r][iExp];
+    if (v === '' || v === null || v === undefined) { jmlKosong++; continue; }
+    var isDate = (v instanceof Date) && !isNaN(v.getTime());
+    if (isDate) jmlDate++; else jmlTeks++;
+    if (contoh.length < 12) {
+      var dibaca = bacaTanggalLonggar_(v);
+      contoh.push('  ' + str_(nilai[r][iNama]).substring(0, 34) +
+        '  | tipe: ' + (isDate ? 'TANGGAL' : 'teks "' + String(v) + '"') +
+        ' | dibaca sistem: ' + (dibaca ? Utilities.formatDate(dibaca, TZ, 'd MMMM yyyy') : '(gagal)'));
+    }
+  }
+  L.push('Sel bertipe TANGGAL : ' + jmlDate);
+  L.push('Sel bertipe teks    : ' + jmlTeks);
+  L.push('Kosong              : ' + jmlKosong);
+  L.push('');
+  L.push('Contoh pembacaan:');
+  L = L.concat(contoh);
+  L.push('');
+  if (jmlTeks > 0) {
+    L.push('PERINGATAN: sel teks berpola "6/1/2025" akan dibaca sebagai 6 Januari 2025,');
+    L.push('bukan 1 Juni 2025. Kalau maksudnya bulan/tanggal/tahun, isinya perlu diubah');
+    L.push('ke bentuk yyyy-mm-dd yang tidak bermakna ganda.');
+  } else {
+    L.push('Seluruh sel bertipe TANGGAL, jadi tidak ada risiko tertukar hari dan bulan.');
+  }
+
+  var teks = L.join(String.fromCharCode(10));
+  console.log(teks);
+  return teks;
+}
