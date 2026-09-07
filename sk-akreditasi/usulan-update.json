@@ -1,0 +1,1581 @@
+{
+  "usul": [
+    {
+      "baris": 5,
+      "nama": "WaPFi (Wahana Pendidikan Fisika)",
+      "eIssn": "26854414",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 2 mulai Volume 10 Nomor 2 Tahun 2025 sampai Volume 15 Nomor 1 Tahun 2030",
+      "I_baru": "Volume 6 Nomor 2 Tahun 2021 sampai Volume 11 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 6,
+      "nama": "Mimbar Sekolah Dasar",
+      "eIssn": "25024795",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 12, Nomor 2, Tahun 2025",
+      "I_baru": "Volume 7 Nomor 3 Tahun 2020 sampai Volume 12 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "158/E/KPT/2021",
+      "periode": "2021 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 9,
+      "nama": "Jurnal Pendidikan Jasmani dan Olahraga",
+      "eIssn": "2580071X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volumen 13 Nomor 2 Tahun 2028",
+      "I_baru": "Volume 9 Nomor 1 Tahun 2024 sampai Volume 13 Nomor 2 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 10,
+      "nama": "Jurnal ASET (Akuntansi Riset)",
+      "eIssn": "25410342",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 19 nomor 2 Tahun 2027",
+      "I_baru": "Volume 15 Nomor 1 Tahun 2023 sampai Volume 19 Nomor 2 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 11,
+      "nama": "Journal of Science Learning",
+      "eIssn": "26146568",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 9 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "204/E/KPT/2022",
+      "periode": "2022 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 13,
+      "nama": "Image : Jurnal Riset Manajemen",
+      "eIssn": "26570688",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "mulai Volume 12 Nomor 2 Tahun 2024 sampai Volume 17 Nomor 1 Tahun 2029",
+      "I_baru": "Volume 12 Nomor 2 Tahun 2024 sampai Volume 17 Nomor 1 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 14,
+      "nama": "EduBasic Journal: Jurnal Pendidikan Dasar",
+      "eIssn": "25494562",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 8 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 15,
+      "nama": "ALSUNIYAT: Jurnal Penelitian Bahasa, Sastra, dan Budaya Arab",
+      "eIssn": "2721480X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 10 Nomor 2 Tahun 2027",
+      "I_baru": "mulai Volume 1 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "148/M/KPT/2020",
+      "periode": "2020 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 17,
+      "nama": "The Journal Gastronomy Tourism",
+      "eIssn": "27163970",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "15 Oktober 2024-15 Oktober 2028",
+      "I_baru": "Volume 1 Nomor 10 Tahun 2023 sampai Volume 6 Nomor 9 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 18,
+      "nama": "The International Journal of Business Review (The Jobs Review)",
+      "eIssn": "2621413X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 3 mulai Volume 8 Nomor 1 Tahun 2025 sampai Volume 12 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "225/E/KPT/2022",
+      "periode": "2022 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 19,
+      "nama": "TEGAR: Journal of Teaching Physical Education in Elementary School",
+      "eIssn": "26145626",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "berlaku sampai 2026",
+      "I_baru": "Volume 4 Nomor 2 Tahun 2021 sampai Volume 9 Nomor 1 Tahun 2026",
+      "AH_lama": "[PERLU DICEK MANUAL] ISSN tanpa label E-/P- (2614-5626), DOAJ tidak bisa memastikan mana elektronik/cetak.",
+      "AH_baru": "204/E/KPT/2022",
+      "periode": "2022 Periode II",
+      "berubahI": true,
+      "timpaAH": true,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 21,
+      "nama": "Review of Islamic Economics and Finance",
+      "eIssn": "26571498",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Vol 5 No 2 Tahun 2022-Vol 10 No 1 Tahun 2027",
+      "I_baru": "Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "152/E/KPT/2023",
+      "periode": "2023 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 22,
+      "nama": "PEDAGOGIA",
+      "eIssn": "25797700",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 18 Nomor 1 Tahun 2026",
+      "I_baru": "mulai Volume 17 Nomor 3 Tahun 2019 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "148/M/KPT/2020",
+      "periode": "2020 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 23,
+      "nama": "Jurnal Riset Akuntansi dan Keuangan",
+      "eIssn": "2541061X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 17 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 12 Nomor 3 Tahun 2024 sampai Volume 17 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 24,
+      "nama": "Jurnal Pengabdian Masyarakat PGSD",
+      "eIssn": "27755940",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Naik Peringkat dari Peringkat 5 ke Peringkat 3 mulai Volume 5 Nomor 2 Tahun 2025 sampai Volume 10 Nomor 1 Tahun 2030",
+      "I_baru": "Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 25,
+      "nama": "Jurnal Penelitian Pendidikan",
+      "eIssn": "25414135",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Sudah habis",
+      "I_baru": "Volume 20 Nomor 3 Tahun 2020 sampai Volume 25 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "158/E/KPT/2021",
+      "periode": "2021 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 26,
+      "nama": "Jurnal Pendidikan Manajemen Perkantoran",
+      "eIssn": "26564734",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Sampai Volume 15 Nomor 1 Tahun 2030",
+      "I_baru": "Volume 7 Nomor 1 Tahun 2022 sampai Volume 11 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "225/E/KPT/2022",
+      "periode": "2022 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 27,
+      "nama": "Jurnal Pendidikan Ilmu Sosial",
+      "eIssn": "25407694",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "2027",
+      "I_baru": "Volume 32 Nomor 1 Tahun 2023 sampai Volume 36 Nomor 2 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 29,
+      "nama": "Jurnal Pendidikan Akuntansi dan Keuangan",
+      "eIssn": "26563266",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 14 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 10 Nomor 1 Tahun 2022 sampai Volume 14 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "225/E/KPT/2022",
+      "periode": "2022 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 32,
+      "nama": "Journal of Software Engineering, Information and Communication Technology (SEICT)",
+      "eIssn": "27741699",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Naik Peringkat dari Peringkat 5 ke Peringkat 3 mulai Volume 6 Nomor 1 Tahun 2025 sampai Volume",
+      "I_baru": "Volume 2 Nomor 2 Tahun 2021 sampai Volume 7 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 33,
+      "nama": "Journal of Mechanical Engineering Education (Jurnal Pendidikan Teknik Mesin)",
+      "eIssn": "27154734",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 13 No 2 Desember 2026",
+      "I_baru": "Volume 9 Nomor 1 Tahun 2022 sampai Volume 13 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 34,
+      "nama": "Journal of Indonesian Tourism, Hospitality and Recreation",
+      "eIssn": "26544687",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 12 No 1 April 2029",
+      "I_baru": "Volume 8 Nomor 1 Tahun 2025 sampai Volume 12 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 35,
+      "nama": "JOMSIGN: Journal of Multicultural Studies in Guidance and Counseling",
+      "eIssn": "25497073",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Sudah habis 2024",
+      "I_baru": "Volume 4 Nomor 1 Tahun 2020 sampai Volume 8 Nomor 2 Tahun 2024",
+      "AH_lama": "",
+      "AH_baru": "204/E/KPT/2022",
+      "periode": "2022 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 36,
+      "nama": "JAPANEDU: Jurnal Pendidikan dan Pengajaran Bahasa Jepang",
+      "eIssn": "25285548",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Peringkat 3 berlaku sampai volume 11 nomor 1 tahun 2026",
+      "I_baru": "Volume 6 Nomor 2 Tahun 2021 sampai Volume 11 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "225/E/KPT/2022",
+      "periode": "2022 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 37,
+      "nama": "INVOTEC",
+      "eIssn": "24611336",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 20 Nomor 2 Tahun 2024",
+      "I_baru": "Volume 20 Nomor 1 Tahun 2024 sampai Volume 24 Nomor 2 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 38,
+      "nama": "International Journal of Education",
+      "eIssn": "24424730",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 20 Nomor 2 Tahun 2027",
+      "I_baru": "Volume 15 Nomor 2 Tahun 2022 sampai Volume 20 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 39,
+      "nama": "Indonesian Journal of Teaching in Science",
+      "eIssn": "27766101",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "mulai Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 40,
+      "nama": "Indonesian Journal of Educational Research and Technology (IJERT)",
+      "eIssn": "",
+      "cara": "nama jurnal",
+      "I_lama": "sampai Volume 6 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 1 Nomor 3 Tahun 2021 sampai Volume 6 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "72/E/KPT/2024",
+      "periode": "2024 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 41,
+      "nama": "Indonesian Journal of Community and Special Needs Education",
+      "eIssn": "",
+      "cara": "nama jurnal",
+      "I_lama": "Volume 13 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 42,
+      "nama": "Historia: Jurnal Pendidik dan Peneliti Sejarah",
+      "eIssn": "26157993",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Oktober 2026",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "204/E/KPT/2022",
+      "periode": "2022 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 43,
+      "nama": "FACTUM: Jurnal Sejarah dan Pendidikan Sejarah",
+      "eIssn": "2615515X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Naik Peringkat dari Peringkat 4 ke Peringkat 3 mulai Volume 14 Nomor 2 Tahun 2025 sampai Volume 19 Nomor 1 Tahun 2030",
+      "I_baru": "Volume 10 Nomor 1 Tahun 2021 sampai Volume 14 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "79/E/KPT/2023",
+      "periode": "2023 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 45,
+      "nama": "EduHumaniora: Jurnal Pendidikan Dasar",
+      "eIssn": "25795457",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 19 Nomor 2 Tahun 2027",
+      "I_baru": "Volume 15 Nomor 1 Tahun 2023 sampai Volume 19 Nomor 2 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 46,
+      "nama": "Didaktika",
+      "eIssn": "27759024",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 9 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 48,
+      "nama": "Curricula: Journal of Curriculum Development",
+      "eIssn": "28307917",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 6 Nomor 1 Tahun 2027",
+      "I_baru": "mulai Volume 1 Nomor 2 Tahun 2022 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 49,
+      "nama": "Cakrawala Dini: Jurnal Pendidikan Anak Usia Dini",
+      "eIssn": "26218321",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 19 Nomor 1 Tahun 2028",
+      "I_baru": "Volume 14 Nomor 2 Tahun 2023 sampai Volume 19 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 50,
+      "nama": "Assimilation: Indonesian Journal of Biology Education",
+      "eIssn": "26217260",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 9, No. 2, 2026",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2022 sampai Volume 9 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 51,
+      "nama": "ASEAN Journal of Science and Engineering Education (AJSEE)",
+      "eIssn": "",
+      "cara": "nama jurnal",
+      "I_lama": "Volume 9 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "AH_lama": "",
+      "AH_baru": "295/C/C3/KPT/2026 [PERLU KONFIRMASI]",
+      "periode": "2025 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 53,
+      "nama": "TEKMULOGI: Jurnal Pengabdian Masyarakat",
+      "eIssn": "27770990",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Tetap di Peringkat 4 mulai Volume 5 Nomor 1 Tahun 2025 sampai Volume 9 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 1 Nomor 2 Tahun 2021 sampai Volume 6 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 57,
+      "nama": "Research in Early Childhood Education and Parenting",
+      "eIssn": "2775118X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "berlaku sampai Volume 7 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 58,
+      "nama": "Religio Education",
+      "eIssn": "",
+      "cara": "nama jurnal",
+      "I_lama": "Volume 5 Nomor 2 Tahun 2025",
+      "I_baru": "Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "79/E/KPT/2023",
+      "periode": "2023 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 60,
+      "nama": "Mimbar Pendidikan : Jurnal Indonesia untuk Kajian Pendidikan",
+      "eIssn": "2503457X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Belum Akreditasi",
+      "I_baru": "mulai Volume 3 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "200/M/KPT/2020",
+      "periode": "2020 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 61,
+      "nama": "Metodik Didaktik: Jurnal Pendidikan Ke-SD-an",
+      "eIssn": "25285653",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 18 Nomor 2 Tahun 2023 sampai Volume 23 Nomor 1 Tahun 2028",
+      "I_baru": "Volume 18 Nomor 2 Tahun 2023 sampai Volume 23 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 63,
+      "nama": "Manajerial : Jurnal Manajemen dan Sistem Informasi",
+      "eIssn": "25274570",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 21 Nomor 1 Tahun 2022 sampai Volume 25 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 21 Nomor 1 Tahun 2022 sampai Volume 25 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "79/E/KPT/2023",
+      "periode": "2023 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 64,
+      "nama": "LOKABASA",
+      "eIssn": "25285904",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 19 Nomor 1 Tahun 2028",
+      "I_baru": "Volume 14 Nomor 2 Tahun 2023 sampai Volume 19 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 65,
+      "nama": "Jurnal Pendidikan Teknik Bangunan",
+      "eIssn": "28084284",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "berlaku sampai November 2026",
+      "I_baru": "Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 66,
+      "nama": "Jurnal Pendidikan Bahasa dan Sastra",
+      "eIssn": "25278312",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 27 Nomor 1 Tahun 2027",
+      "I_baru": "Volume 22 Nomor 2 Tahun 2022 sampai Volume 27 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 67,
+      "nama": "Jurnal Pedagogik Pendidikan Dasar",
+      "eIssn": "27762467",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Akreditasi Baru Peringkat 4 mulai Volume 8 Nomor 2 2021 sampai Volume 13 Nomor 1 2026",
+      "I_baru": "Volume 8 Nomor 2 Tahun 2021 sampai Volume 13 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 69,
+      "nama": "Jurnal Ilmu Manajemen dan Bisnis",
+      "eIssn": "25033522",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Reakreditasi Tetap di Peringkat 4 mulai Volume 16 Nomor 1 Tahun 2025 sampai Volume 20 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 11 Nomor 1 Tahun 2020 sampai Volume 15 Nomor 2 Tahun 2024",
+      "AH_lama": "",
+      "AH_baru": "158/E/KPT/2021",
+      "periode": "2021 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 70,
+      "nama": "Jurnal Asesmen Dan Intervensi Anak Berkebutuhan Khusus",
+      "eIssn": "27768783",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Desember 2024",
+      "I_baru": "Volume 20 Nomor 1 Tahun 2020 sampai Volume 24 Nomor 2 Tahun 2024",
+      "AH_lama": "",
+      "AH_baru": "225/E/KPT/2022",
+      "periode": "2022 Periode III",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 71,
+      "nama": "Jurnal Arsitektur ZONASI",
+      "eIssn": "26209934",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "berlaku sampai 2022",
+      "I_baru": "mulai Volume 1 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "85/M/KPT/2020",
+      "periode": "2020 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 73,
+      "nama": "Jurnal Administrasi Pendidikan",
+      "eIssn": "25801007",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai volume 25 nomor 1 tahun 2028",
+      "I_baru": "Volume 20 Nomor 2 Tahun 2023 sampai Volume 25 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 76,
+      "nama": "Journal of Computer Engineering, Electronics and Information Technology (COELITE)",
+      "eIssn": "28294149",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Akreditasi Baru Peringkat 4 mulai Volume 1 Nomor 1 Tahun 2022 sampai Volume 5 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 1 Nomor 1 Tahun 2022 sampai Volume 5 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "72/E/KPT/2024",
+      "periode": "2024 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 77,
+      "nama": "Journal of Business Management Education (JBME)",
+      "eIssn": "27153037",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 13 Nomor 2 Tahun 2028",
+      "I_baru": "mulai Volume 3 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "148/M/KPT/2020",
+      "periode": "2020 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 78,
+      "nama": "Journal of Architectural Research and Education",
+      "eIssn": "25801279",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 5 Nomor 2 Tahun 2023 sampai Volume 10 Nomor 1 Tahun 2028",
+      "I_baru": "Volume 5 Nomor 2 Tahun 2023 sampai Volume 10 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 79,
+      "nama": "Indonesian Journal of Multidiciplinary Research",
+      "eIssn": "",
+      "cara": "nama jurnal",
+      "I_lama": "berlaku sampai 2025",
+      "I_baru": "Volume 1 Nomor 1 Tahun 2021 sampai Volume 5 Nomor 2 Tahun 2025",
+      "AH_lama": "",
+      "AH_baru": "204/E/KPT/2022",
+      "periode": "2022 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 80,
+      "nama": "Indonesian Journal of Digital Business",
+      "eIssn": "27982432",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 7 Nomor 1 Tahun 2027",
+      "I_baru": "Volume 2 Nomor 2 Tahun 2022 sampai Volume 7 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 81,
+      "nama": "Indonesian Journal of Adult and Community Education",
+      "eIssn": "26866153",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 8 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 83,
+      "nama": "Edulib: Journal of Library and Information Science",
+      "eIssn": "25282182",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 12 Nomor 1 Tahun 2022 sampai Volume 16 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 12 Nomor 1 Tahun 2022 sampai Volume 16 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 84,
+      "nama": "EDUFORTECH",
+      "eIssn": "25414593",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "hingga Vol 13 No.1 (2028)",
+      "I_baru": "Volume 8 Nomor 2 Tahun 2023 sampai Volume 13 Nomor 1 Tahun 2028",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 85,
+      "nama": "Edsence: Jurnal Pendidikan Multimedia",
+      "eIssn": "26852535",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 9 Nomor 2 Tahun 2027",
+      "I_baru": "Volume 5 Nomor 1 Tahun 2023 sampai Volume 9 Nomor 2 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "72/E/KPT/2024",
+      "periode": "2024 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 88,
+      "nama": "Artikulasi: Jurnal Pendidikan Bahasa dan Sastra Indonesia",
+      "eIssn": "2721480X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Akreditasi Baru Peringkat 4 mulai Volume 3 Nomor 2 Tahun 2023 sampai Volume 8 Nomor 1 Tahun 2028",
+      "I_baru": "mulai Volume 1 Nomor 2 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "148/M/KPT/2020",
+      "periode": "2020 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 91,
+      "nama": "Taklim : Jurnal Pendidikan Agama Islam",
+      "eIssn": "2776026X",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 24 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 20 Nomor 1 Tahun 2022 sampai Volume 24 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 92,
+      "nama": "SWARA – Jurnal Antologi Pendidikan Musik",
+      "eIssn": "28072502",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 6 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 95,
+      "nama": "Jurnal Tata Kelola Pendidikan (JTKP)",
+      "eIssn": "27468909",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Akreditasi Baru Peringkat 5 mulai Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 4 Nomor 1 Tahun 2022 sampai Volume 8 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 96,
+      "nama": "Jurnal Riset dan Praktik Pendidikan Kimia (JRPPK)",
+      "eIssn": "25281178",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 10 Nomor 2 Tahun 2022 sampai Volume 15 Nomor 1 Tahun 2027",
+      "I_baru": "Volume 10 Nomor 2 Tahun 2022 sampai Volume 15 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 97,
+      "nama": "JURNAL PSIKOLOGI INSIGHT",
+      "eIssn": "25810553",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 6 Nomor 2 Tahun 2022 sampai Volume 11 No 1 Tahun 2027",
+      "I_baru": "Volume 6 Nomor 2 Tahun 2022 sampai Volume 11 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 99,
+      "nama": "Jurnal Lentera Karya Edukasi: Jurnal Pengabdian Kepada Masyarakat",
+      "eIssn": "27769720",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "10 Nomor 2 Tahun 2029",
+      "I_baru": "Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 100,
+      "nama": "Jurnal Kemaritiman: Indonesian Journal of Maritime",
+      "eIssn": "27224260",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 101,
+      "nama": "Jurnal Guru Komputer (JgrKom)",
+      "eIssn": "27747891",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026",
+      "I_baru": "Volume 3 Nomor 1 Tahun 2022 sampai Volume 7 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": false,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 102,
+      "nama": "Jurnal EurekaMatika",
+      "eIssn": "25284231",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "Volume 14 No 1 2026 Akan mengajukan reakreditasi",
+      "I_baru": "Volume 9 Nomor 2 Tahun 2021 sampai Volume 14 Nomor 1 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 104,
+      "nama": "Journal of Korean Applied Linguistics",
+      "eIssn": "27764494",
+      "cara": "nama jurnal",
+      "I_lama": "Volume 6 No 2 2026 Akan mengajukan reakreditasi",
+      "I_baru": "Volume 2 Nomor 1 Tahun 2022 sampai Volume 6 Nomor 2 Tahun 2026",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 107,
+      "nama": "Journal of Applied Food and Nutrition",
+      "eIssn": "27970698",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "15 Oktober 2024-15 Oktober 2028",
+      "I_baru": "mulai Volume 1 Nomor 3 Tahun 2023 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "177/E/KPT/2024",
+      "periode": "2024 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 111,
+      "nama": "Edukids: Jurnal Pertumbuhan, Perkembangan, dan Pendidikan Anak Usia Dini",
+      "eIssn": "16935284",
+      "cara": "p-ISSN (AG)",
+      "I_lama": "berlaku sampai edisi April 2026",
+      "I_baru": "mulai Volume 15 Nomor 1 Tahun 2018 (akhir tidak tertulis di SK)",
+      "AH_lama": "",
+      "AH_baru": "148/M/KPT/2020",
+      "periode": "2020 Periode II",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    },
+    {
+      "baris": 115,
+      "nama": "Jurnal Teknik Sipil Kokoh",
+      "eIssn": "28285778",
+      "cara": "e-ISSN (AF)",
+      "I_lama": "sampai Volume 25 Nomor 1 Tahun 2027",
+      "I_baru": "Volume 20 Nomor 2 Tahun 2022 sampai Volume 25 Nomor 1 Tahun 2027",
+      "AH_lama": "",
+      "AH_baru": "10/C/C3/DT.05.00/2025",
+      "periode": "2025 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": false
+    },
+    {
+      "baris": 136,
+      "nama": "JURNAL PAUD AGAPEDIA",
+      "eIssn": "25812823",
+      "cara": "p-ISSN (AG)",
+      "I_lama": "Belum Akreditasi",
+      "I_baru": "Volume 2 Nomor 1 Tahun 2018 sampai Volume 6 Nomor 2 Tahun 2022",
+      "AH_lama": "",
+      "AH_baru": "158/E/KPT/2021",
+      "periode": "2021 Periode I",
+      "berubahI": true,
+      "timpaAH": false,
+      "perluPeriksa": true
+    }
+  ],
+  "lewat": [
+    [
+      2,
+      "Indonesian Journal of Science and Technology",
+      "dikecualikan atas permintaan"
+    ],
+    [
+      3,
+      "Indonesian Journal of Applied Linguistics",
+      "dikecualikan atas permintaan"
+    ],
+    [
+      4,
+      "ASEAN Journal of Science and Engineering",
+      "dikecualikan atas permintaan"
+    ],
+    [
+      7,
+      "Jurnal Pengajaran Matematika dan Ilmu Pengetahuan Alam",
+      "tidak ada rekam SK"
+    ],
+    [
+      8,
+      "Jurnal Pendidikan Keperawatan Indonesia",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      12,
+      "Indonesian Journal of Primary Education",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      16,
+      "Wahana Fisika: Jurnal Fisika dan Terapannya",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      20,
+      "SABA: Journal of Tourism Research",
+      "tidak ada rekam SK"
+    ],
+    [
+      28,
+      "Jurnal Pendidikan Ekonomi Indonesia",
+      "tidak ada rekam SK"
+    ],
+    [
+      30,
+      "Jurnal Geografi Gea",
+      "tidak ada rekam SK"
+    ],
+    [
+      31,
+      "JURNAL CIVICUS",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      44,
+      "EDUTECH",
+      "tidak ada rekam SK"
+    ],
+    [
+      47,
+      "Dedicated: Journal of Community Services (Pengabdian kepada Masyarakat)",
+      "tidak ada rekam SK"
+    ],
+    [
+      52,
+      "A Social Science and Entrepreneurship Journal",
+      "tidak ada rekam SK"
+    ],
+    [
+      54,
+      "Strategic : Jurnal Pendidikan Manajemen Bisnis",
+      "tidak ada rekam SK"
+    ],
+    [
+      55,
+      "Sosio Religi: Jurnal Kajian Pendidikan Umum",
+      "tidak ada rekam SK"
+    ],
+    [
+      56,
+      "Sosietas: Jurnal Pendidikan Sosiologi",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      59,
+      "PEDADIDAKTIKA: Jurnal Ilmiah Pendidikan Guru Sekolah Dasar",
+      "tidak ada rekam SK"
+    ],
+    [
+      62,
+      "Media Pendidikan Gizi dan Kuliner",
+      "tidak ada rekam SK"
+    ],
+    [
+      68,
+      "Jurnal Kepelatihan Olahraga",
+      "tidak ada rekam SK"
+    ],
+    [
+      72,
+      "Jurnal Aplikasi dan Teori Ilmu Komputer",
+      "tidak ada rekam SK"
+    ],
+    [
+      74,
+      "Journal on Mathematics Education Research (J-MER)",
+      "tidak ada rekam SK"
+    ],
+    [
+      75,
+      "Journal of Physical Education and Sport Pedagogy",
+      "tidak ada rekam SK"
+    ],
+    [
+      82,
+      "FRANCISOLA",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      86,
+      "Early Childhood Education and Parenting (ECEPA)",
+      "tidak ada rekam SK"
+    ],
+    [
+      87,
+      "ASEAN Journal of Sport for Development and Peace",
+      "tidak ada rekam SK"
+    ],
+    [
+      89,
+      "Allemania",
+      "tidak ada rekam SK"
+    ],
+    [
+      90,
+      "TARBAWY: Indonesian Journal of Islamic Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      93,
+      "Psikoeduko: Jurnal Psikologi Edukasi dan Konseling",
+      "tidak ada rekam SK"
+    ],
+    [
+      94,
+      "Jurnal Terapan Ilmu Keolahragaan",
+      "tidak ada rekam SK"
+    ],
+    [
+      98,
+      "Jurnal Pengabdian Isola",
+      "tidak ada rekam SK"
+    ],
+    [
+      103,
+      "Journal of Logistics and Supply Chain",
+      "tidak ada rekam SK"
+    ],
+    [
+      105,
+      "Journal of Dance and Dance Education Studies",
+      "tidak ada rekam SK"
+    ],
+    [
+      106,
+      "Journal of Computers for Society",
+      "tidak ada rekam SK"
+    ],
+    [
+      108,
+      "Irama: Jurnal Seni, Desain dan Pembelajarannya",
+      "tidak ada rekam SK"
+    ],
+    [
+      109,
+      "International Journal Pedagogy of Social Studies",
+      "SK tidak memuat rentang volume"
+    ],
+    [
+      110,
+      "Indonesian Journal of Community Development",
+      "tidak ada rekam SK"
+    ],
+    [
+      112,
+      "Current Issues on Elementary Education Journal",
+      "tidak ada rekam SK"
+    ],
+    [
+      113,
+      "Cinematology: Journal Anthology of Film and Television Studies",
+      "tidak ada rekam SK"
+    ],
+    [
+      114,
+      "Ringkang : Kajian Seni Tari dan Pendidikan Seni Tari",
+      "tidak ada rekam SK"
+    ],
+    [
+      116,
+      "Tourism Industry Journal",
+      "tidak ada rekam SK"
+    ],
+    [
+      117,
+      "Telecommunications, Networks, Electronics, and Computer Technologies (TELNECT)",
+      "tidak ada rekam SK"
+    ],
+    [
+      118,
+      "Strength and Conditioning Exercise Science Journal",
+      "tidak ada rekam SK"
+    ],
+    [
+      119,
+      "SpoRTIVE",
+      "tidak ada rekam SK"
+    ],
+    [
+      120,
+      "SIGMA DIDAKTIKA: Jurnal Pendidikan Matematika",
+      "tidak ada rekam SK"
+    ],
+    [
+      121,
+      "SemestaEdu: Journal of Mathematics, Science and Technology Education in Elementary School",
+      "tidak ada rekam SK"
+    ],
+    [
+      122,
+      "Research of Economics, Management, Business and Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      123,
+      "Professional Development and Learning Improvement",
+      "tidak ada rekam SK"
+    ],
+    [
+      124,
+      "Passage: Journal of English Language and Literature",
+      "tidak ada rekam SK"
+    ],
+    [
+      125,
+      "OPTIMA: Journal Of Guidance and Counseling",
+      "tidak ada rekam SK"
+    ],
+    [
+      126,
+      "Nursing Insight: Jurnal Ilmu Keperawatan",
+      "tidak ada rekam SK"
+    ],
+    [
+      127,
+      "New Generation Teachers and Human Development",
+      "tidak ada rekam SK"
+    ],
+    [
+      128,
+      "MOTOR: Journal of Automotive Engineering",
+      "tidak ada rekam SK"
+    ],
+    [
+      129,
+      "KANAYAGAN - Jurnal Pengabdian Masyarakat Bidang Seni",
+      "tidak ada rekam SK"
+    ],
+    [
+      130,
+      "Jurnal Profesi Bimbingan dan Konseling",
+      "tidak ada rekam SK"
+    ],
+    [
+      131,
+      "Jurnal Pengabdian Masyarakat dalam Ekonomi, Bisnis, Manajemen, dan Akuntansi (JPM-EBMA)",
+      "tidak ada rekam SK"
+    ],
+    [
+      132,
+      "Jurnal Pendidikan Perikanan Kelautan",
+      "tidak ada rekam SK"
+    ],
+    [
+      133,
+      "Jurnal Pendidikan Guru Sekolah Dasar",
+      "tidak ada rekam SK"
+    ],
+    [
+      134,
+      "Jurnal Pena Ilmiah",
+      "tidak ada rekam SK"
+    ],
+    [
+      135,
+      "Jurnal Pecinta Alam dan Lingkungan",
+      "tidak ada rekam SK"
+    ],
+    [
+      137,
+      "Jurnal Pasca Dharma Pengabdian Masyarakat",
+      "tidak ada rekam SK"
+    ],
+    [
+      138,
+      "Jurnal Bahtera Sastra Indonesia",
+      "tidak ada rekam SK"
+    ],
+    [
+      139,
+      "Jurnal Abmas",
+      "tidak ada rekam SK"
+    ],
+    [
+      140,
+      "Jurnal Abdi Nusantara",
+      "tidak ada rekam SK"
+    ],
+    [
+      141,
+      "Journal of Tourism in Emerging Economies",
+      "tidak ada rekam SK"
+    ],
+    [
+      142,
+      "Journal of Tourism Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      143,
+      "Journal of Teaching Experience and Development",
+      "tidak ada rekam SK"
+    ],
+    [
+      144,
+      "Journal of Physical Education for Secondary Schools (JPESS)",
+      "tidak ada rekam SK"
+    ],
+    [
+      145,
+      "Journal of Mechatronics and Artificial Intelligence",
+      "tidak ada rekam SK"
+    ],
+    [
+      146,
+      "Journal of Industrial Product Design Research and Studies",
+      "tidak ada rekam SK"
+    ],
+    [
+      147,
+      "Journal of General and Character Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      148,
+      "Journal of Finance, Entrepreneurship, and Accounting Education Research",
+      "tidak ada rekam SK"
+    ],
+    [
+      149,
+      "Journal of English and Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      150,
+      "Journal of Didactic Studies",
+      "tidak ada rekam SK"
+    ],
+    [
+      151,
+      "Journal of Development and Integrated Engineering",
+      "tidak ada rekam SK"
+    ],
+    [
+      152,
+      "Journal of BioSustainability",
+      "tidak ada rekam SK"
+    ],
+    [
+      153,
+      "Journal of Accounting Review and Audit Research",
+      "tidak ada rekam SK"
+    ],
+    [
+      154,
+      "International Journal Management Science and Business",
+      "tidak ada rekam SK"
+    ],
+    [
+      155,
+      "Interlude: Indonesian Journal of Music Research, Development, and Technology",
+      "tidak ada rekam SK"
+    ],
+    [
+      156,
+      "INTEGRATED (Journal of Information Technology and Vocational Education)",
+      "tidak ada rekam SK"
+    ],
+    [
+      157,
+      "INFANTIA: Jurnal Pendidikan Anak Usia Dini",
+      "tidak ada rekam SK"
+    ],
+    [
+      158,
+      "Indonesian Review of Community Service",
+      "tidak ada rekam SK"
+    ],
+    [
+      159,
+      "Indonesian Journal of Teaching English as a Foreign Language",
+      "tidak ada rekam SK"
+    ],
+    [
+      160,
+      "Indonesian Journal of Geography Information Science",
+      "tidak ada rekam SK"
+    ],
+    [
+      161,
+      "Indonesian Journal of Functional Linguistics",
+      "tidak ada rekam SK"
+    ],
+    [
+      162,
+      "Indonesian Journal of Entrepreneurial Economics",
+      "tidak ada rekam SK"
+    ],
+    [
+      163,
+      "Indonesian Journal of Economic Education (IJEE)",
+      "tidak ada rekam SK"
+    ],
+    [
+      164,
+      "Indonesian Journal of Community Services in Engineering & Education (IJOCSEE)",
+      "tidak ada rekam SK"
+    ],
+    [
+      165,
+      "Indonesian Journal of Arts Education Research",
+      "tidak ada rekam SK"
+    ],
+    [
+      166,
+      "Indonesian Journal of Applied Communication",
+      "tidak ada rekam SK"
+    ],
+    [
+      167,
+      "Indonesian as a Foreign Language",
+      "tidak ada rekam SK"
+    ],
+    [
+      168,
+      "Higher Education Spiritual Pedagogies",
+      "tidak ada rekam SK"
+    ],
+    [
+      169,
+      "FINDER: Journal of Visual Communication Design",
+      "tidak ada rekam SK"
+    ],
+    [
+      170,
+      "Fesyen Perspektif",
+      "tidak ada rekam SK"
+    ],
+    [
+      171,
+      "FamilyEdu: Jurnal Pendidikan Kesejahteraan Keluarga",
+      "tidak ada rekam SK"
+    ],
+    [
+      172,
+      "ELT Tech: Journal of English Language Teaching and Technology",
+      "tidak ada rekam SK"
+    ],
+    [
+      173,
+      "Edusentris",
+      "tidak ada rekam SK"
+    ],
+    [
+      174,
+      "Dimasatra",
+      "tidak ada rekam SK"
+    ],
+    [
+      175,
+      "Digital Equity Experiences in Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      176,
+      "Current Research in Education: Conference Series Journal",
+      "tidak ada rekam SK"
+    ],
+    [
+      177,
+      "Chemica Isola",
+      "tidak ada rekam SK"
+    ],
+    [
+      178,
+      "CAPEU Journal of Education",
+      "tidak ada rekam SK"
+    ],
+    [
+      179,
+      "Bina Sehat Masyarakat",
+      "tidak ada rekam SK"
+    ],
+    [
+      180,
+      "Bahtera Bahasa: Antologi Pendidikan Bahasa dan Sastra Indonesia",
+      "tidak ada rekam SK"
+    ],
+    [
+      181,
+      "ATIKANOTO: Journal of Automotive Engineering Education",
+      "tidak ada rekam SK"
+    ]
+  ]
+}
