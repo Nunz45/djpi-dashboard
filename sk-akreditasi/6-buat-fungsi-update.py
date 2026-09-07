@@ -64,11 +64,21 @@ function updateMasaBerlakuSk(tulis) {
   var iMasa   = kolom('MASA BERLAKU SK AKREDITASI');
   var iEissn  = kolom('E-ISSN');
   var iPissn  = kolom('P-ISSN');
+  var iExp    = kolom('TANGGAL EXPIRED');
   var iCatatan= kolom('Catatan Pemisahan ISSN');
   var iNomor  = kolom('Nomor SK');
 
   if (iNama < 0 || iMasa < 0 || iEissn < 0) {
     throw new Error('Kolom NAMA JURNAL / MASA BERLAKU SK AKREDITASI / E-ISSN tidak ketemu.');
+  }
+
+
+  // Tahun berakhir terbesar yang tersirat di sebuah sel, dipakai membandingkan
+  // mana yang lebih baru antara isi Sheet1 dan usulan.
+  function tahunAkhirDari_(teks) {
+    var t = String(teks === null || teks === undefined ? '' : teks).match(/\b(20\d{2})\b/g);
+    if (!t || !t.length) return 0;
+    return Math.max.apply(null, t.map(Number));
   }
 
   var L = [];
@@ -109,7 +119,7 @@ function updateMasaBerlakuSk(tulis) {
     return /^[0-9]{7}[0-9X]$/.test(s) ? s : '';
   }
 
-  var diisi = 0, sama = 0, takKetemu = 0, jejak = [];
+  var diisi = 0, sama = 0, takKetemu = 0, mundur = 0, jejak = [];
   for (var r = 1; r < nilai.length; r++) {
     var nama = str_(nilai[r][iNama]);
     if (!nama) continue;
@@ -121,6 +131,21 @@ function updateMasaBerlakuSk(tulis) {
     var lamaMasa = str_(nilai[r][iMasa]);
     var lamaNomor = str_(nilai[r][iNomor]);
     if (lamaMasa === u[1] && lamaNomor === u[2]) { sama++; continue; }
+
+    // PENGAMAN. Sheet1 bisa memuat penetapan yang LEBIH BARU daripada kumpulan
+    // SK yang kita punya, misalnya karena periodenya belum terunduh. Menulis
+    // usulan yang lebih tua akan memundurkan data yang sudah benar. Kasus nyata:
+    // WaPFi sudah SINTA 2 berlaku sampai 2030 di Sheet1, sedangkan rekam SK
+    // terbaru kita masih 2024 Periode II yang berakhir 2026.
+    var thSheet = Math.max(tahunAkhirDari_(lamaMasa), tahunAkhirDari_(nilai[r][iExp]));
+    var thUsul = tahunAkhirDari_(u[1]);
+    if (thSheet && thUsul && thSheet > thUsul) {
+      mundur++;
+      L.push('  LEWAT baris ' + (r + 1) + '  ' + nama.substring(0, 40));
+      L.push('     Sheet1 sudah berakhir ' + thSheet + ', usulan hanya ' + thUsul +
+             ' -> tidak ditulis supaya tidak memundurkan data');
+      continue;
+    }
 
     diisi++;
     jejak.push({ baris: r + 1, jurnal: nama, masaLama: lamaMasa, nomorLama: lamaNomor });
@@ -138,6 +163,7 @@ function updateMasaBerlakuSk(tulis) {
   L.push('');
   L.push('Baris diperbarui        : ' + diisi);
   L.push('Sudah sama, dilewati    : ' + sama);
+  L.push('Dilewati, Sheet1 lebih baru : ' + mundur + '  <-- periksa, SK periode itu belum terkumpul');
   L.push('Tidak ada usulan        : ' + takKetemu);
   L.push('Total usulan tersedia   : ' + UPDATE_SK.length);
 
