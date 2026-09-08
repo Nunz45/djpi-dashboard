@@ -219,6 +219,9 @@ table.tabel tbody tr:hover{background:var(--elev-3)}
 .alert-info{background:#eef4f5;color:#17565e;border-color:#d6e4e7}
 /* Perlu keputusan pengelola, bukan galat dan bukan kabar baik. */
 .alert-emas{background:#fbf3df;color:#6b4e12;border-color:#ecdcae}
+/* Pengingat masa berlaku akreditasi: beberapa paragraf dalam satu alert. */
+.akr-pengingat p{margin:0}
+.akr-pengingat p + p{margin-top:var(--space-2)}
 .kosong{padding:var(--space-8) var(--space-5);border:1px dashed var(--line-strong);border-radius:var(--radius-lg);background:var(--surface-soft);color:var(--muted);text-align:center}
 .kosong-judul{color:var(--text);font-weight:800}
 .skeleton{border-radius:7px;background:linear-gradient(90deg,var(--elev-5) 25%,var(--elev-2) 50%,var(--elev-5) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite}

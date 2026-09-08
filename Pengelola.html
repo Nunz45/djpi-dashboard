@@ -769,11 +769,6 @@
                   </label>
                   <input id="akrTgl" type="date" class="input" v-model="persiapanAkr.tglBerakhirSk" @change="jadwalkanSimpan">
                   <p class="hint">Akreditasi ulang wajib diajukan paling lambat <b>6 bulan sebelum</b> tanggal ini.</p>
-                  <p v-if="persiapanAkr.jurnal && persiapanAkr.jurnal.nomorSk" class="hint">
-                    Menurut catatan DJPI, akreditasi jurnal ini berlaku sampai
-                    <b>{{ persiapanAkr.jurnal.tanggalExpired || '(tanggal belum tercatat)' }}</b>
-                    berdasarkan <b>SK {{ persiapanAkr.jurnal.nomorSk }}</b>.
-                  </p>
                   <div v-if="akrSumberTeks('tglBerakhirSk')" class="akr-sumber">
                     <dl v-if="akrTanda('tglBerakhirSk') !== 'diubah' && akrSumberData('tglBerakhirSk').length" class="akr-data">
                       <template v-for="d in akrSumberData('tglBerakhirSk')" :key="d.label">
@@ -788,16 +783,91 @@
                   </div>
                 </div>
 
-                <div v-if="akrTenggatUlang" class="alert mt-8"
-                  :class="(akrTenggatUlang.lewat || akrTenggatUlang.mendesak) ? 'alert-galat' : 'alert-info'">
-                  <template v-if="akrTenggatUlang.lewat">
-                    Tenggat pengajuan ulang, <b>{{ tglPanjang(akrTenggatUlang.tenggatIso) }}</b>, sudah
-                    terlewat <b>{{ -akrTenggatUlang.bulan }} bulan</b>. Segera ajukan; jurnal berisiko
-                    berstatus tidak terakreditasi saat SK berakhir.
+                <div v-if="akrPengingat" class="alert mt-8 akr-pengingat" :class="akrPengingatKelas">
+                  <template v-if="akrPengingat.keadaan === 'takAda'">
+                    <p>Catatan DJPI belum memuat tanggal berakhirnya akreditasi jurnal ini secara pasti.</p>
+                    <p v-if="akrPengingat.varian === 'tahun'">Yang tercatat baru tahunnya,
+                      <b>{{ akrPengingat.tahun }}</b>, tanpa tanggal.</p>
+                    <p v-else-if="akrPengingat.varian === 'takCocok'">Yang tercatat adalah
+                      <b>{{ tglPanjang(akrPengingat.tglBerakhirIso) }}</b> berdasarkan SK
+                      <b>{{ akrPengingat.nomorSk }}</b>, tetapi keterangan masa berlaku SK
+                      (<b>{{ akrPengingat.masaBerlakuSk }}</b>) belum cocok dengan tanggal itu.</p>
+                    <p v-else-if="akrPengingat.varian === 'kosongSk'">Nomor SK-nya belum tercatat.</p>
+                    <p v-else>Belum ada tanggal maupun nomor SK yang tercatat.</p>
+                    <p>Karena itu hitung mundur tenggat pengajuan belum bisa ditampilkan. Sertifikat
+                      akreditasi yang Anda pegang adalah sumber yang paling tepercaya: isikan tanggal
+                      berakhirnya pada kolom di atas. Setelah terisi, tenggat pengajuan enam bulan
+                      sebelum tanggal itu akan muncul di sini.</p>
                   </template>
+
                   <template v-else>
-                    Sisa <b>{{ akrTenggatUlang.bulan }} bulan</b> sebelum tenggat pengajuan ulang,
-                    <b>{{ tglPanjang(akrTenggatUlang.tenggatIso) }}</b>.
+                    <p v-if="akrPengingat.keadaan === 'habis' || akrPengingat.keadaan === 'habisLama'">
+                      Masa berlaku akreditasi jurnal ini berakhir pada
+                      <b>{{ tglPanjang(akrPengingat.tglBerakhirIso) }}</b>, berdasarkan SK
+                      <b>{{ akrPengingat.nomorSk }}</b>.
+                    </p>
+                    <p v-else>
+                      Akreditasi jurnal ini berlaku sampai
+                      <b>{{ tglPanjang(akrPengingat.tglBerakhirIso) }}</b>, berdasarkan SK
+                      <b>{{ akrPengingat.nomorSk }}</b>.
+                    </p>
+
+                    <p v-if="akrPengingat.keadaan === 'lama'">
+                      Pengajuan akreditasi ulang paling lambat
+                      <b>{{ tglPanjang(akrPengingat.tglTenggatIso) }}</b>, yaitu enam bulan sebelum
+                      masa berlaku berakhir — <b>{{ akrPengingat.bulanKeTenggat }} bulan</b> lagi dari
+                      sekarang. Belum ada yang perlu dikerjakan hari ini. Bila tanggal atau nomor SK
+                      di atas berbeda dengan sertifikat yang Anda pegang, perbaiki tanggalnya di
+                      kolom di atas dan beri tahu DJPI.
+                    </p>
+
+                    <template v-else-if="akrPengingat.keadaan === 'dekat'">
+                      <p>Batas pengajuan akreditasi ulang adalah
+                        <b>{{ tglPanjang(akrPengingat.tglTenggatIso) }}</b> — tinggal
+                        <b>{{ akrPengingat.bulanKeTenggat }} bulan</b>. Berkas sebaiknya disiapkan
+                        mulai sekarang, karena pengajuan hanya dapat dikirim ketika ARJUNA membuka
+                        periode penerimaan. Pembukaan terakhir adalah Periode III 2025; sampai catatan
+                        ini ditulis, belum ada pembukaan berikutnya yang diumumkan. Yang bisa
+                        dikendalikan sekarang adalah kesiapan berkas, bukan waktu pembukaannya.</p>
+                      <p>Tetap terbitkan nomor sesuai jadwal. Menunda terbitan tidak menyelamatkan
+                        status nomor tersebut.</p>
+                    </template>
+
+                    <template v-else-if="akrPengingat.keadaan === 'tenggatLewat'">
+                      <p>Batas enam bulan sebelum berakhir, yaitu
+                        <b>{{ tglPanjang(akrPengingat.tglTenggatIso) }}</b>, sudah terlampaui
+                        <b>{{ -akrPengingat.bulanKeTenggat }} bulan</b>. Masa berlaku SK masih
+                        berjalan, jadi status jurnal saat ini belum berubah. Namun ketentuan lama —
+                        akreditasi sebelumnya tetap berlaku sampai keputusan baru terbit — sudah
+                        dicabut. Bila tidak ada pengajuan sampai
+                        <b>{{ tglPanjang(akrPengingat.tglBerakhirIso) }}</b>, jurnal dinyatakan tidak
+                        terakreditasi terhitung sejak tanggal itu.</p>
+                      <p>Siapkan berkas sekarang dan ajukan pada kesempatan pembukaan ARJUNA yang
+                        terdekat. Tetap terbitkan nomor sesuai jadwal.</p>
+                    </template>
+
+                    <template v-else-if="akrPengingat.keadaan === 'habis'">
+                      <p>Yaitu <b>{{ -akrPengingat.bulanKeBerakhir }} bulan</b> lalu. Sejak tanggal
+                        tersebut status jurnal adalah tidak terakreditasi. Jalur pemulihannya masih
+                        terbuka: selama belum lewat dua tahun sejak tanggal itu — batasnya
+                        <b>{{ tglPanjang(akrPengingat.tglBatas2ThnIso) }}</b> — pengajuan tetap
+                        ditempuh sebagai <b>Akreditasi Ulang</b> dengan tiga nomor terbitan terakhir,
+                        bukan sebagai akreditasi baru.</p>
+                      <p>Tetap terbitkan nomor sesuai jadwal. Nomor yang seharusnya terbit selama masa
+                        tidak terakreditasi akan tetap berstatus tidak terakreditasi walaupun
+                        penerbitannya ditunda, sedangkan menunda terbitan justru melemahkan
+                        keberkalaan yang akan dinilai.</p>
+                    </template>
+
+                    <template v-else-if="akrPengingat.keadaan === 'habisLama'">
+                      <p>Lebih dari dua tahun lalu. Jalur Akreditasi Ulang dengan tiga nomor terbitan
+                        terakhir sudah tertutup; pengajuan berikutnya ditempuh sebagai
+                        <b>Akreditasi Baru</b>, dengan persyaratan dan penilaian dari awal.</p>
+                      <p>Sebelum data ini dipakai untuk mengambil keputusan, cocokkan dulu dengan
+                        sertifikat yang Anda pegang. Jarak sejauh ini sering berarti catatan DJPI
+                        tertinggal, bukan jurnalnya yang lama tidak terakreditasi. Bila tanggal di
+                        atas keliru, perbaiki di kolom di atas.</p>
+                    </template>
                   </template>
                 </div>
               </div>
@@ -1119,8 +1189,10 @@
                       <b>{{ persiapanAkr.jenis === 'baru' ? 'Akreditasi Baru' : 'Akreditasi Ulang' }}</b></div>
                     <div v-if="persiapanAkr.jenis === 'ulang'" class="akr-rev-baris"><span>Masa berlaku SK berakhir</span>
                       <b>{{ persiapanAkr.tglBerakhirSk ? tglPanjang(persiapanAkr.tglBerakhirSk) : 'Belum diisi' }}</b></div>
+                    <div v-if="persiapanAkr.jenis === 'ulang' && persiapanAkr.jurnal && persiapanAkr.jurnal.nomorSk" class="akr-rev-baris"><span>Nomor SK</span>
+                      <b>{{ persiapanAkr.jurnal.nomorSk }}</b></div>
                     <div v-if="akrTenggatUlang" class="akr-rev-baris"><span>Tenggat pengajuan ulang</span>
-                      <b>{{ tglPanjang(akrTenggatUlang.tenggatIso) }} · sisa {{ akrTenggatUlang.bulan }} bulan</b></div>
+                      <b>{{ tglPanjang(akrTenggatUlang.tenggatIso) }}<template v-if="akrTenggatUlang.bulan >= 0"> · {{ akrTenggatUlang.bulan }} bulan lagi</template><template v-else> · lewat {{ -akrTenggatUlang.bulan }} bulan</template></b></div>
                   </div>
                 </div>
 
@@ -1269,7 +1341,8 @@
             <p>{{ persiapanAkr.jurnal ? persiapanAkr.jurnal.namaJurnal : namaJurnalAktif }}</p>
             <p class="akr-cetak-meta">
               {{ persiapanAkr.jenis === 'baru' ? 'Akreditasi Baru' : 'Akreditasi Ulang' }}<template
-                v-if="persiapanAkr.tglBerakhirSk"> · SK berakhir {{ tglPanjang(persiapanAkr.tglBerakhirSk) }}</template><br>
+                v-if="persiapanAkr.jurnal && persiapanAkr.jurnal.nomorSk"> · SK {{ persiapanAkr.jurnal.nomorSk }}</template><template
+                v-if="persiapanAkr.tglBerakhirSk"> · berakhir {{ tglPanjang(persiapanAkr.tglBerakhirSk) }}</template><br>
               Dicetak {{ akrCetakWaktu }}<template v-if="emailInput"> oleh {{ emailInput }}</template><br>
               <template v-if="persiapanAkr.terakhirDisimpan">Isian tersimpan {{ persiapanAkr.terakhirDisimpan }}</template>
               <template v-else>Isian belum pernah disimpan ke server</template>
@@ -1822,22 +1895,98 @@ const appPengelola = createApp({
       // kotak tercentang, yang bisa penuh 16 dari 16 tanpa memuat satu temuan pun.
       return r.mutuArtikel.filter((m) => String(mutu[m.k] || '').trim()).length;
     },
-    // Hitung mundur ke tenggat pengajuan ulang (6 bulan sebelum masa berlaku berakhir).
-    akrTenggatUlang() {
+    // Pengingat masa berlaku akreditasi untuk pengelola. Satu sumber perhitungan
+    // untuk alert langkah 1, baris ringkasan, dan kop lembar cetak. Keadaan:
+    //   lama         — hari ini > 6 bulan sebelum tenggat pengajuan
+    //   dekat        — 0..6 bulan menuju tenggat pengajuan
+    //   tenggatLewat — tenggat lewat, SK masih berlaku
+    //   habis        — SK berakhir, belum 2 tahun
+    //   habisLama    — SK berakhir lebih dari 2 tahun
+    //   takAda       — tidak ada tanggal pasti / hanya tahun / SK kosong / SK tak cocok
+    akrPengingat() {
       var a = this.persiapanAkr;
-      if (a.jenis !== 'ulang' || !a.tglBerakhirSk) return null;
-      var berakhir = new Date(a.tglBerakhirSk);
-      if (isNaN(berakhir.getTime())) return null;
-      var tenggat = new Date(berakhir.getFullYear(), berakhir.getMonth() - 6, berakhir.getDate());
+      if (a.jenis !== 'ulang') return null;
+      var j = a.jurnal || {};
+      var nomorSk = j.nomorSk || '';
+      var iso = a.tglBerakhirSk || '';
+      var E = iso ? new Date(iso) : null;
+      var tanpaTanggal = !E || isNaN(E.getTime());
+      // Server mengisi field dengan "<tahun>-12-31" ketika yang tercatat hanya
+      // tahun. Anggap "hanya tahun" selama pengelola belum mengubah nilai itu;
+      // begitu ia mengetik tanggal sungguhan, hitung mundur boleh tampil.
+      var hanyaTahun = (j.sumberTanggal === 'tahun') && (iso === (j.tglBerakhirIso || ''));
+
+      if (tanpaTanggal || hanyaTahun || !nomorSk) {
+        var varian = tanpaTanggal ? (nomorSk ? 'kosongTanggal' : 'kosong')
+          : hanyaTahun ? 'tahun' : 'kosongSk';
+        var tahunTxt = (j.masaBerlakuSk && String(j.masaBerlakuSk).match(/\b(?:19|20)\d{2}\b/g) || [])
+          .slice(-1)[0] || (j.tglBerakhirIso || '').slice(0, 4);
+        return {
+          keadaan: 'takAda', varian: varian, nomorSk: nomorSk, tahun: tahunTxt,
+          tglBerakhirIso: tanpaTanggal ? '' : iso,
+          bulanKeTenggat: null, bulanKeBerakhir: null
+        };
+      }
+
+      var mundur = function (dari, ke) {
+        var m = (ke.getFullYear() - dari.getFullYear()) * 12 + (ke.getMonth() - dari.getMonth());
+        if (ke.getDate() < dari.getDate()) m -= 1;
+        return m;
+      };
+      var geser = function (base, deltaBulan) {
+        var d = new Date(base.getFullYear(), base.getMonth() + deltaBulan, base.getDate());
+        // Luber akhir bulan (mis. 31 Agu -> 6 bulan sebelumnya): mundurkan ke
+        // hari terakhir bulan target, bukan tumpah ke bulan berikutnya.
+        if (d.getDate() !== base.getDate()) d = new Date(base.getFullYear(), base.getMonth() + deltaBulan + 1, 0);
+        return d;
+      };
+      var isoDari = function (d) {
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) +
+          '-' + ('0' + d.getDate()).slice(-2);
+      };
+
+      // SK menyebut tahun yang lebih jauh daripada tanggal berakhir -> belum cocok.
+      var thnSk = String(j.masaBerlakuSk || '').match(/\b(?:19|20)\d{2}\b/g);
+      if (thnSk && Math.max.apply(null, thnSk.map(Number)) > E.getFullYear()) {
+        return {
+          keadaan: 'takAda', varian: 'takCocok', nomorSk: nomorSk,
+          tglBerakhirIso: iso, masaBerlakuSk: j.masaBerlakuSk,
+          bulanKeTenggat: null, bulanKeBerakhir: null
+        };
+      }
+
       var kini = new Date();
-      var bulan = (tenggat.getFullYear() - kini.getFullYear()) * 12 + (tenggat.getMonth() - kini.getMonth());
-      if (tenggat.getDate() < kini.getDate()) bulan -= 1;
+      var T = geser(E, -6);
+      var B2 = geser(E, 24);
+      var kT = mundur(kini, T);
+      var kE = mundur(kini, E);
+      var keadaan = kE < 0
+        ? (kini > B2 ? 'habisLama' : 'habis')
+        : (kT < 0 ? 'tenggatLewat' : (kT <= 6 ? 'dekat' : 'lama'));
+
       return {
-        tenggatIso: tenggat.getFullYear() + '-' +
-          ('0' + (tenggat.getMonth() + 1)).slice(-2) + '-' + ('0' + tenggat.getDate()).slice(-2),
-        bulan: bulan,
-        lewat: bulan < 0,
-        mendesak: bulan >= 0 && bulan < 3
+        keadaan: keadaan, nomorSk: nomorSk,
+        tglBerakhirIso: iso, tglTenggatIso: isoDari(T), tglBatas2ThnIso: isoDari(B2),
+        bulanKeTenggat: kT, bulanKeBerakhir: kE
+      };
+    },
+    // Warna alert menurut keadaan pengingat.
+    akrPengingatKelas() {
+      var p = this.akrPengingat;
+      if (!p) return 'alert-info';
+      if (p.keadaan === 'tenggatLewat' || p.keadaan === 'habis' || p.keadaan === 'habisLama') return 'alert-galat';
+      if (p.keadaan === 'dekat') return 'alert-emas';
+      return 'alert-info';
+    },
+    // Alias lama, dipakai baris "Tenggat pengajuan ulang" di halaman tinjauan.
+    akrTenggatUlang() {
+      var p = this.akrPengingat;
+      if (!p || p.keadaan === 'takAda') return null;
+      return {
+        tenggatIso: p.tglTenggatIso,
+        bulan: p.bulanKeTenggat,
+        lewat: p.bulanKeTenggat < 0,
+        mendesak: p.bulanKeTenggat >= 0 && p.bulanKeTenggat < 3
       };
     },
     // Daftar butir yang perlu diperbaiki, untuk kartu Ringkasan.

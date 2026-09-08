@@ -6436,6 +6436,11 @@ function prefillAkreditasi_(namaJurnal) {
       tanggalExpired: jurnal.tanggalExpired,
       nomorSk: jurnal.nomorSk,
       tglBerakhirIso: tglIso,
+      // 'tanggal' bila TANGGAL EXPIRED memuat tanggal sah; 'tahun' bila hanya
+      // tahun 4-digit dari MASA BERLAKU SK; '' bila keduanya tidak terbaca.
+      // Pengelola.html memakai ini untuk menolak menampilkan hitung mundur
+      // ketika yang tercatat baru tahunnya.
+      sumberTanggal: ked.sumber,
       sitasiReferensi: refSit
     }
   };
