@@ -800,6 +800,39 @@
                       sebelum tanggal itu akan muncul di sini.</p>
                   </template>
 
+                  <template v-else-if="akrPengingat.keadaan === 'jalurBaru'">
+                    <p v-if="akrPengingat.tglBerakhirIso">
+                      Catatan DJPI mencatat jurnal ini memiliki SK
+                      <b>{{ akrPengingat.nomorSk }}</b> yang berlaku sampai
+                      <b>{{ tglPanjang(akrPengingat.tglBerakhirIso) }}</b>.
+                    </p>
+                    <p v-else>
+                      Catatan DJPI menyebut SK <b>{{ akrPengingat.nomorSk }}</b> untuk jurnal ini,
+                      tanpa tanggal berakhir.
+                    </p>
+
+                    <p v-if="akrPengingat.masihBerlaku">
+                      Selama SK itu masih berlaku, pengajuan ditempuh sebagai <b>Akreditasi Ulang</b>,
+                      bukan Akreditasi Baru. Periksa kembali pilihan jenis pengajuan di atas.
+                    </p>
+                    <p v-else-if="akrPengingat.masihUlang">
+                      Masa berlakunya memang sudah berakhir, tetapi belum lewat dua tahun sejak
+                      tanggal itu — batasnya <b>{{ tglPanjang(akrPengingat.tglBatas2ThnIso) }}</b>.
+                      Selama masih dalam tenggang itu, pengajuan tetap ditempuh sebagai
+                      <b>Akreditasi Ulang</b> dengan tiga nomor terbitan terakhir. Periksa kembali
+                      pilihan jenis pengajuan di atas.
+                    </p>
+                    <p v-else-if="akrPengingat.tglBerakhirIso">
+                      Masa berlakunya berakhir lebih dari dua tahun lalu, sehingga jalur
+                      <b>Akreditasi Baru</b> memang sudah tepat.
+                    </p>
+                    <p v-else>
+                      Bila SK itu masih berlaku, atau berakhirnya kurang dari dua tahun lalu,
+                      jalurnya adalah <b>Akreditasi Ulang</b> dan bukan Akreditasi Baru. Cocokkan
+                      dengan sertifikat yang Anda pegang sebelum melanjutkan.
+                    </p>
+                  </template>
+
                   <template v-else>
                     <p v-if="akrPengingat.keadaan === 'habis' || akrPengingat.keadaan === 'habisLama'">
                       Masa berlaku akreditasi jurnal ini berakhir pada
@@ -1905,28 +1938,9 @@ const appPengelola = createApp({
     //   takAda       — tidak ada tanggal pasti / hanya tahun / SK kosong / SK tak cocok
     akrPengingat() {
       var a = this.persiapanAkr;
-      if (a.jenis !== 'ulang') return null;
       var j = a.jurnal || {};
       var nomorSk = j.nomorSk || '';
-      var iso = a.tglBerakhirSk || '';
-      var E = iso ? new Date(iso) : null;
-      var tanpaTanggal = !E || isNaN(E.getTime());
-      // Server mengisi field dengan "<tahun>-12-31" ketika yang tercatat hanya
-      // tahun. Anggap "hanya tahun" selama pengelola belum mengubah nilai itu;
-      // begitu ia mengetik tanggal sungguhan, hitung mundur boleh tampil.
-      var hanyaTahun = (j.sumberTanggal === 'tahun') && (iso === (j.tglBerakhirIso || ''));
-
-      if (tanpaTanggal || hanyaTahun || !nomorSk) {
-        var varian = tanpaTanggal ? (nomorSk ? 'kosongTanggal' : 'kosong')
-          : hanyaTahun ? 'tahun' : 'kosongSk';
-        var tahunTxt = (j.masaBerlakuSk && String(j.masaBerlakuSk).match(/\b(?:19|20)\d{2}\b/g) || [])
-          .slice(-1)[0] || (j.tglBerakhirIso || '').slice(0, 4);
-        return {
-          keadaan: 'takAda', varian: varian, nomorSk: nomorSk, tahun: tahunTxt,
-          tglBerakhirIso: tanpaTanggal ? '' : iso,
-          bulanKeTenggat: null, bulanKeBerakhir: null
-        };
-      }
+      var kini = new Date();
 
       var mundur = function (dari, ke) {
         var m = (ke.getFullYear() - dari.getFullYear()) * 12 + (ke.getMonth() - dari.getMonth());
@@ -1944,6 +1958,50 @@ const appPengelola = createApp({
         return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) +
           '-' + ('0' + d.getDate()).slice(-2);
       };
+      var tglSah = function (s) {
+        var d = s ? new Date(s) : null;
+        return (d && !isNaN(d.getTime())) ? d : null;
+      };
+
+      // Jalur Akreditasi Baru: kolom tanggal disembunyikan, jadi acuannya
+      // catatan DJPI, bukan isian pengelola. Tetap ditampilkan supaya pengelola
+      // yang jurnalnya sebenarnya punya SK tidak kehilangan informasi itu — dan
+      // tahu kalau jalur yang dipilihnya mungkin keliru.
+      if (a.jenis !== 'ulang') {
+        var Eb = (j.sumberTanggal === 'tanggal') ? tglSah(j.tglBerakhirIso) : null;
+        if (!nomorSk && !Eb) return null;
+        var hb = {
+          keadaan: 'jalurBaru', nomorSk: nomorSk,
+          tglBerakhirIso: Eb ? isoDari(Eb) : '',
+          bulanKeTenggat: null, bulanKeBerakhir: null
+        };
+        if (Eb) {
+          var B2b = geser(Eb, 24);
+          hb.masihBerlaku = mundur(kini, Eb) >= 0;
+          hb.masihUlang = kini <= B2b;
+          hb.tglBatas2ThnIso = isoDari(B2b);
+        }
+        return hb;
+      }
+
+      var iso = a.tglBerakhirSk || '';
+      var E = tglSah(iso);
+      // Server mengisi field dengan "<tahun>-12-31" ketika yang tercatat hanya
+      // tahun. Anggap "hanya tahun" selama pengelola belum mengubah nilai itu;
+      // begitu ia mengetik tanggal sungguhan, hitung mundur boleh tampil.
+      var hanyaTahun = (j.sumberTanggal === 'tahun') && (iso === (j.tglBerakhirIso || ''));
+
+      if (!E || hanyaTahun || !nomorSk) {
+        var varian = !E ? (nomorSk ? 'kosongTanggal' : 'kosong')
+          : hanyaTahun ? 'tahun' : 'kosongSk';
+        var tahunTxt = (j.masaBerlakuSk && String(j.masaBerlakuSk).match(/\b(?:19|20)\d{2}\b/g) || [])
+          .slice(-1)[0] || (j.tglBerakhirIso || '').slice(0, 4);
+        return {
+          keadaan: 'takAda', varian: varian, nomorSk: nomorSk, tahun: tahunTxt,
+          tglBerakhirIso: E ? iso : '',
+          bulanKeTenggat: null, bulanKeBerakhir: null
+        };
+      }
 
       // SK menyebut tahun yang lebih jauh daripada tanggal berakhir -> belum cocok.
       var thnSk = String(j.masaBerlakuSk || '').match(/\b(?:19|20)\d{2}\b/g);
@@ -1955,7 +2013,6 @@ const appPengelola = createApp({
         };
       }
 
-      var kini = new Date();
       var T = geser(E, -6);
       var B2 = geser(E, 24);
       var kT = mundur(kini, T);
@@ -1976,12 +2033,14 @@ const appPengelola = createApp({
       if (!p) return 'alert-info';
       if (p.keadaan === 'tenggatLewat' || p.keadaan === 'habis' || p.keadaan === 'habisLama') return 'alert-galat';
       if (p.keadaan === 'dekat') return 'alert-emas';
+      // Jalur baru yang sebenarnya masih berhak Akreditasi Ulang butuh keputusan.
+      if (p.keadaan === 'jalurBaru') return p.masihUlang ? 'alert-emas' : 'alert-info';
       return 'alert-info';
     },
     // Alias lama, dipakai baris "Tenggat pengajuan ulang" di halaman tinjauan.
     akrTenggatUlang() {
       var p = this.akrPengingat;
-      if (!p || p.keadaan === 'takAda') return null;
+      if (!p || p.keadaan === 'takAda' || p.keadaan === 'jalurBaru') return null;
       return {
         tenggatIso: p.tglTenggatIso,
         bulan: p.bulanKeTenggat,
