@@ -46,7 +46,7 @@ var CACHE = {
   JOURNALS_TTL: 300,
   SCOPUS_RAW: 'scopus_raw_v1',
   SCOPUS_RAW_TTL: 600, // cache terpisah untuk sheet pipeline Scopus
-  APC_LOG: 'apc_log_v1',
+  APC_LOG: 'apc_log_v2', // v2: baris memuat sumber, tanggal pemasukan, dan catatan
   APC_LOG_TTL: 600, // cache terpisah untuk log APC
   CITATION: 'citation_v1', // OPTIMASI 1: cache terpadu untuk 4 sheet snapshot sitasi
   CITATION_TTL: 3600, // snapshot statis (diupdate manual) — aman di-cache 1 jam
@@ -2295,7 +2295,11 @@ function bacaLogApc_() {
     jumlah: kolom(['Jumlah Artikel Berbayar']),
     total: kolom(['Total Pemasukan APC']),
     honor: kolom(['Alokasi: Honorarium Pengelola', 'Honorarium']),
-    bangun: kolom(['Alokasi: Pengembangan Jurnal', 'Pengembangan'])
+    bangun: kolom(['Alokasi: Pengembangan Jurnal', 'Pengembangan']),
+    // kolom tambahan untuk entri admin (pastikanKolomLogApc_); baris pengelola mengosongkannya
+    sumber: kolom(['Sumber']),
+    tanggal: kolom(['Tanggal Pemasukan']),
+    catatan: kolom(['Catatan'])
   };
 
   var baris = [];
@@ -2310,7 +2314,10 @@ function bacaLogApc_() {
       jumlahArtikel: idx.jumlah === -1 ? 0 : angka_(nilai[r][idx.jumlah]),
       total: idx.total === -1 ? 0 : angka_(nilai[r][idx.total]),
       honor: idx.honor === -1 ? 0 : angka_(nilai[r][idx.honor]),
-      pengembangan: idx.bangun === -1 ? 0 : angka_(nilai[r][idx.bangun])
+      pengembangan: idx.bangun === -1 ? 0 : angka_(nilai[r][idx.bangun]),
+      sumber: idx.sumber === -1 ? '' : str_(nilai[r][idx.sumber]).toUpperCase(),
+      tanggal: idx.tanggal === -1 ? '' : str_(nilai[r][idx.tanggal]),
+      catatan: idx.catatan === -1 ? '' : str_(nilai[r][idx.catatan])
     });
   }
 
@@ -4405,6 +4412,136 @@ function logApcEntry(token, entry) {
   }
 }
 
+/* -- Pemasukan APC yang dicatat admin DJPI ----------------------------- */
+
+/** Kolom tambahan Log_APC untuk entri admin, selalu di ujung supaya urutan lama tetap. */
+var LOG_APC_KOLOM_TAMBAHAN = ['Sumber', 'Tanggal Pemasukan', 'Catatan'];
+
+/** Menambahkan kolom tambahan bila belum ada; mengembalikan header ternormalisasi. */
+function pastikanKolomLogApc_(sh) {
+  var lebar = Math.max(sh.getLastColumn(), 1);
+  var header = sh.getRange(1, 1, 1, lebar).getValues()[0].map(function (h) { return norm_(h); });
+  while (header.length && !header[header.length - 1]) header.pop();
+  var hilang = LOG_APC_KOLOM_TAMBAHAN.filter(function (h) { return header.indexOf(norm_(h)) === -1; });
+  if (hilang.length) {
+    sh.getRange(1, header.length + 1, 1, hilang.length).setValues([hilang]).setFontWeight('bold');
+    header = header.concat(hilang.map(function (h) { return norm_(h); }));
+  }
+  return header;
+}
+
+/**
+ * Admin DJPI mencatat pemasukan APC secara manual dari data yang dimilikinya (mis. mutasi VA),
+ * kapan pun ada pemasukan — tidak terikat edisi.
+ *
+ * Append-only: salah input diperbaiki dengan entri KOREKSI berisi selisih (boleh negatif) dan
+ * alasan wajib, bukan dengan mengubah baris lama. Jumlah transaksi disimpan di kolom
+ * "Jumlah Artikel Berbayar" karena satu transaksi VA adalah satu pembayaran APC artikel.
+ * Entri yang tampak ganda (jurnal + tanggal + total sama) dikembalikan sebagai peringatan
+ * MUNGKIN_GANDA dan baru disimpan bila dikirim ulang dengan paksa: true.
+ */
+function catatPemasukanApcAdmin(token, entry) {
+  var sesi = bacaToken_(token, 'session_');
+  if (!sesi) return sesiHabis_();
+  if (!entry || typeof entry !== 'object') return { ok: false, message: 'Data pemasukan kosong.' };
+
+  var nama = str_(entry.namaJurnal);
+  var koreksi = entry.koreksi === true;
+  var tanggal = str_(entry.tanggal);
+  var transaksi = Number(entry.jumlahTransaksi);
+  var total = Number(entry.total);
+  var catatan = str_(entry.catatan || '');
+
+  if (!nama) return { ok: false, message: 'Nama jurnal wajib dipilih.' };
+  var tgl = /^\d{4}-\d{2}-\d{2}$/.test(tanggal) ? bacaTanggalLonggar_(tanggal) : null;
+  if (!tgl || Utilities.formatDate(tgl, TZ, 'yyyy-MM-dd') !== tanggal) {
+    return { ok: false, message: 'Tanggal pemasukan tidak valid.' };
+  }
+  if (tanggal > Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) {
+    return { ok: false, message: 'Tanggal pemasukan tidak boleh di masa depan.' };
+  }
+  if (!isFinite(transaksi) || Math.round(transaksi) !== transaksi) {
+    return { ok: false, message: 'Jumlah transaksi harus bilangan bulat.' };
+  }
+  if (!isFinite(total)) return { ok: false, message: 'Total pemasukan harus berupa angka.' };
+  if (koreksi) {
+    if (transaksi === 0 && total === 0) return { ok: false, message: 'Koreksi harus mengubah jumlah transaksi atau total.' };
+    if (catatan.length < 10) return { ok: false, message: 'Tulis alasan koreksi (minimal 10 karakter).' };
+  } else {
+    if (transaksi < 1) return { ok: false, message: 'Jumlah transaksi minimal 1.' };
+    if (total <= 0) return { ok: false, message: 'Total pemasukan harus lebih dari nol.' };
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+
+  try {
+    var cocok = cariJurnal_(bacaDataJurnal_(), nama);
+    if (cocok.length === 0) return { ok: false, message: 'Jurnal tidak ditemukan.' };
+    if (cocok.length > 1) return { ok: false, message: 'Nama jurnal ganda, hubungi administrator.' };
+    if (!sesi.isSuperadmin && !bolehAksesKluster_(sesi, cocok[0].kluster)) {
+      return { ok: false, message: 'Anda tidak memiliki akses ke kluster jurnal ini.' };
+    }
+    var namaResmi = cocok[0].namaJurnal;
+
+    var sh = sheetWajib_(SHEET.LOG_APC);
+    var header = pastikanKolomLogApc_(sh);
+    function cari(namaKolom) {
+      var t = norm_(namaKolom), i = header.indexOf(t);
+      if (i !== -1) return i;
+      for (var h = 0; h < header.length; h++) if (header[h] && header[h].indexOf(t) !== -1) return h;
+      return -1;
+    }
+    var wajib = ['Timestamp', 'Nama Jurnal', 'Jumlah Artikel Berbayar', 'Total Pemasukan APC', 'Sumber', 'Tanggal Pemasukan'];
+    for (var w = 0; w < wajib.length; w++) {
+      if (cari(wajib[w]) === -1) return { ok: false, message: 'Kolom "' + wajib[w] + '" tidak ditemukan di Log_APC.' };
+    }
+
+    if (!koreksi && entry.paksa !== true && sh.getLastRow() > 1) {
+      var iN = cari('Nama Jurnal'), iT = cari('Tanggal Pemasukan'), iTot = cari('Total Pemasukan APC');
+      var isi = sh.getRange(2, 1, sh.getLastRow() - 1, header.length).getValues();
+      var ganda = isi.some(function (r) {
+        return norm_(r[iN]) === norm_(namaResmi) && str_(r[iT]) === tanggal && angka_(r[iTot]) === total;
+      });
+      if (ganda) {
+        return {
+          ok: false, code: 'MUNGKIN_GANDA',
+          message: 'Pemasukan ' + namaResmi + ' tanggal ' + tanggal + ' senilai Rp' + total.toLocaleString('id-ID') +
+                   ' sudah pernah dicatat. Simpan lagi hanya bila ini transaksi yang berbeda.'
+        };
+      }
+    }
+
+    var baris = header.map(function () { return ''; });
+    function taruh(namaKolom, nilai) { var k = cari(namaKolom); if (k !== -1) baris[k] = nilai; }
+    taruh('Timestamp', Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'));
+    taruh('Email Pengelola', aman_(sesi.email)); // pada entri admin berisi pencatatnya
+    taruh('Nama Jurnal', aman_(namaResmi));
+    taruh('Edisi Laporan', koreksi ? 'Koreksi admin' : 'Rekap admin');
+    taruh('Jumlah Artikel Berbayar', transaksi);
+    taruh('Total Pemasukan APC', total);
+    taruh('Sumber', koreksi ? 'KOREKSI' : 'ADMIN');
+    taruh('Tanggal Pemasukan', tanggal);
+    taruh('Catatan', aman_(catatan));
+    sh.appendRow(baris);
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(sesi.email, namaResmi, koreksi ? 'KOREKSI_APC' : 'CATAT_PEMASUKAN_APC',
+      JSON.stringify({ tanggal: tanggal, transaksi: transaksi, total: total, catatan: catatan }));
+    bersihkanCacheApc_();
+
+    return {
+      ok: true,
+      message: (koreksi ? 'Koreksi tercatat: ' : 'Pemasukan tercatat: ') + namaResmi + ', ' + tanggal + ', ' +
+               transaksi + ' transaksi, Rp' + total.toLocaleString('id-ID') + '.'
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal mencatat: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function rekapApc_(terlihat, profile) {
   var pencairan = rekapPencairanApc_(terlihat, profile);
 
@@ -4432,7 +4569,7 @@ function rekapApc_(terlihat, profile) {
   var kosongDefault = Object.assign({}, dasar, {
     totalPemasukan: 0, jumlahEntri: 0, jumlahJurnalPakaiVa: 0,
     perKluster: [], jurnalPakaiVa: [], riwayat: [], entriTerbesar: null, kosong: true,
-    pesanKosong: 'Belum ada data pemasukan APC yang tercatat. Rekap akan muncul setelah pengelola jurnal mengisi laporan pertama.'
+    pesanKosong: 'Belum ada data pemasukan APC yang tercatat. Rekap akan muncul setelah laporan pengelola atau pemasukan yang dicatat admin masuk.'
   });
 
   var log = bacaLogApc_();
@@ -4460,11 +4597,14 @@ function rekapApc_(terlihat, profile) {
     perJurnal[kunci].total += b.total;
     perJurnal[kunci].artikel += b.jumlahArtikel;
     perJurnal[kunci].laporan++;
-    if (b.timestamp > perJurnal[kunci].terakhir) perJurnal[kunci].terakhir = b.timestamp;
+    // Entri admin membawa tanggal pemasukan, yang lebih tepat daripada waktu pencatatan.
+    var tanggal = b.tanggal || b.timestamp;
+    if (tanggal > perJurnal[kunci].terakhir) perJurnal[kunci].terakhir = tanggal;
 
     riwayat.push({
-      timestamp: b.timestamp, namaJurnal: b.namaJurnal, kluster: kluster,
-      edisi: b.edisi, jumlahArtikel: b.jumlahArtikel, total: b.total
+      timestamp: tanggal, namaJurnal: b.namaJurnal, kluster: kluster,
+      edisi: b.edisi, jumlahArtikel: b.jumlahArtikel, total: b.total,
+      sumber: b.sumber || 'PENGELOLA', catatan: b.catatan
     });
     if (!entriTerbesar || b.total > entriTerbesar.total) {
       entriTerbesar = { namaJurnal: b.namaJurnal, edisi: b.edisi, total: b.total };
@@ -4475,7 +4615,9 @@ function rekapApc_(terlihat, profile) {
 
   riwayat.sort(function (a, b) { return b.timestamp.localeCompare(a.timestamp); }); // terbaru dulu
 
+  // Jurnal yang pemasukannya menjadi nol setelah koreksi tidak dihitung sudah memakai VA.
   var jurnalPakaiVa = Object.keys(perJurnal).map(function (k) { return perJurnal[k]; })
+    .filter(function (j) { return j.total > 0; })
     .sort(function (a, b) { return b.total - a.total; });
 
   return Object.assign({}, dasar, {

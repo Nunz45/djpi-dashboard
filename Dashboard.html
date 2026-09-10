@@ -1017,7 +1017,7 @@
             <div class="card-head">
               <div>
                 <h2 class="card-title">Riwayat Laporan APC</h2>
-                <p class="card-note">Baris mentah dari Log_APC, bisa disaring per bulan/kluster.</p>
+                <p class="card-note">Baris Log_APC: laporan pengelola, pemasukan yang dicatat admin, dan koreksi. Bisa disaring per bulan/kluster.</p>
               </div>
               <button type="button" class="btn btn-sm" @click="eksporRiwayatApc">
                 <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
@@ -1056,8 +1056,8 @@
                       <th scope="col">Tanggal</th>
                       <th scope="col">Jurnal</th>
                       <th scope="col">Kluster</th>
-                      <th scope="col">Edisi</th>
-                      <th scope="col" class="td-num">Artikel</th>
+                      <th scope="col">Edisi / keterangan</th>
+                      <th scope="col" class="td-num">Artikel/transaksi</th>
                       <th scope="col" class="td-num">Total</th>
                     </tr>
                   </thead>
@@ -1066,7 +1066,12 @@
                       <td class="teks-kecil teks-lembut">{{ r.timestamp }}</td>
                       <td class="teks-tebal putus-kata">{{ r.namaJurnal }}</td>
                       <td class="teks-kecil">{{ r.kluster }}</td>
-                      <td class="teks-kecil putus">{{ r.edisi }}</td>
+                      <td class="teks-kecil putus">
+                        {{ r.edisi }}
+                        <span v-if="r.sumber === 'ADMIN'" class="badge badge-none">Admin</span>
+                        <span v-else-if="r.sumber === 'KOREKSI'" class="badge badge-emas">Koreksi</span>
+                        <div v-if="r.catatan" class="teks-lembut">{{ r.catatan }}</div>
+                      </td>
                       <td class="td-num tabular">{{ r.jumlahArtikel }}</td>
                       <td class="td-num tabular">{{ rupiah(r.total) }}</td>
                     </tr>
@@ -1084,6 +1089,74 @@
             </template>
           </div>
         </template>
+
+        <!-- Catat pemasukan APC oleh admin: input manual dari data yang dimiliki admin, kapan pun
+             ada pemasukan. Append-only; salah input diperbaiki dengan entri koreksi. -->
+        <div class="card mb-16">
+          <kartu-kepala judul="Catat Pemasukan APC"
+            catatan="Input manual dari data pemasukan yang Anda miliki, misalnya mutasi Virtual Account. Tercatat di Log_APC dan langsung masuk rekap." />
+
+          <div class="card-pad">
+            <div v-if="pesanPemasukan" class="alert mb-8" role="status"
+              :class="pesanPemasukanJenis === 'galat' ? 'alert-galat' : (pesanPemasukanJenis === 'ganda' ? 'alert-emas' : 'alert-ok')">
+              {{ pesanPemasukan }}
+            </div>
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label class="label" for="pmJurnal">Nama jurnal</label>
+                <select id="pmJurnal" v-model="formPemasukan.namaJurnal" class="select">
+                  <option value="" disabled>Pilih jurnal…</option>
+                  <option v-for="j in data.journals" :key="j.namaJurnal" :value="j.namaJurnal">{{ j.namaJurnal }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="pmTanggal">Tanggal pemasukan</label>
+                <input id="pmTanggal" v-model="formPemasukan.tanggal" type="date" class="input" :max="hariIniIso">
+              </div>
+              <div class="field">
+                <label class="label" for="pmTransaksi">Jumlah transaksi</label>
+                <input id="pmTransaksi" v-model.number="formPemasukan.jumlahTransaksi" type="number" step="1" class="input">
+                <p class="hint">Satu transaksi VA dihitung sebagai satu pembayaran APC artikel.</p>
+              </div>
+              <div class="field">
+                <label class="label" for="pmTotal">Total pemasukan APC (Rp)</label>
+                <input id="pmTotal" v-model.number="formPemasukan.total" type="number" step="1" class="input">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="flex-tengah gap-8" for="pmKoreksi">
+                <input id="pmKoreksi" type="checkbox" v-model="formPemasukan.koreksi">
+                <span>Ini koreksi atas entri yang salah</span>
+              </label>
+              <p v-if="formPemasukan.koreksi" class="hint">
+                Isi <b>selisihnya</b>: angka negatif untuk mengurangi, positif untuk menambah. Entri lama tidak diubah.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="pmCatatan">{{ formPemasukan.koreksi ? 'Alasan koreksi (wajib, minimal 10 karakter)' : 'Catatan (opsional)' }}</label>
+              <input id="pmCatatan" v-model.trim="formPemasukan.catatan" type="text" class="input">
+            </div>
+
+            <div v-if="konfirmasiPemasukan" class="alert alert-info mb-8">
+              Konfirmasi: catat {{ formPemasukan.koreksi ? 'koreksi' : 'pemasukan' }}
+              <strong>{{ rupiah(formPemasukan.total) }}</strong> ({{ formPemasukan.jumlahTransaksi }} transaksi) untuk
+              <strong>{{ formPemasukan.namaJurnal }}</strong>, tanggal {{ tglIndo(formPemasukan.tanggal) }}.
+              Entri tidak dapat diubah atau dihapus setelah disimpan.
+            </div>
+
+            <div class="flex-tengah gap-8">
+              <button v-if="konfirmasiPemasukan" type="button" class="btn" @click="konfirmasiPemasukan = false">Batal</button>
+              <button type="button" class="btn btn-primer" :disabled="menyimpanPemasukan || !pemasukanSiap"
+                @click="konfirmasiPemasukan ? kirimPemasukan() : (konfirmasiPemasukan = true)">
+                <span v-if="menyimpanPemasukan" class="spinner" aria-hidden="true"></span>
+                {{ menyimpanPemasukan ? 'Menyimpan…' : (konfirmasiPemasukan ? (pemasukanGanda ? 'Tetap simpan' : 'Ya, catat') : (formPemasukan.koreksi ? 'Catat koreksi' : 'Catat pemasukan')) }}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Form catat pencairan — selalu tampil, tidak bergantung ada/tidaknya laporan APC -->
         <div class="card">

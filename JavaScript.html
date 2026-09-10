@@ -16,6 +16,8 @@ function tglIndo(s,jam){
   var t=parseInt(m[3],10)+' '+BULAN[parseInt(m[2],10)-1]+' '+m[1];
   return (jam&&m[4])?t+', '+m[4]+'.'+m[5]:t;
 }
+// Tanggal hari ini (zona perangkat) sebagai yyyy-mm-dd, untuk nilai awal & batas input tanggal.
+function isoLokalHariIni(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 function rupiah(n){return 'Rp'+Math.round(Number(n)||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 // baru: urutan tingkat risiko dari Data Quality Engine (dihitung di Code.gs, di sini hanya untuk tampilan)
 var LEVEL_DQ=[
@@ -86,6 +88,9 @@ var appDjpi = Vue.createApp({
     // baru: state panel PIN tetap (login cepat & pengaturan di tab Akun Saya)
     pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
     // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
+    // state form "Catat Pemasukan APC" oleh admin (tab Pemasukan APC)
+    formPemasukan:{namaJurnal:'',tanggal:isoLokalHariIni(),jumlahTransaksi:null,total:null,koreksi:false,catatan:''},
+    menyimpanPemasukan:false,konfirmasiPemasukan:false,pemasukanGanda:false,pesanPemasukan:'',pesanPemasukanJenis:'info',
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
     konfirmasiPencairan:false, // baru: gate konfirmasi sebelum menulis ke Log_Pencairan_APC (append-only, tanpa edit/hapus)
     pesanPencairan:'',pesanPencairanJenis:'info',
@@ -274,6 +279,16 @@ var appDjpi = Vue.createApp({
         return teks.indexOf(q)!==-1;
       });
     },
+    hariIniIso:function(){return isoLokalHariIni();},
+    // Syarat tombol "Catat pemasukan" — cermin validasi server (catatPemasukanApcAdmin).
+    pemasukanSiap:function(){
+      var f=this.formPemasukan,t=Number(f.jumlahTransaksi),n=Number(f.total);
+      if(!f.namaJurnal||!/^\d{4}-\d{2}-\d{2}$/.test(f.tanggal||''))return false;
+      if(f.jumlahTransaksi===null||f.jumlahTransaksi===''||f.total===null||f.total==='')return false;
+      if(Math.round(t)!==t||!isFinite(n))return false;
+      if(f.koreksi)return (t!==0||n!==0)&&String(f.catatan||'').trim().length>=10;
+      return t>=1&&n>0;
+    },
     // Pratinjau alokasi pencairan APC. Persentasenya diambil dari payload server supaya
     // sama dengan label kartu; perhitungan resmi & final tetap dilakukan server.
     previewAlokasi:function(){
@@ -323,6 +338,8 @@ var appDjpi = Vue.createApp({
     // baru: ganti jurnal/nominal setelah masuk tahap konfirmasi pencairan -> minta konfirmasi ulang
     'formPencairan.namaJurnal':function(){this.konfirmasiPencairan=false;},
     'formPencairan.jumlahDiajukan':function(){this.konfirmasiPencairan=false;},
+    // isian pemasukan berubah -> konfirmasi & peringatan ganda harus diulang
+    formPemasukan:{deep:true,handler:function(){this.konfirmasiPemasukan=false;this.pemasukanGanda=false;}},
     // baru: filter tabel Riwayat Laporan APC -> balik ke halaman 1
     filterBulanApc:function(){this.halamanApc=1;},filterKlusterApc:function(){this.halamanApc=1;}
     // dihapus: watcher 'formApc.total' (saran otomatis 50/50 honor/pengembangan) —
@@ -613,7 +630,8 @@ var appDjpi = Vue.createApp({
       return b+' '+ym.substring(0,4);
     },
     eksporRiwayatApc:function(){this.unduhExcel(this.riwayatApcTersaring.map(function(r){return{
-      Tanggal:r.timestamp,Jurnal:r.namaJurnal,Kluster:r.kluster,Edisi:r.edisi,Artikel:r.jumlahArtikel,Total:r.total
+      Tanggal:r.timestamp,Jurnal:r.namaJurnal,Kluster:r.kluster,Edisi:r.edisi,'Artikel/Transaksi':r.jumlahArtikel,Total:r.total,
+      Sumber:r.sumber||'PENGELOLA',Catatan:r.catatan||''
     };}),'Riwayat APC','DJPI-Riwayat-APC');},
     // ===== Ekspor Usulan DOI — selalu mengikuti filter yang sedang aktif =====
     barisEksporDoi:function(untukCsv){
@@ -929,6 +947,39 @@ var appDjpi = Vue.createApp({
         .finally(function(){
           s.menyimpanPinTetap=false;
         });
+    },
+
+    // ===== Pemasukan APC yang dicatat admin (tab Pemasukan APC) =====
+    kirimPemasukan:function(){
+      var s=this,f=this.formPemasukan;
+      if(!this.pemasukanSiap)return;
+      this.menyimpanPemasukan=true;
+      this.pesanPemasukan='';
+      gs('catatPemasukanApcAdmin',s.token,{
+        namaJurnal:f.namaJurnal,tanggal:f.tanggal,jumlahTransaksi:Number(f.jumlahTransaksi),
+        total:Number(f.total),koreksi:f.koreksi===true,catatan:f.catatan,paksa:s.pemasukanGanda===true
+      })
+        .then(function(r){
+          if(!r||!r.ok){
+            if(r&&r.code==='SESSION_EXPIRED'){s.sesiBerakhir();return;}
+            if(r&&r.code==='MUNGKIN_GANDA'){
+              // tetap di tahap konfirmasi; klik berikutnya mengirim paksa:true
+              s.pesanPemasukan=r.message;s.pesanPemasukanJenis='ganda';
+              s.pemasukanGanda=true;s.konfirmasiPemasukan=true;
+              return;
+            }
+            throw new Error((r&&r.message)||'Pemasukan gagal dicatat.');
+          }
+          s.formPemasukan={namaJurnal:'',tanggal:isoLokalHariIni(),jumlahTransaksi:null,total:null,koreksi:false,catatan:''};
+          s.pesanPemasukan=r.message;s.pesanPemasukanJenis='ok';
+          s.muatDashboard();
+          if(typeof s.tampilkanToast==='function')s.tampilkanToast(r.message);
+        })
+        .catch(function(err){
+          s.pesanPemasukan=err&&err.message?err.message:'Gagal mencatat pemasukan.';
+          s.pesanPemasukanJenis='galat';
+        })
+        .finally(function(){s.menyimpanPemasukan=false;});
     },
 
     // ===== Pencairan APC (tab Pemasukan APC, admin-only) =====
