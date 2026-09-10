@@ -593,6 +593,8 @@ body.modal-terbuka{overflow:hidden}
 .doi-cetak{display:none}
 @media print{
   body.cetak-doi .app-nav,body.cetak-doi .app-atas,body.cetak-doi .app-nav-backdrop,body.cetak-doi .footer{display:none!important}
+  /* toast melayang (role=status, anak langsung #app) ikut tercetak di kaki halaman bila masih tampil */
+  body.cetak-doi #app>[role="status"]{display:none!important}
   body.cetak-doi .tab-doi>:not(.doi-cetak){display:none!important}
   body.cetak-doi .doi-cetak{display:block!important;color:#000}
   body.cetak-doi .app-utama{margin:0!important;padding:0!important}
