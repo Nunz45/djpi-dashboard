@@ -1219,6 +1219,8 @@
                 <select id="fDoiStatus" v-model="filterDoiStatus" class="select">
                   <option value="">Semua status</option>
                   <option v-for="s in statusDoiOptions" :key="s" :value="s">{{ labelStatusDoi(s) }}</option>
+                  <!-- saringan turunan, bukan status: TIDAK ditambahkan ke statusDoiOptions (dipakai dropdown modal) -->
+                  <option value="__KLARIFIKASI">Berhasil · perlu klarifikasi</option>
                 </select>
               </div>
 
@@ -1297,6 +1299,10 @@
                   <td class="td-num td-tengah tabular">{{ d.jumlah_doi || '—' }}</td>
                   <td>
                     <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
+                    <div v-if="d.status === 'BERHASIL' && d.konfirmasi_pengelola === 'AKTIF'" class="mt-8">
+                      <span class="badge badge-ok">Terkonfirmasi aktif</span></div>
+                    <div v-else-if="d.status === 'BERHASIL' && d.konfirmasi_pengelola === 'KLARIFIKASI'" class="mt-8">
+                      <span class="badge badge-bahaya">Klarifikasi</span></div>
                   </td>
                   <td class="td-tengah">
                     <button type="button" class="btn btn-sm" @click="bukaDetailDoi(d)">Detail</button>
@@ -1833,6 +1839,20 @@
               </button>
             </div>
           </dd>
+
+          <template v-if="doiTerpilihStatusAsli === 'BERHASIL'">
+            <dt>Konfirmasi pengelola</dt>
+            <dd>
+              <span v-if="doiTerpilih.konfirmasi_pengelola === 'AKTIF'" class="badge badge-ok">Aktif</span>
+              <span v-else-if="doiTerpilih.konfirmasi_pengelola === 'KLARIFIKASI'" class="badge badge-bahaya">Klarifikasi</span>
+              <span v-else class="teks-lembut">Belum dikonfirmasi</span>
+              <span v-if="doiTerpilih.konfirmasi_pengelola && doiTerpilih.konfirmasi_pada" class="teks-kecil teks-lembut">
+                ({{ tglIndo(doiTerpilih.konfirmasi_pada, true) }})</span>
+              <div v-if="doiTerpilih.catatan_klarifikasi" class="teks-kecil mt-8 putus">
+                <span v-if="doiTerpilih.konfirmasi_pengelola !== 'KLARIFIKASI'" class="teks-lembut">Klarifikasi sebelumnya: </span>{{ doiTerpilih.catatan_klarifikasi }}
+              </div>
+            </dd>
+          </template>
         </dl>
 
         <div class="field">
@@ -1845,6 +1865,14 @@
             Peringatan: ISSN jurnal ini belum tercatat sah. Server akan menolak perubahan ke status ini
             sampai ISSN diperbaiki lewat menu Sunting Data Jurnal.
           </p>
+        </div>
+
+        <div v-if="doiTerpilihStatusAsli === 'BERHASIL' && doiTerpilih.konfirmasi_pengelola === 'KLARIFIKASI'" class="field">
+          <label class="flex-tengah gap-8" for="dKlarifikasiSelesai">
+            <input id="dKlarifikasiSelesai" type="checkbox" v-model="doiTerpilih.klarifikasi_selesai">
+            <span>Klarifikasi sudah ditindaklanjuti — minta pengelola cek ulang</span>
+          </label>
+          <p class="hint">Tulis hasil tindak lanjut di Catatan admin; pengelola melihatnya di riwayat.</p>
         </div>
 
         <div class="field">

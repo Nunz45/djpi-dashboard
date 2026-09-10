@@ -256,7 +256,8 @@ var appDjpi = Vue.createApp({
     },
     // Ringkasan filter aktif untuk kepala lembar cetak Usulan DOI.
     keteranganFilterDoi:function(){
-      var o=['Status: '+(this.filterDoiStatus?this.labelStatusDoi(this.filterDoiStatus):'semua'),
+      var st=this.filterDoiStatus==='__KLARIFIKASI'?'Berhasil · perlu klarifikasi':this.labelStatusDoi(this.filterDoiStatus);
+      var o=['Status: '+(this.filterDoiStatus?st:'semua'),
              'Bulan ajuan: '+(this.filterDoiBulan?this.labelBulanApc(this.filterDoiBulan):'semua')];
       if(this.filterDoiCari.trim())o.push('Pencarian: "'+this.filterDoiCari.trim()+'"');
       return o.join(' · ');
@@ -265,7 +266,8 @@ var appDjpi = Vue.createApp({
     usulanDoiTersaring:function(){
       var q=this.filterDoiCari.trim().toLowerCase(),st=this.filterDoiStatus,bl=this.filterDoiBulan;
       return this.usulanDoi.filter(function(d){
-        if(st&&d.status!==st)return false;
+        if(st==='__KLARIFIKASI'){if(!(d.status==='BERHASIL'&&d.konfirmasi_pengelola==='KLARIFIKASI'))return false;}
+        else if(st&&d.status!==st)return false;
         if(bl&&String(d.dibuat_pada||'').substring(0,7)!==bl)return false;
         if(!q)return true;
         var teks=[d.nama_jurnal,d.judul_artikel,d.penulis,d.nama_pemohon].join(' ').toLowerCase();
@@ -636,7 +638,9 @@ var appDjpi = Vue.createApp({
         'Status':s.labelStatusDoi(d.status),
         'Catatan Admin':sel(d.catatan_admin),
         'Diproses Oleh':sel(d.diproses_oleh),
-        'Diproses Pada':tglIndo(d.diproses_pada,true)
+        'Diproses Pada':tglIndo(d.diproses_pada,true),
+        'Konfirmasi Pengelola':d.konfirmasi_pengelola==='AKTIF'?'Aktif':d.konfirmasi_pengelola==='KLARIFIKASI'?'Klarifikasi':(d.status==='BERHASIL'?'Belum dikonfirmasi':''),
+        'Catatan Klarifikasi':sel(d.catatan_klarifikasi)
       };});
     },
     eksporDoi:function(format){
@@ -783,7 +787,8 @@ var appDjpi = Vue.createApp({
       var payload={
         id_usulan:this.doiTerpilih.id_usulan,
         status:this.doiTerpilih.status,
-        catatan_admin:this.doiTerpilih.catatan_admin||''
+        catatan_admin:this.doiTerpilih.catatan_admin||'',
+        klarifikasi_selesai:this.doiTerpilih.klarifikasi_selesai===true
       };
 
       gs('ubahStatusUsulanDoi', s.token, payload)

@@ -3058,7 +3058,11 @@ const DOI_HEADERS = [
   'receipt_pengajuan_status',   // 'terkirim' | 'gagal'
   'receipt_pengajuan_pada',
   'receipt_aktivasi_status',    // 'terkirim' | 'gagal'
-  'receipt_aktivasi_pada'
+  'receipt_aktivasi_pada',
+  // --- konfirmasi pengelola setelah status BERHASIL (status sendiri TIDAK berubah) ---
+  'konfirmasi_pengelola',       // '' | 'AKTIF' | 'KLARIFIKASI'
+  'catatan_klarifikasi',
+  'konfirmasi_pada'
 ];
 
 const DOI_STATUS = [
@@ -3708,6 +3712,97 @@ function perbaruiUsulanDoi(token, payload) {
   }
 }
 
+/**
+ * Pengelola mengabarkan hasil pemeriksaan DOI yang sudah diaktifkan admin.
+ *   hasil 'AKTIF'       — semua DOI pada usulan sudah bisa di-resolve.
+ *   hasil 'KLARIFIKASI' — ada DOI yang belum aktif; catatan wajib menyebut yang mana.
+ *
+ * Status usulan TETAP 'BERHASIL'. Konfirmasi disimpan di kolom tersendiri karena
+ * status baru akan memutus semua pembaca status BERHASIL: checklist akreditasi
+ * (bacaJurnalPunyaDoi_), kirim ulang tanda terima aktivasi, validasi dropdown sheet,
+ * dan dropdown status admin. Kolom milik admin tidak pernah ditulis dari sini.
+ */
+function konfirmasiAktifDoi(token, payload) {
+  const muatan = bacaToken_(token, 'edit_');
+  if (!muatan) return sesiHabis_();
+
+  if (!payload || typeof payload !== 'object' || !String(payload.id_usulan || '').trim()) {
+    return { ok: false, message: 'Usulan yang dikonfirmasi tidak disebutkan.' };
+  }
+  const hasil = String(payload.hasil || '').trim().toUpperCase();
+  if (hasil !== 'AKTIF' && hasil !== 'KLARIFIKASI') {
+    return { ok: false, message: 'Pilihan konfirmasi tidak valid.' };
+  }
+  const catatan = String(payload.catatan || '').trim();
+  if (hasil === 'KLARIFIKASI' && catatan.length < 10) {
+    return { ok: false, message: 'Sebutkan DOI atau judul artikel yang belum aktif.' };
+  }
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) {
+    return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+  }
+
+  try {
+    const sheet = getUsulanDoiSheet_();
+    const info = petaKolomDoi_(sheet);
+    if (info.peta['konfirmasi_pengelola'] === undefined) {
+      return { ok: false, message: 'Kolom konfirmasi belum tersedia di sheet. Hubungi DJPI.' };
+    }
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { ok: false, message: 'Usulan tidak ditemukan.' };
+
+    const idCari = String(payload.id_usulan).trim();
+    const iId = info.peta['id_usulan'];
+    if (iId === undefined) return { ok: false, message: 'Kolom id_usulan tidak ada di sheet.' };
+
+    const kolomId = sheet.getRange(2, iId + 1, lastRow - 1, 1).getValues();
+    var barisKe = -1;
+    for (var i = 0; i < kolomId.length; i++) {
+      if (String(kolomId[i][0]).trim() === idCari) { barisKe = i + 2; break; }
+    }
+    if (barisKe < 0) return { ok: false, message: 'Usulan ' + idCari + ' tidak ditemukan.' };
+
+    const lama = barisDoiKeObjek_(info, sheet.getRange(barisKe, 1, 1, info.lebar).getValues()[0]);
+
+    // Kepemilikan: hanya jurnal yang mengajukan yang boleh mengonfirmasi.
+    if (norm_(lama.nama_jurnal) !== norm_(muatan.namaJurnal)) {
+      return { ok: false, message: 'Usulan ini bukan milik jurnal Anda.' };
+    }
+    if (String(lama.status || '').trim().toUpperCase() !== 'BERHASIL') {
+      return { ok: false, message: 'Konfirmasi hanya untuk usulan berstatus Berhasil.' };
+    }
+    if (String(lama.konfirmasi_pengelola || '').trim().toUpperCase() === 'KLARIFIKASI') {
+      return { ok: false, message: 'Klarifikasi sebelumnya masih ditindaklanjuti DJPI.' };
+    }
+
+    function tulis(nama, nilai) {
+      var idx = info.peta[nama];
+      if (idx !== undefined) sheet.getRange(barisKe, idx + 1).setValue(nilai);
+    }
+    tulis('konfirmasi_pengelola', hasil);
+    tulis('catatan_klarifikasi', hasil === 'KLARIFIKASI' ? aman_(catatan) : '');
+    tulis('konfirmasi_pada', new Date());
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(pelakuEdit_(muatan), muatan.namaJurnal, aksiEdit_(muatan, 'KONFIRMASI_DOI'),
+      idCari + ': ' + hasil + (hasil === 'KLARIFIKASI' ? ' — ' + aman_(catatan) : ''));
+
+    const rowBaru = sheet.getRange(barisKe, 1, 1, info.lebar).getValues()[0];
+    return {
+      ok: true,
+      message: hasil === 'AKTIF'
+        ? 'Tercatat: semua DOI pada usulan ' + idCari + ' sudah aktif.'
+        : 'Klarifikasi untuk usulan ' + idCari + ' terkirim. DJPI akan menindaklanjutinya.',
+      item: barisDoiKeObjek_(info, rowBaru)
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal menyimpan konfirmasi: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function getUsulanDoi(token) {
   const profile = bacaToken_(token, 'session_');
   if (!profile) return sesiHabis_();
@@ -3834,7 +3929,16 @@ function ubahStatusUsulanDoi(token, payload) {
     tulis('diproses_oleh', profile.email);
     tulis('diproses_pada', sekarang);
 
+    // Admin menandai klarifikasi pengelola sudah ditindaklanjuti: konfirmasi dikosongkan
+    // supaya pengelola memeriksa ulang. catatan_klarifikasi dibiarkan sebagai jejak.
+    // Status tetap BERHASIL, jadi email aktivasi di bawah TIDAK terkirim ulang.
+    const klarifikasiSelesai = payload.klarifikasi_selesai === true && status === 'BERHASIL' &&
+      String(item.konfirmasi_pengelola || '').trim().toUpperCase() === 'KLARIFIKASI';
+    if (klarifikasiSelesai) tulis('konfirmasi_pengelola', '');
+
     if (status === 'BERHASIL' && statusLama !== 'BERHASIL') {
+      // Aktivasi (ulang) berarti pengelola perlu memeriksa lagi.
+      tulis('konfirmasi_pengelola', '');
       tulis('doi_aktif_pada', sekarang);
       const receiptOk = kirimReceiptAktivasiDoi_(item.email_pengelola, item.nama_jurnal, item);
       tulis('receipt_aktivasi_status', receiptOk ? 'terkirim' : 'gagal');
@@ -3843,7 +3947,8 @@ function ubahStatusUsulanDoi(token, payload) {
 
     SpreadsheetApp.flush();
     catatAktivitas_(profile.email, item.nama_jurnal, 'UBAH_STATUS_DOI',
-      idUsulan + ': ' + statusLama + ' -> ' + status);
+      idUsulan + ': ' + statusLama + ' -> ' + status +
+      (klarifikasiSelesai ? ' | klarifikasi ditindaklanjuti' : ''));
 
     const rowBaru = sheet.getRange(rowNumber, 1, 1, info.lebar).getValues()[0];
     return {

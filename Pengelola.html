@@ -322,7 +322,8 @@
         <div class="card-head">
           <div>
             <h2 class="card-title">Riwayat usulan Anda</h2>
-            <p class="card-note">Status diperbarui oleh admin DJPI setelah usulan ditinjau.</p>
+            <p class="card-note">Status diperbarui oleh admin DJPI setelah usulan ditinjau. Setelah berstatus
+              Berhasil, periksa apakah setiap DOI sudah bisa dibuka di doi.org, lalu pilih Aktif atau Klarifikasi.</p>
           </div>
           <button type="button" class="btn" @click="muatRiwayatDoi" :disabled="memuatDoi">
             <span v-if="memuatDoi" class="spinner spinner-gelap" aria-hidden="true"></span>
@@ -357,6 +358,9 @@
                 <td>
                   <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
                   <div v-if="d.catatan_admin" class="teks-kecil teks-lembut mt-8">{{ d.catatan_admin }}</div>
+                  <!-- putus: DOI yang ditempel adalah token panjang tanpa spasi dan bisa melebarkan tabel -->
+                  <div v-if="d.status === 'BERHASIL' && d.konfirmasi_pengelola === 'KLARIFIKASI' && d.catatan_klarifikasi"
+                    class="teks-kecil teks-lembut mt-8 putus">Klarifikasi Anda: {{ d.catatan_klarifikasi }}</div>
                 </td>
                 <td>
                   <button v-if="doiBisaDiedit(d)" type="button" class="btn btn-sm"
@@ -364,11 +368,43 @@
                     @click="mulaiEditDoi(d)">
                     {{ d.status === 'PERLU_REVISI' ? 'Perbaiki' : 'Edit' }}
                   </button>
+                  <!-- wrap: dua tombol boleh turun baris supaya kolom Aksi tidak mendorong tabel keluar layar -->
+                  <div v-else-if="d.status === 'BERHASIL' && !d.konfirmasi_pengelola" class="flex-tengah wrap gap-8">
+                    <button type="button" class="btn btn-sm btn-primer" :disabled="mengonfirmasiDoi"
+                      @click="konfirmasiSemuaAktif(d)">Aktif</button>
+                    <button type="button" class="btn btn-sm" :disabled="mengonfirmasiDoi"
+                      @click="mulaiKlarifikasiDoi(d)">Klarifikasi</button>
+                  </div>
+                  <span v-else-if="d.status === 'BERHASIL' && d.konfirmasi_pengelola === 'AKTIF'"
+                    class="teks-kecil teks-lembut">terkonfirmasi aktif</span>
+                  <span v-else-if="d.status === 'BERHASIL' && d.konfirmasi_pengelola === 'KLARIFIKASI'"
+                    class="teks-kecil teks-lembut">menunggu DJPI</span>
                   <span v-else class="teks-kecil teks-lembut">sudah diproses</span>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Klarifikasi: DOI tidak tersimpan per butir, jadi pengelola menyebutnya dalam teks -->
+        <div v-if="konfirmasiDoi" class="card-pad" style="border-top:1px solid var(--line)">
+          <h3 class="card-title">Klarifikasi DOI yang belum aktif</h3>
+          <p class="card-note">{{ konfirmasiDoi.judul_artikel }} · {{ konfirmasiDoi.id_usulan }}</p>
+          <div class="field mt-8">
+            <label class="label" for="doiKlarifikasi">DOI yang belum aktif (tulis DOI atau judul artikel)</label>
+            <textarea id="doiKlarifikasi" class="input" rows="3" v-model="catatanKlarifikasi"
+              placeholder="Contoh: 10.17509/xxxx.v13i2.1234 masih tidak bisa dibuka di doi.org"></textarea>
+            <p class="hint">Minimal 10 karakter. DJPI membalas lewat catatan admin di riwayat ini.</p>
+          </div>
+          <div class="flex-tengah gap-8">
+            <button type="button" class="btn" :disabled="mengonfirmasiDoi" @click="batalKlarifikasiDoi">Batal</button>
+            <button type="button" class="btn btn-primer"
+              :disabled="catatanKlarifikasi.trim().length < 10 || mengonfirmasiDoi"
+              @click="kirimKonfirmasiDoi(konfirmasiDoi, 'KLARIFIKASI')">
+              <span v-if="mengonfirmasiDoi" class="spinner" aria-hidden="true"></span>
+              Kirim klarifikasi
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1566,6 +1602,10 @@ const appPengelola = createApp({
       riwayatDoi: [],
       memuatDoi: false,
       menyimpanDoi: false,
+      // konfirmasi DOI aktif oleh pengelola (usulan berstatus BERHASIL)
+      konfirmasiDoi: null,
+      catatanKlarifikasi: '',
+      mengonfirmasiDoi: false,
 
       // --- sesi ---
       token: '',
@@ -2335,6 +2375,46 @@ const appPengelola = createApp({
         })
         .withFailureHandler((err) => { this.memuatDoi = false; this.galatPanel = 'Gagal memuat riwayat: ' + err.message; })
         .getUsulanDoiUntukPengelola(this.token);
+    },
+
+    /** "Aktif": semua DOI pada usulan sudah bisa di-resolve. */
+    konfirmasiSemuaAktif(d) {
+      if (!window.confirm('Semua DOI pada usulan ini sudah aktif dan dapat di-resolve?')) return;
+      this.kirimKonfirmasiDoi(d, 'AKTIF');
+    },
+
+    mulaiKlarifikasiDoi(d) {
+      this.konfirmasiDoi = d;
+      this.catatanKlarifikasi = '';
+      this.galatPanel = '';
+      this.$nextTick(() => { var el = document.getElementById('doiKlarifikasi'); if (el) el.focus(); });
+    },
+
+    batalKlarifikasiDoi() {
+      this.konfirmasiDoi = null;
+      this.catatanKlarifikasi = '';
+    },
+
+    kirimKonfirmasiDoi(d, hasil) {
+      this.mengonfirmasiDoi = true;
+      this.galatPanel = '';
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.mengonfirmasiDoi = false;
+          if (!res.ok) {
+            if (res.code === 'SESSION_EXPIRED') { this.keluar(); return; }
+            this.galatPanel = res.message; return;
+          }
+          this.toastPanel = res.message;
+          this.batalKlarifikasiDoi();
+          this.muatRiwayatDoi();
+        })
+        .withFailureHandler((err) => { this.mengonfirmasiDoi = false; this.galatPanel = 'Gagal mengirim konfirmasi: ' + err.message; })
+        .konfirmasiAktifDoi(this.token, {
+          id_usulan: d.id_usulan,
+          hasil: hasil,
+          catatan: hasil === 'KLARIFIKASI' ? this.catatanKlarifikasi.trim() : ''
+        });
     },
 
     kirimUsulanDoi() {
