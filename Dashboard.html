@@ -993,15 +993,17 @@
               </div>
               <div class="tabel-bungkus">
                 <table class="tabel tabel-nama">
-                  <thead><tr><th>Jurnal</th><th>Laporan terakhir</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
+                  <thead><tr><th>Jurnal</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
                   <tbody>
                     <tr v-for="j in data.apc.jurnalPakaiVa" :key="j.namaJurnal">
                       <td>
                         <div class="putus-kata">{{ j.namaJurnal }}</div>
+                        <!-- di bawah nama, bukan kolom sendiri: kartu ini setengah lebar dan kolom
+                             keempat mendorong Pemasukan keluar layar -->
+                        <div class="teks-kecil teks-lembut">Laporan terakhir {{ tglIndo(j.terakhir) || '—' }}<span v-if="j.laporan > 1"> · {{ j.laporan }} laporan</span></div>
                         <!-- ada pemasukan tetapi kolom Nomor VA di data jurnal masih kosong -->
                         <div v-if="!j.punyaVa" class="mt-8"><span class="badge badge-emas">Nomor VA belum tercatat</span></div>
                       </td>
-                      <td class="teks-kecil teks-lembut">{{ tglIndo(j.terakhir) || '—' }}<span v-if="j.laporan > 1"> · {{ j.laporan }} laporan</span></td>
                       <td class="td-num tabular">{{ j.artikel }}</td>
                       <td class="td-num tabular">{{ rupiah(j.total) }}</td>
                     </tr>

@@ -4194,7 +4194,7 @@ function cariJurnalByEmail_(email) {
    19. MODUL PENCAIRAN APC (kontribusi universitas, pengelolaan APC di DPPM, sisanya dana terserap)
    ========================================================================== */
 
-var PERSEN_ALOKASI_UPI = 0.10;
+var PERSEN_ALOKASI_UPI = 0.20; // naik dari 0.10 atas keputusan DJPI (11 Sep 2026); baris lama Log_Pencairan_APC tetap tercatat 10%
 var PERSEN_ALOKASI_DPPM = 0.02;
 // Sisanya (1 - PERSEN_ALOKASI_UPI - PERSEN_ALOKASI_DPPM) adalah dana terserap.
 // Kolom sheet Log_Pencairan_APC ('Alokasi UPI', 'Alokasi DPPM', 'Dana Terserap Jurnal')
