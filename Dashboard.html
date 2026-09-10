@@ -1221,6 +1221,14 @@
                   <option v-for="s in statusDoiOptions" :key="s" :value="s">{{ labelStatusDoi(s) }}</option>
                 </select>
               </div>
+
+              <div>
+                <label class="label" for="fDoiBulan">Bulan ajuan</label>
+                <select id="fDoiBulan" v-model="filterDoiBulan" class="select">
+                  <option value="">Semua bulan</option>
+                  <option v-for="b in daftarBulanDoi" :key="b" :value="b">{{ labelBulanApc(b) }}</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1244,7 +1252,7 @@
           </div>
 
           <div v-if="!usulanDoiTersaring.length" class="card-pad">
-            <div class="alert alert-info">Tidak ada usulan yang cocok dengan pencarian atau filter status.</div>
+            <div class="alert alert-info">Tidak ada usulan yang cocok dengan pencarian atau filter.</div>
           </div>
 
           <div v-else class="tabel-bungkus">
@@ -1746,6 +1754,7 @@
         <div v-if="pesanModalDoi" class="alert alert-galat mb-8" role="alert">{{ pesanModalDoi }}</div>
 
         <dl class="dl">
+          <dt>Diajukan pada</dt><dd>{{ tglIndo(doiTerpilih.dibuat_pada, true) || '—' }}</dd>
           <dt>Pemohon</dt>
           <dd>{{ doiTerpilih.nama_pemohon || '—' }} · {{ doiTerpilih.jabatan_pemohon || '—' }}</dd>
           <dt>WhatsApp pemohon</dt><dd>{{ doiTerpilih.whatsapp_pemohon || '—' }}</dd>

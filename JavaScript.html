@@ -79,7 +79,7 @@ var appDjpi = Vue.createApp({
     // diubah: honor/pengembangan dihapus dari formApc — digantikan sepenuhnya oleh
     // mekanisme pencairan (formPencairan di bawah), lihat brainstorming APC.
     formApc:{edisi:'',jumlahArtikel:'',total:''},toast:null,toastTimer:null,grafik:{bulanan:null,apc:null},
-    usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
+    usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',filterDoiBulan:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
     doiTerpilih:null,pesanModalDoi:'',mengirimUlangReceipt:{pengajuan:false,aktivasi:false}, // baru: state modal detail DOI
     // baru: gate konfirmasi khusus transisi status DOI -> BERHASIL (memicu email otomatis)
     doiTerpilihStatusAsli:'',konfirmasiSimpanDoi:false,
@@ -246,11 +246,20 @@ var appDjpi = Vue.createApp({
     },
     semuaTerpilih:function(){return this.modalBulan&&this.terpilihBulan.length===this.modalBulan.daftar.filter(function(j){return j.punyaEmail&&!j.sudahDiingatkan;}).length;},
     tahapScopus:function(){return[{key:'tahap1',label:'Tahap 1 · Kandidat / Inkubasi'},{key:'tahap2',label:'Tahap 2 · Pembinaan aktif'},{key:'tahap3',label:'Tahap 3 · Submitted / CSAB'}];},
-    // baru: daftar usulan DOI setelah disaring pencarian & status, dipakai tabel di tab Usulan DOI
+    // Bulan ajuan (yyyy-MM) yang benar-benar ada di data, terbaru di atas. Sumbernya
+    // dibuat_pada (waktu pengajuan), BUKAN tanggal_publikasi. Baris tanpa dibuat_pada
+    // (skema lama) tidak memunculkan opsi.
+    daftarBulanDoi:function(){
+      var set={};
+      this.usulanDoi.forEach(function(d){var b=String(d.dibuat_pada||'');if(/^\d{4}-\d{2}/.test(b))set[b.substring(0,7)]=true;});
+      return Object.keys(set).sort().reverse();
+    },
+    // baru: daftar usulan DOI setelah disaring pencarian, status & bulan ajuan, dipakai tabel di tab Usulan DOI
     usulanDoiTersaring:function(){
-      var q=this.filterDoiCari.trim().toLowerCase(),st=this.filterDoiStatus;
+      var q=this.filterDoiCari.trim().toLowerCase(),st=this.filterDoiStatus,bl=this.filterDoiBulan;
       return this.usulanDoi.filter(function(d){
         if(st&&d.status!==st)return false;
+        if(bl&&String(d.dibuat_pada||'').substring(0,7)!==bl)return false;
         if(!q)return true;
         var teks=[d.nama_jurnal,d.judul_artikel,d.penulis,d.nama_pemohon].join(' ').toLowerCase();
         return teks.indexOf(q)!==-1;
