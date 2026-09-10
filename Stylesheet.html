@@ -586,4 +586,24 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 }
 /* dipasang ke <body> selama salah satu modal terbuka; lihat watcher adaModalTerbuka */
 body.modal-terbuka{overflow:hidden}
+
+/* ===== Lembar cetak Usulan DOI (tombol PDF di admin) =====
+   Setiap aturan cetak diawali body.cetak-doi: stylesheet ini juga dimuat Pengelola.html
+   dan Masuk.html, dan cetak Persiapan Akreditasi di Pengelola tidak boleh ikut berubah. */
+.doi-cetak{display:none}
+@media print{
+  body.cetak-doi .app-nav,body.cetak-doi .app-atas,body.cetak-doi .app-nav-backdrop,body.cetak-doi .footer{display:none!important}
+  body.cetak-doi .tab-doi>:not(.doi-cetak){display:none!important}
+  body.cetak-doi .doi-cetak{display:block!important;color:#000}
+  body.cetak-doi .app-utama{margin:0!important;padding:0!important}
+  body.cetak-doi .app-panel{box-shadow:none!important;border:0!important}
+  body.cetak-doi{background:#fff!important}
+  body.cetak-doi .doi-cetak h1{font-size:16px;margin:0 0 2px}
+  body.cetak-doi .doi-cetak-meta{font-size:10.5px;margin:0 0 10px;color:#333}
+  body.cetak-doi .doi-cetak-tabel{width:100%;border-collapse:collapse;font-size:10.5px}
+  body.cetak-doi .doi-cetak-tabel th,body.cetak-doi .doi-cetak-tabel td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;background:none;color:#000}
+  body.cetak-doi .doi-cetak-tabel th{font-weight:700}
+  body.cetak-doi .doi-cetak-tabel td.doi-cetak-angka{text-align:center}
+  body.cetak-doi .doi-cetak-tabel tr{break-inside:avoid}
+}
 </style>

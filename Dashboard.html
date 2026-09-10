@@ -1186,7 +1186,7 @@
       </section>
 
       <!-- Usulan DOI (REVISI — lihat catatan di bawah) -->
-      <section v-show="tab === 'doi'">
+      <section v-show="tab === 'doi'" class="tab-doi">
         <div class="card mb-16">
           <div class="card-head">
             <div>
@@ -1249,6 +1249,17 @@
             <span class="teks-kecil teks-lembut">
               Menampilkan {{ usulanDoiTersaring.length }} dari {{ usulanDoi.length }} usulan
             </span>
+            <div class="flex-tengah gap-8" role="group" aria-label="Ekspor daftar yang sedang ditampilkan">
+              <button type="button" class="btn btn-sm" :disabled="!usulanDoiTersaring.length" @click="eksporDoi('xlsx')">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel
+              </button>
+              <button type="button" class="btn btn-sm" :disabled="!usulanDoiTersaring.length" @click="eksporDoi('csv')">
+                <i class="fa-solid fa-file-csv" aria-hidden="true"></i> CSV
+              </button>
+              <button type="button" class="btn btn-sm" :disabled="!usulanDoiTersaring.length" @click="eksporDoi('pdf')">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> PDF
+              </button>
+            </div>
           </div>
 
           <div v-if="!usulanDoiTersaring.length" class="card-pad">
@@ -1294,6 +1305,28 @@
               </tbody>
             </table>
           </div>
+        </div>
+        <!-- Lembar cetak untuk tombol PDF. Tidak pernah tampil di layar; hanya saat
+             body.cetak-doi dan media print (lihat Stylesheet.html). -->
+        <div class="doi-cetak">
+          <h1>Usulan DOI — DJPI UPI</h1>
+          <p class="doi-cetak-meta">{{ keteranganFilterDoi }} · {{ usulanDoiTersaring.length }} usulan · dicetak {{ waktuCetakDoi }}</p>
+          <table class="doi-cetak-tabel">
+            <thead>
+              <tr><th>Tgl ajuan</th><th>Jurnal</th><th>Judul / Edisi</th><th>Jenis</th><th>Jumlah DOI</th><th>Tgl publikasi</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in usulanDoiTersaring" :key="'cetak-' + d.id_usulan">
+                <td>{{ tglIndo(d.dibuat_pada) || '—' }}</td>
+                <td>{{ d.nama_jurnal }}</td>
+                <td>{{ d.judul_artikel }}</td>
+                <td>{{ d.jenis_konten === 'edisi' ? 'Edisi/Volume' : 'Artikel' }}</td>
+                <td class="doi-cetak-angka">{{ d.jumlah_doi || '—' }}</td>
+                <td>{{ tglIndo(d.tanggal_publikasi) || '—' }}</td>
+                <td>{{ labelStatusDoi(d.status) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

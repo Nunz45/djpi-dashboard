@@ -79,7 +79,7 @@ var appDjpi = Vue.createApp({
     // diubah: honor/pengembangan dihapus dari formApc — digantikan sepenuhnya oleh
     // mekanisme pencairan (formPencairan di bawah), lihat brainstorming APC.
     formApc:{edisi:'',jumlahArtikel:'',total:''},toast:null,toastTimer:null,grafik:{bulanan:null,apc:null},
-    usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',filterDoiBulan:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
+    usulanDoi:[],statusDoiOptions:[],filterDoiStatus:'',filterDoiCari:'',filterDoiBulan:'',waktuCetakDoi:'',memuatDoi:false,galatDoi:'',menyimpanDoi:false,
     doiTerpilih:null,pesanModalDoi:'',mengirimUlangReceipt:{pengajuan:false,aktivasi:false}, // baru: state modal detail DOI
     // baru: gate konfirmasi khusus transisi status DOI -> BERHASIL (memicu email otomatis)
     doiTerpilihStatusAsli:'',konfirmasiSimpanDoi:false,
@@ -253,6 +253,13 @@ var appDjpi = Vue.createApp({
       var set={};
       this.usulanDoi.forEach(function(d){var b=String(d.dibuat_pada||'');if(/^\d{4}-\d{2}/.test(b))set[b.substring(0,7)]=true;});
       return Object.keys(set).sort().reverse();
+    },
+    // Ringkasan filter aktif untuk kepala lembar cetak Usulan DOI.
+    keteranganFilterDoi:function(){
+      var o=['Status: '+(this.filterDoiStatus?this.labelStatusDoi(this.filterDoiStatus):'semua'),
+             'Bulan ajuan: '+(this.filterDoiBulan?this.labelBulanApc(this.filterDoiBulan):'semua')];
+      if(this.filterDoiCari.trim())o.push('Pencarian: "'+this.filterDoiCari.trim()+'"');
+      return o.join(' · ');
     },
     // baru: daftar usulan DOI setelah disaring pencarian, status & bulan ajuan, dipakai tabel di tab Usulan DOI
     usulanDoiTersaring:function(){
@@ -603,7 +610,52 @@ var appDjpi = Vue.createApp({
     eksporRiwayatApc:function(){this.unduhExcel(this.riwayatApcTersaring.map(function(r){return{
       Tanggal:r.timestamp,Jurnal:r.namaJurnal,Kluster:r.kluster,Edisi:r.edisi,Artikel:r.jumlahArtikel,Total:r.total
     };}),'Riwayat APC','DJPI-Riwayat-APC');},
-    unduhExcel:function(rows,namaSheet,namaFile){try{var ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,namaSheet);XLSX.writeFile(wb,namaFile+'-'+new Date().toISOString().slice(0,10)+'.xlsx');}catch(e){this.tampilkanToast('Ekspor gagal: '+e.message);}},
+    // ===== Ekspor Usulan DOI — selalu mengikuti filter yang sedang aktif =====
+    barisEksporDoi:function(untukCsv){
+      var s=this;
+      // CSV dibuka langsung oleh Excel: sel berawalan = + - @ dibaca sebagai rumus
+      // (nomor WA "+62…" rusak, isi dari pengelola bisa dieksekusi). Diberi apostrof.
+      function sel(v){
+        if(v===null||v===undefined)return '';
+        return (untukCsv&&typeof v==='string'&&/^[=+\-@]/.test(v))?"'"+v:v;
+      }
+      return this.usulanDoiTersaring.map(function(d){return{
+        'ID Usulan':sel(d.id_usulan),
+        'Tanggal Ajuan':tglIndo(d.dibuat_pada,true),
+        'Jurnal':sel(d.nama_jurnal),
+        'Pemohon':sel(d.nama_pemohon),
+        'Jabatan':sel(d.jabatan_pemohon),
+        'WhatsApp':sel(d.whatsapp_pemohon),
+        'Email Pengelola':sel(d.email_pengelola),
+        'Jenis Konten':d.jenis_konten==='edisi'?'Edisi/Volume':'Artikel',
+        'Volume':sel(d.volume),'Nomor':sel(d.nomor),'Tahun':sel(d.tahun),
+        'Judul/Edisi':sel(d.judul_artikel),
+        'Jumlah DOI':(d.jumlah_doi===''||d.jumlah_doi==null)?'':Number(d.jumlah_doi),
+        'Tanggal Publikasi':tglIndo(d.tanggal_publikasi),
+        'URL Landing Page':sel(d.url_landing_page),
+        'Status':s.labelStatusDoi(d.status),
+        'Catatan Admin':sel(d.catatan_admin),
+        'Diproses Oleh':sel(d.diproses_oleh),
+        'Diproses Pada':tglIndo(d.diproses_pada,true)
+      };});
+    },
+    eksporDoi:function(format){
+      if(!this.usulanDoiTersaring.length){this.tampilkanToast('Tidak ada usulan untuk diekspor.');return;}
+      if(format==='pdf'){this.cetakDoi();return;}
+      this.unduhExcel(this.barisEksporDoi(format==='csv'),'Usulan DOI','DJPI-Usulan-DOI',format);
+    },
+    // PDF lewat dialog cetak browser ("Simpan sebagai PDF"), tanpa library tambahan.
+    // Kelas body.cetak-doi membatasi aturan cetak ke lembar ini saja.
+    cetakDoi:function(){
+      var d=new Date();
+      this.waktuCetakDoi=d.getDate()+' '+BULAN[d.getMonth()]+' '+d.getFullYear()+', '+
+        ('0'+d.getHours()).slice(-2)+'.'+('0'+d.getMinutes()).slice(-2);
+      document.body.classList.add('cetak-doi');
+      window.addEventListener('afterprint',function(){document.body.classList.remove('cetak-doi');},{once:true});
+      this.$nextTick(function(){window.print();});
+    },
+    // format opsional: 'csv' menulis .csv; selain itu .xlsx seperti sebelumnya.
+    unduhExcel:function(rows,namaSheet,namaFile,format){try{var ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,namaSheet);var tgl=new Date().toISOString().slice(0,10);if(format==='csv')XLSX.writeFile(wb,namaFile+'-'+tgl+'.csv',{bookType:'csv'});else XLSX.writeFile(wb,namaFile+'-'+tgl+'.xlsx');}catch(e){this.tampilkanToast('Ekspor gagal: '+e.message);}},
     tampilkanToast:function(p){var s=this;this.toast=p;if(this.toastTimer)clearTimeout(this.toastTimer);this.toastTimer=setTimeout(function(){s.toast=null;},4000);},
 
     // ===== Usulan DOI =====
