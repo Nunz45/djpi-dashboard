@@ -1,42 +1,47 @@
-# Menu Pembaruan Rekap Log_APC oleh Admin DJPI
+# Pembaruan Rekap Log_APC oleh Admin DJPI
 
-Revisi 2 — disesuaikan dengan jawaban DJPI, lalu dikerjakan.
+Revisi 3 — tabel Riwayat APC menjadi tampilan live sheet Log_APC yang bisa diubah langsung.
 
-## Jawaban yang menentukan rancangan
+## Keputusan DJPI
 
-| Pertanyaan | Jawaban | Akibatnya |
-|---|---|---|
-| Rekap apa yang diterima admin? | Admin merekap **jumlah transaksi** dan **total pemasukan APC** secara manual dari data yang dimilikinya | Tidak perlu impor file; cukup form input manual |
-| Kapan dicatat? | Kapan pun ada pemasukan | Entri memakai **tanggal pemasukan**, tidak terikat edisi atau bulan |
-| Impor/tempel untuk superadmin saja? | Tidak relevan lagi | Fitur tempel dihapus. Akses mengikuti pencatatan pencairan: superadmin, atau admin untuk jurnal di klusternya |
+| Keputusan | Akibatnya |
+|---|---|
+| Admin merekap jumlah transaksi dan total pemasukan APC secara manual dari data yang dimilikinya, kapan pun ada pemasukan | Tidak ada impor file; pencatatan per tanggal pemasukan |
+| Tabel riwayat APC diganti tampilan live sheet Log_APC, diubah langsung di tabel | Kartu "Catat Pemasukan APC" dihapus |
+| Setiap perubahan memunculkan log tanggal pembaruan | Kolom **Diperbarui** (tanggal, jam, pengubah) di tabel dan sheet |
 
-## Yang dibangun
+## Cara kerja
 
-**Kartu "Catat Pemasukan APC"** di tab Pemasukan APC: jurnal, tanggal pemasukan (maks. hari ini),
-jumlah transaksi, total pemasukan, catatan. Ada langkah konfirmasi karena entri tidak bisa diubah.
+**Membaca.** Tabel Riwayat APC membaca sheet Log_APC langsung setiap dimuat (saat tab dibuka, tombol
+Muat ulang, atau Segarkan), tanpa cache. Admin kluster hanya melihat baris jurnal di klusternya.
 
-**Koreksi.** Centang "Ini koreksi" lalu isi **selisihnya** (boleh negatif) beserta alasan minimal
-10 karakter. Baris lama tidak disentuh, jadi jejak keuangan tetap utuh.
+**Mengubah.** Tombol **Ubah** di tiap baris membuka isian di tempat: tanggal pemasukan, jurnal,
+edisi/keterangan, catatan, jumlah artikel/transaksi, dan total. Saat disimpan, server:
 
-**Peringatan entri ganda.** Bila jurnal, tanggal, dan total yang sama sudah ada, server menolak sekali
-dengan peringatan; admin menekan **Tetap simpan** bila memang transaksi berbeda.
+1. mencocokkan **sidik isi baris** dengan saat tabel dimuat — bila baris sudah diubah orang lain atau
+   bergeser karena sisip/hapus manual di sheet, perubahan ditolak dan tabel dimuat ulang;
+2. menulis hanya sel yang berubah, lalu mengisi `Diperbarui Pada` dan `Diperbarui Oleh`;
+3. mencatat nilai lama → baru ke Log_Aktivitas (`UBAH_LOG_APC`), karena nilai lama di sheet tertimpa;
+4. membersihkan cache rekap supaya kartu ringkasan ikut berubah.
 
-**Penyimpanan di Log_APC.** Tiga kolom ditambahkan otomatis di ujung sheet — `Sumber`
-(`ADMIN`/`KOREKSI`; kosong berarti laporan pengelola), `Tanggal Pemasukan`, `Catatan`. Urutan kolom
-lama tidak berubah, jadi laporan pengelola tetap tertulis sejajar.
+**Menambah.** Tombol **Tambah baris** membuka baris isian di atas tabel. Entri disimpan dengan
+`Sumber = ADMIN`; bila jurnal, tanggal, dan total yang sama sudah ada, admin diminta **Tetap simpan**.
 
-**Rekap.** Total dihitung bersih setelah koreksi. Riwayat menampilkan badge Admin/Koreksi dan
-alasannya, memakai tanggal pemasukan, dan ekspornya memuat kolom Sumber & Catatan. Jurnal yang
-pemasukannya menjadi nol setelah koreksi tidak dihitung "sudah menggunakan VA".
+**Kolom sheet.** Lima kolom ditambahkan otomatis di ujung Log_APC saat pertama kali dibutuhkan —
+`Sumber`, `Tanggal Pemasukan`, `Catatan`, `Diperbarui Pada`, `Diperbarui Oleh`. Urutan kolom lama tidak
+berubah, jadi laporan pengelola tetap tertulis sejajar.
+
+**Akses.** Superadmin untuk semua jurnal; admin kluster hanya untuk jurnal di klusternya, termasuk saat
+memindahkan baris ke jurnal lain.
 
 ## Asumsi
 
-- **Satu transaksi VA = satu pembayaran APC artikel.** Karena itu jumlah transaksi disimpan di kolom
-  `Jumlah Artikel Berbayar` yang juga dipakai laporan pengelola. Bila satu transaksi bisa mencakup
-  beberapa artikel, kolomnya perlu dipisah.
+- **Satu transaksi VA = satu pembayaran APC artikel**, sehingga jumlah transaksi dan jumlah artikel
+  berbayar memakai kolom yang sama.
 
 ## Tidak dikerjakan
 
-- Impor/tempel rekap — admin menginput manual.
-- Edit atau hapus langsung baris Log_APC — memutus jejak keuangan.
-- Sinkron otomatis dari bank — tidak ada akses API.
+- Hapus baris dari tabel — tidak diminta; baris yang keliru bisa diubah nilainya.
+- Pembaruan otomatis tanpa memuat ulang — tabel dibaca ulang saat dibuka, Muat ulang, atau setelah
+  menyimpan.
+- Impor file dan sinkron otomatis dari bank.

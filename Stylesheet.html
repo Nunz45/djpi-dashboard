@@ -586,6 +586,18 @@ body.dark .input,body.dark .select{background:var(--elev-2);color:var(--text)}
 }
 /* dipasang ke <body> selama salah satu modal terbuka; lihat watcher adaModalTerbuka */
 body.modal-terbuka{overflow:hidden}
+/* Form ubah/tambah baris di tabel live Log_APC: satu sel selebar tabel, 4 kolom (1 kolom di HP). */
+table.apc-live tr.apc-edit td:last-child{position:static;box-shadow:none;background:var(--surface-soft);padding:var(--space-3) var(--space-4)}
+.apc-edit-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2) var(--space-3);align-items:end;position:sticky;left:0;max-width:calc(100vw - 40px)}
+.apc-edit-judul{grid-column:1/-1;color:var(--muted)}
+.apc-f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.apc-f .label{margin:0}
+.apc-f-lebar{grid-column:span 2}
+.apc-f-aksi{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-end;gap:var(--space-3);flex-wrap:wrap}
+@media(max-width:680px){
+  .apc-edit-form{grid-template-columns:minmax(0,1fr)}
+  .apc-f-lebar{grid-column:auto}
+}
 
 /* ===== Lembar cetak Usulan DOI (tombol PDF di admin) =====
    Setiap aturan cetak diawali body.cetak-doi: stylesheet ini juga dimuat Pengelola.html

@@ -4415,7 +4415,7 @@ function logApcEntry(token, entry) {
 /* -- Pemasukan APC yang dicatat admin DJPI ----------------------------- */
 
 /** Kolom tambahan Log_APC untuk entri admin, selalu di ujung supaya urutan lama tetap. */
-var LOG_APC_KOLOM_TAMBAHAN = ['Sumber', 'Tanggal Pemasukan', 'Catatan'];
+var LOG_APC_KOLOM_TAMBAHAN = ['Sumber', 'Tanggal Pemasukan', 'Catatan', 'Diperbarui Pada', 'Diperbarui Oleh'];
 
 /** Menambahkan kolom tambahan bila belum ada; mengembalikan header ternormalisasi. */
 function pastikanKolomLogApc_(sh) {
@@ -4517,7 +4517,7 @@ function catatPemasukanApcAdmin(token, entry) {
     taruh('Timestamp', Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'));
     taruh('Email Pengelola', aman_(sesi.email)); // pada entri admin berisi pencatatnya
     taruh('Nama Jurnal', aman_(namaResmi));
-    taruh('Edisi Laporan', koreksi ? 'Koreksi admin' : 'Rekap admin');
+    taruh('Edisi Laporan', koreksi ? 'Koreksi admin' : (aman_(str_(entry.edisi || '')) || 'Rekap admin'));
     taruh('Jumlah Artikel Berbayar', transaksi);
     taruh('Total Pemasukan APC', total);
     taruh('Sumber', koreksi ? 'KOREKSI' : 'ADMIN');
@@ -4537,6 +4537,201 @@ function catatPemasukanApcAdmin(token, entry) {
     };
   } catch (err) {
     return { ok: false, message: 'Gagal mencatat: ' + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* -- Tabel live Log_APC (tab Pemasukan APC) ---------------------------- */
+
+/** Nilai sel sebagai teks stabil. Kolom waktu memakai jam supaya sidik & tampilan tidak kehilangan menit. */
+function selLogApc_(v, denganJam) {
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    return Utilities.formatDate(v, TZ, denganJam ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd');
+  }
+  return v === null || v === undefined ? '' : String(v).trim();
+}
+
+/** Peta kolom Log_APC dari baris header mentah (nama persis dulu, lalu yang mengandung). */
+function petaKolomLogApc_(headerMentah) {
+  var header = headerMentah.map(function (h) { return norm_(h); });
+  function cari(nama) {
+    var t = norm_(nama), i = header.indexOf(t);
+    if (i !== -1) return i;
+    for (var h = 0; h < header.length; h++) if (header[h] && header[h].indexOf(t) !== -1) return h;
+    return -1;
+  }
+  return {
+    timestamp: cari('Timestamp'), email: cari('Email Pengelola'), nama: cari('Nama Jurnal'),
+    edisi: cari('Edisi Laporan'), jumlah: cari('Jumlah Artikel Berbayar'), total: cari('Total Pemasukan APC'),
+    sumber: cari('Sumber'), tanggal: cari('Tanggal Pemasukan'), catatan: cari('Catatan'),
+    diperbaruiPada: cari('Diperbarui Pada'), diperbaruiOleh: cari('Diperbarui Oleh')
+  };
+}
+
+/**
+ * Sidik isi satu baris. Dikirim ke tampilan dan dicocokkan lagi saat menyimpan, supaya perubahan
+ * tidak tertulis ke baris yang sudah diubah orang lain atau bergeser karena sisip/hapus manual.
+ * Sel kosong di ujung dibuang, sehingga penambahan kolom baru tidak membatalkan sidik lama.
+ */
+function sidikLogApc_(row) {
+  var v = row.map(function (x) { return selLogApc_(x, true); });
+  while (v.length && v[v.length - 1] === '') v.pop();
+  return JSON.stringify(v);
+}
+
+function barisLogApcKeObjek_(row, k, nomorBaris, klusterPer) {
+  function ambil(i, jam) { return i === -1 ? '' : selLogApc_(row[i], jam); }
+  var nama = ambil(k.nama);
+  return {
+    baris: nomorBaris,
+    timestamp: ambil(k.timestamp, true),
+    email: ambil(k.email),
+    namaJurnal: nama,
+    kluster: klusterPer[norm_(nama)] || KLUSTER_KOSONG,
+    edisi: ambil(k.edisi),
+    jumlah: k.jumlah === -1 ? 0 : angka_(row[k.jumlah]),
+    total: k.total === -1 ? 0 : angka_(row[k.total]),
+    sumber: ambil(k.sumber).toUpperCase(),
+    tanggal: ambil(k.tanggal),
+    catatan: ambil(k.catatan),
+    diperbaruiPada: ambil(k.diperbaruiPada, true),
+    diperbaruiOleh: ambil(k.diperbaruiOleh),
+    sidik: sidikLogApc_(row)
+  };
+}
+
+/** Isi sheet Log_APC apa adanya untuk tabel Riwayat APC. Selalu membaca sheet, tanpa cache. */
+function getLogApcLive(token) {
+  var sesi = bacaToken_(token, 'session_');
+  if (!sesi) return sesiHabis_();
+  try {
+    var waktu = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    var sh = sheetOpsional_(SHEET.LOG_APC);
+    if (!sh) return { ok: true, baris: [], dimuatPada: waktu };
+    var nilai = sh.getDataRange().getValues();
+    if (nilai.length < 2) return { ok: true, baris: [], dimuatPada: waktu };
+    var k = petaKolomLogApc_(nilai[0]);
+    if (k.nama === -1) return { ok: false, message: 'Kolom "Nama Jurnal" tidak ditemukan di Log_APC.' };
+
+    var klusterPer = {};
+    bacaDataJurnal_().forEach(function (j) { klusterPer[norm_(j.namaJurnal)] = j.kluster; });
+
+    var baris = [];
+    for (var r = 1; r < nilai.length; r++) {
+      var o = barisLogApcKeObjek_(nilai[r], k, r + 1, klusterPer);
+      if (!o.namaJurnal) continue;
+      if (!sesi.isSuperadmin &&
+          (klusterPer[norm_(o.namaJurnal)] === undefined || !bolehAksesKluster_(sesi, o.kluster))) continue;
+      baris.push(o);
+    }
+    baris.sort(function (a, b) { return (b.tanggal || b.timestamp).localeCompare(a.tanggal || a.timestamp); });
+    return { ok: true, baris: baris, dimuatPada: waktu };
+  } catch (err) {
+    return { ok: false, message: 'Gagal membaca Log_APC: ' + err.message };
+  }
+}
+
+/**
+ * Mengubah satu baris Log_APC langsung dari tabel. Nilai lama ditimpa di sheet, jadi jejaknya
+ * dicatat ke Log_Aktivitas (lama -> baru) dan baris diberi Diperbarui Pada / Diperbarui Oleh.
+ */
+function perbaruiBarisLogApc(token, data) {
+  var sesi = bacaToken_(token, 'session_');
+  if (!sesi) return sesiHabis_();
+  if (!data || typeof data !== 'object') return { ok: false, message: 'Data perubahan kosong.' };
+
+  var nomor = Number(data.baris);
+  if (!isFinite(nomor) || Math.round(nomor) !== nomor || nomor < 2) return { ok: false, message: 'Baris tidak valid.' };
+  var nama = str_(data.namaJurnal), edisi = str_(data.edisi || ''), catatan = str_(data.catatan || '');
+  var tanggal = str_(data.tanggal || '');
+  var jumlah = Number(data.jumlah), total = Number(data.total);
+
+  if (!nama) return { ok: false, message: 'Nama jurnal wajib diisi.' };
+  if (!isFinite(jumlah) || Math.round(jumlah) !== jumlah || jumlah < 0) {
+    return { ok: false, message: 'Jumlah artikel/transaksi harus bilangan bulat 0 atau lebih.' };
+  }
+  if (!isFinite(total) || total < 0) return { ok: false, message: 'Total pemasukan harus angka 0 atau lebih.' };
+  if (tanggal) {
+    var tgl = /^\d{4}-\d{2}-\d{2}$/.test(tanggal) ? bacaTanggalLonggar_(tanggal) : null;
+    if (!tgl || Utilities.formatDate(tgl, TZ, 'yyyy-MM-dd') !== tanggal) return { ok: false, message: 'Tanggal pemasukan tidak valid.' };
+    if (tanggal > Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) {
+      return { ok: false, message: 'Tanggal pemasukan tidak boleh di masa depan.' };
+    }
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { ok: false, message: 'Sistem sedang sibuk. Coba lagi beberapa saat.' };
+
+  try {
+    var sh = sheetWajib_(SHEET.LOG_APC);
+    var konflik = { ok: false, code: 'KONFLIK',
+      message: 'Baris ini sudah berubah sejak tabel dimuat (diubah orang lain atau urutan sheet bergeser). Muat ulang tabel lalu ulangi.' };
+    if (nomor > sh.getLastRow()) return konflik;
+
+    var lebarHeader = pastikanKolomLogApc_(sh).length;
+    var lebar = Math.max(sh.getLastColumn(), lebarHeader);
+    var k = petaKolomLogApc_(sh.getRange(1, 1, 1, lebar).getValues()[0]);
+    var row = sh.getRange(nomor, 1, 1, lebar).getValues()[0];
+    if (sidikLogApc_(row) !== String(data.sidik || '')) return konflik;
+
+    var daftar = bacaDataJurnal_();
+    var klusterPer = {};
+    daftar.forEach(function (j) { klusterPer[norm_(j.namaJurnal)] = j.kluster; });
+    var tolakAkses = { ok: false, message: 'Anda tidak memiliki akses ke kluster jurnal ini.' };
+
+    var namaLama = selLogApc_(row[k.nama]);
+    if (!sesi.isSuperadmin) {
+      var lama = cariJurnal_(daftar, namaLama);
+      if (lama.length !== 1 || !bolehAksesKluster_(sesi, lama[0].kluster)) return tolakAkses;
+    }
+    var namaBaru = namaLama;
+    if (norm_(nama) !== norm_(namaLama)) {
+      var baru = cariJurnal_(daftar, nama);
+      if (baru.length === 0) return { ok: false, message: 'Jurnal tidak ditemukan.' };
+      if (baru.length > 1) return { ok: false, message: 'Nama jurnal ganda, hubungi administrator.' };
+      if (!sesi.isSuperadmin && !bolehAksesKluster_(sesi, baru[0].kluster)) return tolakAkses;
+      namaBaru = baru[0].namaJurnal;
+    }
+
+    var nilaiBaru = { nama: namaBaru, edisi: edisi, jumlah: jumlah, total: total, tanggal: tanggal, catatan: catatan };
+    var label = { nama: 'jurnal', edisi: 'edisi', jumlah: 'artikel/transaksi', total: 'total', tanggal: 'tanggal pemasukan', catatan: 'catatan' };
+    var berubah = [];
+    Object.keys(nilaiBaru).forEach(function (f) {
+      var i = k[f];
+      if (i === -1) return;
+      var sebelum = (f === 'jumlah' || f === 'total') ? angka_(row[i]) : selLogApc_(row[i]);
+      if (String(sebelum) === String(nilaiBaru[f])) return;
+      berubah.push({ f: f, i: i, sebelum: sebelum, sesudah: nilaiBaru[f] });
+    });
+
+    if (!berubah.length) {
+      return { ok: true, berubah: false, message: 'Tidak ada perubahan.', baris: barisLogApcKeObjek_(row, k, nomor, klusterPer) };
+    }
+
+    var waktu = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    berubah.forEach(function (c) {
+      sh.getRange(nomor, c.i + 1).setValue(typeof c.sesudah === 'string' ? aman_(c.sesudah) : c.sesudah);
+    });
+    sh.getRange(nomor, k.diperbaruiPada + 1).setValue(waktu);
+    sh.getRange(nomor, k.diperbaruiOleh + 1).setValue(aman_(sesi.email));
+    SpreadsheetApp.flush();
+
+    catatAktivitas_(sesi.email, namaBaru, 'UBAH_LOG_APC', 'Baris ' + nomor + ': ' + berubah.map(function (c) {
+      return label[c.f] + ' "' + c.sebelum + '" -> "' + c.sesudah + '"';
+    }).join('; '));
+    bersihkanCacheApc_();
+
+    // dibaca ulang dari sheet: nilai yang ditulis bisa berubah tipe (mis. teks tanggal jadi Date),
+    // dan sidik yang dikembalikan harus sama dengan yang akan dibaca berikutnya
+    var rowBaru = sh.getRange(nomor, 1, 1, lebar).getValues()[0];
+    return {
+      ok: true, berubah: true,
+      message: 'Baris ' + nomor + ' diperbarui: ' + berubah.map(function (c) { return label[c.f]; }).join(', ') + '.',
+      baris: barisLogApcKeObjek_(rowBaru, k, nomor, klusterPer)
+    };
+  } catch (err) {
+    return { ok: false, message: 'Gagal menyimpan: ' + err.message };
   } finally {
     lock.releaseLock();
   }

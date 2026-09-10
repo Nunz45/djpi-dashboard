@@ -1013,149 +1013,195 @@
             </div>
           </div>
 
-          <div class="card mb-16">
-            <div class="card-head">
-              <div>
-                <h2 class="card-title">Riwayat Laporan APC</h2>
-                <p class="card-note">Baris Log_APC: laporan pengelola, pemasukan yang dicatat admin, dan koreksi. Bisa disaring per bulan/kluster.</p>
-              </div>
-              <button type="button" class="btn btn-sm" @click="eksporRiwayatApc">
-                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-                Ekspor
+        </template>
+
+        <!-- Riwayat APC = tampilan live sheet Log_APC. Dibaca langsung tanpa cache setiap dimuat;
+             baris diubah/ditambah di tempat, dan setiap perubahan mencatat Diperbarui Pada/Oleh.
+             Sengaja di luar penanda "kosong" supaya baris pertama pun bisa ditambahkan dari sini. -->
+        <div class="card mb-16">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Riwayat APC · Log_APC</h2>
+              <p class="card-note">
+                Dibaca langsung dari sheet Log_APC<template v-if="logApc.dimuatPada">, dimuat {{ tglIndo(logApc.dimuatPada.replace(' ', 'T'), true) }}</template>.
+                Ubah baris langsung di tabel; setiap perubahan mencatat tanggal pembaruan.
+              </p>
+            </div>
+            <div class="flex-tengah wrap gap-8">
+              <button type="button" class="btn btn-sm btn-primer" @click="mulaiTambahBarisApc" :disabled="!!barisBaruApc || menyimpanBarisApc">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah baris
+              </button>
+              <button type="button" class="btn btn-sm" @click="muatLogApc" :disabled="logApc.memuat">
+                <span v-if="logApc.memuat" class="spinner spinner-gelap" aria-hidden="true"></span>
+                <i v-else class="fa-solid fa-rotate" aria-hidden="true"></i> Muat ulang
+              </button>
+              <button type="button" class="btn btn-sm" @click="eksporRiwayatApc" :disabled="!riwayatApcTersaring.length">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i> Ekspor
               </button>
             </div>
+          </div>
 
-            <div class="card-pad">
-              <div class="grid grid-2 mb-8">
-                <div>
-                  <label class="label" for="fApcBulan">Bulan</label>
-                  <select id="fApcBulan" v-model="filterBulanApc" class="select">
-                    <option value="">Semua bulan</option>
-                    <option v-for="ym in daftarBulanApc" :key="ym" :value="ym">{{ labelBulanApc(ym) }}</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="label" for="fApcKluster">Kluster</label>
-                  <select id="fApcKluster" v-model="filterKlusterApc" class="select">
-                    <option value="">Semua kluster</option>
-                    <option v-for="k in daftarKluster" :key="k" :value="k">{{ k }}</option>
-                  </select>
-                </div>
+          <div class="card-pad">
+            <div v-if="logApc.galat" class="alert alert-galat mb-8" role="alert">
+              <strong>Gagal membaca Log_APC.</strong> {{ logApc.galat }}
+            </div>
+            <div v-if="pesanLogApc" class="alert mb-8" role="status"
+              :class="pesanLogApcJenis === 'galat' ? 'alert-galat' : (pesanLogApcJenis === 'ganda' ? 'alert-emas' : 'alert-ok')">
+              {{ pesanLogApc }}
+            </div>
+            <div class="grid grid-2">
+              <div>
+                <label class="label" for="fApcBulan">Bulan</label>
+                <select id="fApcBulan" v-model="filterBulanApc" class="select">
+                  <option value="">Semua bulan</option>
+                  <option v-for="ym in daftarBulanApc" :key="ym" :value="ym">{{ labelBulanApc(ym) }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" for="fApcKluster">Kluster</label>
+                <select id="fApcKluster" v-model="filterKlusterApc" class="select">
+                  <option value="">Semua kluster</option>
+                  <option v-for="k in daftarKluster" :key="k" :value="k">{{ k }}</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            <div v-if="!riwayatApcTersaring.length" class="card-pad">
-              <div class="alert alert-info">Tidak ada laporan yang cocok dengan filter ini.</div>
+          <div v-if="logApc.memuat && !logApc.baris.length" class="card-pad flex-kolom gap-10">
+            <div v-for="n in 3" :key="n" class="skeleton" style="height:40px;width:100%"></div>
+          </div>
+
+          <div v-else-if="!riwayatApcTersaring.length && !barisBaruApc" class="card-pad">
+            <div class="alert alert-info">
+              {{ logApc.baris.length ? 'Tidak ada baris yang cocok dengan filter ini.' : 'Log_APC belum berisi baris. Tekan Tambah baris untuk mencatat pemasukan.' }}
             </div>
+          </div>
 
-            <template v-else>
-              <div class="tabel-bungkus">
-                <table class="tabel tabel-nama">
-                  <thead>
-                    <tr>
-                      <th scope="col">Tanggal</th>
-                      <th scope="col">Jurnal</th>
-                      <th scope="col">Kluster</th>
-                      <th scope="col">Edisi / keterangan</th>
-                      <th scope="col" class="td-num">Artikel/transaksi</th>
-                      <th scope="col" class="td-num">Total</th>
+          <template v-else>
+            <div class="tabel-bungkus">
+              <table class="tabel tabel-nama tabel-aksi apc-live">
+                <thead>
+                  <tr>
+                    <th scope="col">Tanggal</th>
+                    <th scope="col">Jurnal</th>
+                    <th scope="col">Edisi / keterangan</th>
+                    <th scope="col" class="td-num">Artikel/transaksi</th>
+                    <th scope="col" class="td-num">Total</th>
+                    <th scope="col">Diperbarui</th>
+                    <th scope="col" class="td-tengah">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Baris yang ditambah/diubah dibuka menjadi satu sel selebar tabel: isian di kolom
+                       tabel yang sempit tidak terbaca (pilihan jurnal terpotong). -->
+                  <tr v-if="barisBaruApc" class="apc-edit">
+                    <td colspan="7">
+                      <div class="apc-edit-form">
+                        <div class="apc-edit-judul teks-kecil"><b>Baris baru</b> · disimpan sebagai entri admin</div>
+                        <label class="apc-f"><span class="label">Tanggal pemasukan</span>
+                          <input type="date" class="input" v-model="barisBaruApc.tanggal" :max="hariIniIso"></label>
+                        <label class="apc-f apc-f-lebar"><span class="label">Jurnal</span>
+                          <select class="select" v-model="barisBaruApc.namaJurnal">
+                            <option value="" disabled>Pilih jurnal…</option>
+                            <option v-for="j in data.journals" :key="j.namaJurnal" :value="j.namaJurnal">{{ j.namaJurnal }}</option>
+                          </select></label>
+                        <label class="apc-f"><span class="label">Edisi / keterangan</span>
+                          <input type="text" class="input" v-model.trim="barisBaruApc.edisi" placeholder="Rekap admin"></label>
+                        <label class="apc-f"><span class="label">Jumlah transaksi</span>
+                          <input type="number" step="1" min="1" class="input" v-model.number="barisBaruApc.jumlah"></label>
+                        <label class="apc-f"><span class="label">Total pemasukan (Rp)</span>
+                          <input type="number" step="1" min="0" class="input" v-model.number="barisBaruApc.total"></label>
+                        <label class="apc-f apc-f-lebar"><span class="label">Catatan</span>
+                          <input type="text" class="input" v-model.trim="barisBaruApc.catatan"></label>
+                        <div class="apc-f apc-f-aksi">
+                          <span class="teks-kecil teks-lembut">{{ galatBarisApc(barisBaruApc, true) }}</span>
+                          <div class="flex-tengah gap-8">
+                            <button type="button" class="btn btn-sm" :disabled="menyimpanBarisApc" @click="batalBarisApc">Batal</button>
+                            <button type="button" class="btn btn-sm btn-primer" :disabled="menyimpanBarisApc || !!galatBarisApc(barisBaruApc, true)" @click="simpanBarisBaruApc">
+                              <span v-if="menyimpanBarisApc" class="spinner" aria-hidden="true"></span>
+                              {{ gandaBarisApc ? 'Tetap simpan' : 'Simpan' }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <template v-for="r in riwayatApcHalamanIni" :key="r.baris">
+                    <tr v-if="barisEditApc && barisEditApc.baris === r.baris" class="apc-edit">
+                      <td colspan="7">
+                        <div class="apc-edit-form">
+                          <div class="apc-edit-judul teks-kecil">
+                            <b>Ubah baris {{ r.baris }}</b> di sheet · dilaporkan {{ tglIndo(r.timestamp) || '—' }}<template v-if="r.email"> oleh {{ r.email }}</template>
+                            <template v-if="r.diperbaruiPada"> · terakhir diperbarui {{ tglIndo(r.diperbaruiPada.replace(' ', 'T'), true) }} oleh {{ r.diperbaruiOleh }}</template>
+                          </div>
+                          <label class="apc-f"><span class="label">Tanggal pemasukan</span>
+                            <input type="date" class="input" v-model="barisEditApc.tanggal" :max="hariIniIso"></label>
+                          <label class="apc-f apc-f-lebar"><span class="label">Jurnal</span>
+                            <select class="select" v-model="barisEditApc.namaJurnal">
+                              <option v-if="!adaJurnal(r.namaJurnal)" :value="r.namaJurnal">{{ r.namaJurnal }}</option>
+                              <option v-for="j in data.journals" :key="j.namaJurnal" :value="j.namaJurnal">{{ j.namaJurnal }}</option>
+                            </select></label>
+                          <label class="apc-f"><span class="label">Edisi / keterangan</span>
+                            <input type="text" class="input" v-model.trim="barisEditApc.edisi"></label>
+                          <label class="apc-f"><span class="label">Artikel/transaksi</span>
+                            <input type="number" step="1" min="0" class="input" v-model.number="barisEditApc.jumlah"></label>
+                          <label class="apc-f"><span class="label">Total pemasukan (Rp)</span>
+                            <input type="number" step="1" min="0" class="input" v-model.number="barisEditApc.total"></label>
+                          <label class="apc-f apc-f-lebar"><span class="label">Catatan</span>
+                            <input type="text" class="input" v-model.trim="barisEditApc.catatan"></label>
+                          <div class="apc-f apc-f-aksi">
+                            <span class="teks-kecil teks-lembut">{{ galatBarisApc(barisEditApc, false) }}</span>
+                            <div class="flex-tengah gap-8">
+                              <button type="button" class="btn btn-sm" :disabled="menyimpanBarisApc" @click="batalBarisApc">Batal</button>
+                              <button type="button" class="btn btn-sm btn-primer" :disabled="menyimpanBarisApc || !!galatBarisApc(barisEditApc, false)" @click="simpanBarisApc">
+                                <span v-if="menyimpanBarisApc" class="spinner" aria-hidden="true"></span>
+                                Simpan
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(r, idx) in riwayatApcHalamanIni" :key="r.namaJurnal + r.timestamp + idx">
-                      <td class="teks-kecil teks-lembut">{{ r.timestamp }}</td>
-                      <td class="teks-tebal putus-kata">{{ r.namaJurnal }}</td>
-                      <td class="teks-kecil">{{ r.kluster }}</td>
+                    <tr v-else>
+                      <td class="teks-kecil teks-lembut">{{ tglIndo(r.tanggal || r.timestamp) || '—' }}</td>
+                      <td>
+                        <div class="teks-tebal putus-kata">{{ r.namaJurnal }}</div>
+                        <div class="teks-kecil teks-lembut">{{ r.kluster }}</div>
+                      </td>
                       <td class="teks-kecil putus">
-                        {{ r.edisi }}
+                        {{ r.edisi || '—' }}
                         <span v-if="r.sumber === 'ADMIN'" class="badge badge-none">Admin</span>
                         <span v-else-if="r.sumber === 'KOREKSI'" class="badge badge-emas">Koreksi</span>
                         <div v-if="r.catatan" class="teks-lembut">{{ r.catatan }}</div>
                       </td>
-                      <td class="td-num tabular">{{ r.jumlahArtikel }}</td>
+                      <td class="td-num tabular">{{ r.jumlah }}</td>
                       <td class="td-num tabular">{{ rupiah(r.total) }}</td>
+                      <td class="teks-kecil">
+                        <template v-if="r.diperbaruiPada">
+                          {{ tglIndo(r.diperbaruiPada.replace(' ', 'T'), true) }}
+                          <div class="teks-lembut putus">{{ r.diperbaruiOleh }}</div>
+                        </template>
+                        <span v-else class="teks-lembut">—</span>
+                      </td>
+                      <td class="td-tengah">
+                        <button type="button" class="btn btn-sm" @click="mulaiUbahBarisApc(r)"
+                          :disabled="menyimpanBarisApc || !!barisBaruApc || !!barisEditApc">Ubah</button>
+                      </td>
                     </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="card-head" style="border-bottom:none;border-top:1px solid var(--line)">
-                <span class="teks-kecil teks-lembut">Halaman {{ halamanApc }} dari {{ totalHalamanApc }}</span>
-                <div class="flex-tengah">
-                  <button type="button" class="btn btn-sm" @click="gantiHalamanApc(-1)" :disabled="halamanApc <= 1">Sebelumnya</button>
-                  <button type="button" class="btn btn-sm" @click="gantiHalamanApc(1)" :disabled="halamanApc >= totalHalamanApc">Berikutnya</button>
-                </div>
-              </div>
-            </template>
-          </div>
-        </template>
-
-        <!-- Catat pemasukan APC oleh admin: input manual dari data yang dimiliki admin, kapan pun
-             ada pemasukan. Append-only; salah input diperbaiki dengan entri koreksi. -->
-        <div class="card mb-16">
-          <kartu-kepala judul="Catat Pemasukan APC"
-            catatan="Input manual dari data pemasukan yang Anda miliki, misalnya mutasi Virtual Account. Tercatat di Log_APC dan langsung masuk rekap." />
-
-          <div class="card-pad">
-            <div v-if="pesanPemasukan" class="alert mb-8" role="status"
-              :class="pesanPemasukanJenis === 'galat' ? 'alert-galat' : (pesanPemasukanJenis === 'ganda' ? 'alert-emas' : 'alert-ok')">
-              {{ pesanPemasukan }}
+                  </template>
+                </tbody>
+              </table>
             </div>
 
-            <div class="grid grid-2">
-              <div class="field">
-                <label class="label" for="pmJurnal">Nama jurnal</label>
-                <select id="pmJurnal" v-model="formPemasukan.namaJurnal" class="select">
-                  <option value="" disabled>Pilih jurnal…</option>
-                  <option v-for="j in data.journals" :key="j.namaJurnal" :value="j.namaJurnal">{{ j.namaJurnal }}</option>
-                </select>
-              </div>
-              <div class="field">
-                <label class="label" for="pmTanggal">Tanggal pemasukan</label>
-                <input id="pmTanggal" v-model="formPemasukan.tanggal" type="date" class="input" :max="hariIniIso">
-              </div>
-              <div class="field">
-                <label class="label" for="pmTransaksi">Jumlah transaksi</label>
-                <input id="pmTransaksi" v-model.number="formPemasukan.jumlahTransaksi" type="number" step="1" class="input">
-                <p class="hint">Satu transaksi VA dihitung sebagai satu pembayaran APC artikel.</p>
-              </div>
-              <div class="field">
-                <label class="label" for="pmTotal">Total pemasukan APC (Rp)</label>
-                <input id="pmTotal" v-model.number="formPemasukan.total" type="number" step="1" class="input">
+            <div class="card-head" style="border-bottom:none;border-top:1px solid var(--line)">
+              <span class="teks-kecil teks-lembut">{{ riwayatApcTersaring.length }} baris · halaman {{ halamanApc }} dari {{ totalHalamanApc }}</span>
+              <div class="flex-tengah">
+                <button type="button" class="btn btn-sm" @click="gantiHalamanApc(-1)" :disabled="halamanApc <= 1">Sebelumnya</button>
+                <button type="button" class="btn btn-sm" @click="gantiHalamanApc(1)" :disabled="halamanApc >= totalHalamanApc">Berikutnya</button>
               </div>
             </div>
-
-            <div class="field">
-              <label class="flex-tengah gap-8" for="pmKoreksi">
-                <input id="pmKoreksi" type="checkbox" v-model="formPemasukan.koreksi">
-                <span>Ini koreksi atas entri yang salah</span>
-              </label>
-              <p v-if="formPemasukan.koreksi" class="hint">
-                Isi <b>selisihnya</b>: angka negatif untuk mengurangi, positif untuk menambah. Entri lama tidak diubah.
-              </p>
-            </div>
-
-            <div class="field">
-              <label class="label" for="pmCatatan">{{ formPemasukan.koreksi ? 'Alasan koreksi (wajib, minimal 10 karakter)' : 'Catatan (opsional)' }}</label>
-              <input id="pmCatatan" v-model.trim="formPemasukan.catatan" type="text" class="input">
-            </div>
-
-            <div v-if="konfirmasiPemasukan" class="alert alert-info mb-8">
-              Konfirmasi: catat {{ formPemasukan.koreksi ? 'koreksi' : 'pemasukan' }}
-              <strong>{{ rupiah(formPemasukan.total) }}</strong> ({{ formPemasukan.jumlahTransaksi }} transaksi) untuk
-              <strong>{{ formPemasukan.namaJurnal }}</strong>, tanggal {{ tglIndo(formPemasukan.tanggal) }}.
-              Entri tidak dapat diubah atau dihapus setelah disimpan.
-            </div>
-
-            <div class="flex-tengah gap-8">
-              <button v-if="konfirmasiPemasukan" type="button" class="btn" @click="konfirmasiPemasukan = false">Batal</button>
-              <button type="button" class="btn btn-primer" :disabled="menyimpanPemasukan || !pemasukanSiap"
-                @click="konfirmasiPemasukan ? kirimPemasukan() : (konfirmasiPemasukan = true)">
-                <span v-if="menyimpanPemasukan" class="spinner" aria-hidden="true"></span>
-                {{ menyimpanPemasukan ? 'Menyimpan…' : (konfirmasiPemasukan ? (pemasukanGanda ? 'Tetap simpan' : 'Ya, catat') : (formPemasukan.koreksi ? 'Catat koreksi' : 'Catat pemasukan')) }}
-              </button>
-            </div>
-          </div>
+          </template>
         </div>
 
         <!-- Form catat pencairan — selalu tampil, tidak bergantung ada/tidaknya laporan APC -->
