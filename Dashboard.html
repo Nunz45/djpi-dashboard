@@ -1254,9 +1254,9 @@
                   <th scope="col">Jurnal</th>
                   <th scope="col">Pemohon</th>
                   <th scope="col">Jenis konten</th>
-                  <th scope="col" class="td-num">Jumlah DOI</th>
+                  <th scope="col" class="td-num td-tengah">Jumlah DOI</th>
                   <th scope="col">Status</th>
-                  <th scope="col" class="td-num">Aksi</th>
+                  <th scope="col" class="td-tengah">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -1275,11 +1275,11 @@
                       Vol {{ d.volume || '—' }} · No {{ d.nomor || '—' }} · {{ d.tahun || '—' }}
                     </div>
                   </td>
-                  <td class="td-num tabular">{{ d.jumlah_doi || '—' }}</td>
+                  <td class="td-num td-tengah tabular">{{ d.jumlah_doi || '—' }}</td>
                   <td>
                     <span :class="kelasStatusDoi(d.status)">{{ labelStatusDoi(d.status) }}</span>
                   </td>
-                  <td class="td-num">
+                  <td class="td-tengah">
                     <button type="button" class="btn btn-sm" @click="bukaDetailDoi(d)">Detail</button>
                   </td>
                 </tr>
@@ -1754,8 +1754,7 @@
           <dt>Volume / Nomor / Tahun</dt>
           <dd>{{ doiTerpilih.volume || '—' }} / {{ doiTerpilih.nomor || '—' }} / {{ doiTerpilih.tahun || '—' }}</dd>
           <dt>Jumlah DOI diminta</dt><dd>{{ doiTerpilih.jumlah_doi || '—' }}</dd>
-          <dt>Tanggal publikasi</dt><dd>{{ doiTerpilih.tanggal_publikasi || '—' }}</dd>
-          <dt>Penulis</dt><dd>{{ doiTerpilih.penulis || '—' }}</dd>
+          <dt>Tanggal publikasi</dt><dd>{{ doiTerpilih.tanggal_publikasi ? tglIndo(doiTerpilih.tanggal_publikasi) : '—' }}</dd>
 
           <dt>URL landing page</dt>
           <dd>
@@ -1766,11 +1765,12 @@
             </template>
           </dd>
 
-          <dt>DOI diusulkan</dt><dd>{{ doiTerpilih.doi_diusulkan || 'Belum diisi' }}</dd>
+          <!-- doi_diusulkan tidak diisi form mana pun (kolom skema lama); tampil hanya bila ada isinya -->
+          <template v-if="doiTerpilih.doi_diusulkan"><dt>Daftar DOI</dt><dd>{{ doiTerpilih.doi_diusulkan }}</dd></template>
           <dt>Catatan pengelola</dt><dd>{{ doiTerpilih.catatan_pengelola || '—' }}</dd>
 
           <dt>Diproses oleh</dt>
-          <dd>{{ doiTerpilih.diproses_oleh || '—' }} <span v-if="doiTerpilih.diproses_pada" class="teks-kecil teks-lembut">({{ doiTerpilih.diproses_pada }})</span></dd>
+          <dd>{{ doiTerpilih.diproses_oleh || '—' }} <span v-if="doiTerpilih.diproses_pada" class="teks-kecil teks-lembut">({{ tglIndo(doiTerpilih.diproses_pada, true) }})</span></dd>
 
           <dt>Tanda terima</dt>
           <dd class="teks-kecil">

@@ -7,6 +7,15 @@ function gs(namaFungsi){
   });
 }
 var BULAN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+// '2026-09-10T00:00:00' -> '10 Sep 2026' (jam=true -> '10 Sep 2026, 00.00').
+// Sengaja tanpa new Date: string ISO tanpa zona dibaca sebagai UTC oleh sebagian
+// browser dan bisa menggeser hari. Server sudah memformat di zona skrip.
+function tglIndo(s,jam){
+  var m=/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(String(s||''));
+  if(!m)return s||'';
+  var t=parseInt(m[3],10)+' '+BULAN[parseInt(m[2],10)-1]+' '+m[1];
+  return (jam&&m[4])?t+', '+m[4]+'.'+m[5]:t;
+}
 function rupiah(n){return 'Rp'+Math.round(Number(n)||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 // baru: urutan tingkat risiko dari Data Quality Engine (dihitung di Code.gs, di sini hanya untuk tampilan)
 var LEVEL_DQ=[
@@ -501,7 +510,7 @@ var appDjpi = Vue.createApp({
       if(l==='perluTindakan')return'row-alert row-alert-warning';
       return'row-alert';
     },
-    persen:function(a,b){return b?Math.round((Number(a)||0)/b*100):0;},rupiah:rupiah,
+    persen:function(a,b){return b?Math.round((Number(a)||0)/b*100):0;},rupiah:rupiah,tglIndo:tglIndo,
     gantiHalaman:function(d){this.halaman=Math.min(this.totalHalaman,Math.max(1,this.halaman+d));},
     bukaJurnal:function(j){this.jurnalTerpilih=j;this.modeSunting=false;this.panelApc=false;this.pesanModal='';this.galatField={};},
     tutupModal:function(){

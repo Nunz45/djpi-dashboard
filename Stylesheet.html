@@ -183,6 +183,8 @@ table.tabel td.td-num,table.tabel th.td-num{padding-left:var(--space-5);padding-
 table.tabel tbody tr{transition:background .12s var(--ease-standard)}
 table.tabel tbody tr:hover{background:var(--elev-3)}
 .td-num{text-align:right;white-space:nowrap;font-family:var(--font-mono)}
+/* Rata tengah untuk kolom tertentu; spesifisitasnya harus mengalahkan th{text-align:left} dan .td-num. */
+table.tabel th.td-tengah,table.tabel td.td-tengah{text-align:center}
 .row-alert{background:#fdfaf4}
 .row-alert-danger{background:#fbecec}
 .row-alert-warning{background:#fff1e2}
