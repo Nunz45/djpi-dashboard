@@ -4191,12 +4191,14 @@ function cariJurnalByEmail_(email) {
 
 
 /* ==========================================================================
-   19. MODUL PENCAIRAN APC (10% UPI, 2% DPPM, sisanya dana terserap jurnal)
+   19. MODUL PENCAIRAN APC (kontribusi universitas, pengelolaan APC di DPPM, sisanya dana terserap)
    ========================================================================== */
 
 var PERSEN_ALOKASI_UPI = 0.10;
 var PERSEN_ALOKASI_DPPM = 0.02;
-// Sisanya (1 - 0.10 - 0.02 = 0.88) adalah dana terserap milik jurnal.
+// Sisanya (1 - PERSEN_ALOKASI_UPI - PERSEN_ALOKASI_DPPM) adalah dana terserap.
+// Kolom sheet Log_Pencairan_APC ('Alokasi UPI', 'Alokasi DPPM', 'Dana Terserap Jurnal')
+// sengaja TIDAK diganti namanya supaya baris lama tetap terbaca.
 
 var PENCAIRAN_HEADERS = [
   'Timestamp', 'Nama Jurnal', 'Jumlah Diajukan',
@@ -4312,9 +4314,9 @@ function catatPencairanApc(token, entry) {
 
     return {
       ok: true,
-      message: 'Pencairan tercatat: Rp' + terserap.toLocaleString('id-ID') + ' terserap jurnal, ' +
-                'Rp' + alokasiUpi.toLocaleString('id-ID') + ' ke UPI, ' +
-                'Rp' + alokasiDppm.toLocaleString('id-ID') + ' ke DPPM.'
+      message: 'Pencairan tercatat: Rp' + terserap.toLocaleString('id-ID') + ' dana terserap, ' +
+                'Rp' + alokasiUpi.toLocaleString('id-ID') + ' kontribusi untuk universitas, ' +
+                'Rp' + alokasiDppm.toLocaleString('id-ID') + ' pengelolaan APC di DPPM.'
     };
   } catch (err) {
     return { ok: false, message: 'Gagal mencatat: ' + err.message };
@@ -4406,18 +4408,35 @@ function logApcEntry(token, entry) {
 function rekapApc_(terlihat, profile) {
   var pencairan = rekapPencairanApc_(terlihat, profile);
 
-  var kosongDefault = {
-    totalPemasukan: 0, jumlahEntri: 0, jumlahJurnalBerApc: 0,
-    perKluster: [], topJurnal: [], riwayat: [], entriTerbesar: null, rataRataEntri: 0, kosong: true,
-    pesanKosong: 'Belum ada data pemasukan APC yang tercatat. Rekap akan muncul setelah pengelola jurnal mengisi laporan pertama.',
-    pencairan: pencairan
+  // "Memiliki VA UPI" dibaca dari kolom Nomor VA di data jurnal, jadi tidak
+  // bergantung pada Log_APC. Hanya jumlahnya yang dikirim ke tampilan; nomor VA
+  // sendiri tidak pernah masuk payload.
+  var klusterPer = {}, punyaVaPer = {}, jumlahJurnalPunyaVa = 0;
+  terlihat.forEach(function (j) {
+    var kunci = norm_(j.namaJurnal);
+    klusterPer[kunci] = j.kluster;
+    punyaVaPer[kunci] = !placeholder_(j.va);
+    if (punyaVaPer[kunci]) jumlahJurnalPunyaVa++;
+  });
+
+  // Persentase dikirim dari server supaya label kartu, catatan form, dan
+  // pratinjau di tampilan selalu sama dengan yang benar-benar dihitung.
+  var dasar = {
+    jumlahJurnalPunyaVa: jumlahJurnalPunyaVa,
+    jumlahJurnalTerdata: terlihat.length,
+    persenUpi: Math.round(PERSEN_ALOKASI_UPI * 100),
+    persenDppm: Math.round(PERSEN_ALOKASI_DPPM * 100),
+    pencairan: pencairan // { totalDiajukan, totalUpi, totalDppm, totalTerserap, jumlahEntri }
   };
+
+  var kosongDefault = Object.assign({}, dasar, {
+    totalPemasukan: 0, jumlahEntri: 0, jumlahJurnalPakaiVa: 0,
+    perKluster: [], jurnalPakaiVa: [], riwayat: [], entriTerbesar: null, kosong: true,
+    pesanKosong: 'Belum ada data pemasukan APC yang tercatat. Rekap akan muncul setelah pengelola jurnal mengisi laporan pertama.'
+  });
 
   var log = bacaLogApc_();
   if (!log.baris.length) return kosongDefault;
-
-  var klusterPer = {};
-  terlihat.forEach(function (j) { klusterPer[norm_(j.namaJurnal)] = j.kluster; });
 
   var totalPemasukan = 0, jumlahEntri = 0;
   var perKluster = {}, perJurnal = {}, riwayat = [], entriTerbesar = null;
@@ -4433,11 +4452,16 @@ function rekapApc_(terlihat, profile) {
     if (!perKluster[kluster]) perKluster[kluster] = { nama: kluster, total: 0, entri: 0 };
     perKluster[kluster].total += b.total; perKluster[kluster].entri++;
 
-    if (!perJurnal[b.namaJurnal]) perJurnal[b.namaJurnal] = { namaJurnal: b.namaJurnal, total: 0, artikel: 0 };
-    perJurnal[b.namaJurnal].total += b.total;
-    perJurnal[b.namaJurnal].artikel += b.jumlahArtikel;
+    // Pemasukan yang terdeteksi berarti jurnal sudah menarik APC lewat VA.
+    // Kunci ternormalisasi supaya beda penulisan nama tidak dihitung dua jurnal.
+    if (!perJurnal[kunci]) {
+      perJurnal[kunci] = { namaJurnal: b.namaJurnal, total: 0, artikel: 0, laporan: 0, terakhir: '', punyaVa: !!punyaVaPer[kunci] };
+    }
+    perJurnal[kunci].total += b.total;
+    perJurnal[kunci].artikel += b.jumlahArtikel;
+    perJurnal[kunci].laporan++;
+    if (b.timestamp > perJurnal[kunci].terakhir) perJurnal[kunci].terakhir = b.timestamp;
 
-    // baru: riwayat laporan mentah (tab "Riwayat Laporan APC") + entri terbesar untuk KPI
     riwayat.push({
       timestamp: b.timestamp, namaJurnal: b.namaJurnal, kluster: kluster,
       edisi: b.edisi, jumlahArtikel: b.jumlahArtikel, total: b.total
@@ -4451,21 +4475,21 @@ function rekapApc_(terlihat, profile) {
 
   riwayat.sort(function (a, b) { return b.timestamp.localeCompare(a.timestamp); }); // terbaru dulu
 
-  return {
+  var jurnalPakaiVa = Object.keys(perJurnal).map(function (k) { return perJurnal[k]; })
+    .sort(function (a, b) { return b.total - a.total; });
+
+  return Object.assign({}, dasar, {
     totalPemasukan: totalPemasukan,
     jumlahEntri: jumlahEntri,
-    jumlahJurnalBerApc: Object.keys(perJurnal).length, // GANTI dari jumlah kluster
+    jumlahJurnalPakaiVa: jurnalPakaiVa.length,
     perKluster: Object.keys(perKluster).map(function (k) { return perKluster[k]; })
       .sort(function (a, b) { return b.total - a.total; }),
-    topJurnal: Object.keys(perJurnal).map(function (k) { return perJurnal[k]; })
-      .sort(function (a, b) { return b.total - a.total; }).slice(0, 10),
-    riwayat: riwayat, // baru: baris laporan mentah untuk tab Riwayat Laporan APC
-    entriTerbesar: entriTerbesar, // baru
-    rataRataEntri: Math.round(totalPemasukan / jumlahEntri), // baru
+    jurnalPakaiVa: jurnalPakaiVa, // semua jurnal yang sudah ada pemasukannya, urut total terbesar
+    riwayat: riwayat,
+    entriTerbesar: entriTerbesar,
     kosong: false,
-    pesanKosong: '',
-    pencairan: pencairan // { totalDiajukan, totalUpi, totalDppm, totalTerserap, jumlahEntri }
-  };
+    pesanKosong: ''
+  });
 }
 
 /* ==========================================================================

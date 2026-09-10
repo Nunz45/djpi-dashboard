@@ -917,57 +917,59 @@
 
       <!-- APC (REVISI — lihat catatan di bawah) -->
       <section v-show="tab === 'apc'">
-        <div v-if="data.apc.kosong" class="kosong">
+        <!-- Kartu ringkas & alokasi selalu tampil: jumlah jurnal ber-VA dibaca dari data
+             jurnal dan alokasi dari Log_Pencairan_APC, keduanya tidak bergantung Log_APC. -->
+        <div class="grid grid-kpi mb-16">
+          <div class="card kpi">
+            <div class="kpi-label">Total pemasukan</div>
+            <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.totalPemasukan) }}</div>
+            <div class="kpi-sub">{{ data.apc.jumlahEntri }} entri laporan.</div>
+          </div>
+
+          <div class="card kpi">
+            <div class="kpi-label">Jurnal sudah memiliki Virtual Account UPI</div>
+            <div class="kpi-value tabular">{{ data.apc.jumlahJurnalPunyaVa }}</div>
+            <div class="kpi-sub">Dari {{ data.apc.jumlahJurnalTerdata }} jurnal; Nomor VA tercatat di data jurnal.</div>
+          </div>
+
+          <div class="card kpi">
+            <div class="kpi-label">Jurnal sudah menggunakan VA</div>
+            <div class="kpi-value tabular">{{ data.apc.jumlahJurnalPakaiVa }}</div>
+            <div class="kpi-sub">Sudah ada pemasukan APC yang terdeteksi.</div>
+          </div>
+
+          <div class="card kpi">
+            <div class="kpi-label">Entri terbesar</div>
+            <div class="kpi-value tabular">{{ data.apc.entriTerbesar ? rupiah(data.apc.entriTerbesar.total) : '—' }}</div>
+            <div class="kpi-sub">{{ data.apc.entriTerbesar ? data.apc.entriTerbesar.namaJurnal : '—' }}</div>
+          </div>
+        </div>
+
+        <div class="card-note mb-8" style="font-weight:700">Alokasi pencairan</div>
+        <div class="grid grid-3 mb-16">
+          <div class="card kpi">
+            <div class="kpi-label">Dana Terserap</div>
+            <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.pencairan.totalTerserap) }}</div>
+            <div class="kpi-sub">Sisa setelah kontribusi dan pengelolaan, dari {{ data.apc.pencairan.jumlahEntri }} pencairan.</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-label">Kontribusi untuk Universitas {{ data.apc.persenUpi }}%</div>
+            <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalUpi) }}</div>
+            <div class="kpi-sub">Dari {{ data.apc.pencairan.jumlahEntri }} pencairan tercatat.</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-label">Pengelolaan APC di DPPM {{ data.apc.persenDppm }}%</div>
+            <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalDppm) }}</div>
+            <div class="kpi-sub">Dari {{ data.apc.pencairan.jumlahEntri }} pencairan tercatat.</div>
+          </div>
+        </div>
+
+        <div v-if="data.apc.kosong" class="kosong mb-16">
           <div class="kosong-judul">Belum ada laporan APC</div>
           <p class="kosong-teks">{{ data.apc.pesanKosong }}</p>
         </div>
 
         <template v-else>
-          <div class="grid grid-kpi mb-16">
-            <div class="card kpi">
-              <div class="kpi-label">Total pemasukan</div>
-              <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.totalPemasukan) }}</div>
-              <div class="kpi-sub">{{ data.apc.jumlahEntri }} entri laporan.</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-label">Jurnal ber-APC</div>
-              <div class="kpi-value tabular">{{ data.apc.jumlahJurnalBerApc }}</div>
-              <div class="kpi-sub">Jurnal yang sudah mendapat pemasukan APC.</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-label">Entri terbesar</div>
-              <div class="kpi-value tabular">{{ data.apc.entriTerbesar ? rupiah(data.apc.entriTerbesar.total) : '—' }}</div>
-              <div class="kpi-sub">{{ data.apc.entriTerbesar ? data.apc.entriTerbesar.namaJurnal : '—' }}</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-label">Rata-rata per entri</div>
-              <div class="kpi-value tabular">{{ rupiah(data.apc.rataRataEntri) }}</div>
-              <div class="kpi-sub">Dari {{ data.apc.jumlahEntri }} entri laporan.</div>
-            </div>
-          </div>
-
-          <div class="card-note mb-8" style="font-weight:700">Alokasi pencairan (10% UPI, 2% DPPM)</div>
-          <div class="grid grid-3 mb-16">
-            <div class="card kpi">
-              <div class="kpi-label">Dana terserap jurnal</div>
-              <div class="kpi-value tabular kpi-accent">{{ rupiah(data.apc.pencairan.totalTerserap) }}</div>
-              <div class="kpi-sub">88% dari total yang dicairkan.</div>
-            </div>
-            <div class="card kpi">
-              <div class="kpi-label">Pemasukan UPI</div>
-              <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalUpi) }}</div>
-              <div class="kpi-sub">10% dari total yang dicairkan.</div>
-            </div>
-            <div class="card kpi">
-              <div class="kpi-label">Kas DPPM</div>
-              <div class="kpi-value tabular">{{ rupiah(data.apc.pencairan.totalDppm) }}</div>
-              <div class="kpi-sub">2% dari total yang dicairkan.</div>
-            </div>
-          </div>
-
           <div class="grid grid-2 mb-16">
             <div class="card">
               <div class="card-head">
@@ -983,13 +985,23 @@
             </div>
 
             <div class="card">
-              <div class="card-head"><h2 class="card-title">Jurnal dengan pemasukan tertinggi</h2></div>
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">Jurnal sudah menggunakan VA UPI</h2>
+                  <p class="card-note">Terdeteksi dari pemasukan di Log_APC; urut dari pemasukan terbesar.</p>
+                </div>
+              </div>
               <div class="tabel-bungkus">
                 <table class="tabel tabel-nama">
-                  <thead><tr><th>Jurnal</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
+                  <thead><tr><th>Jurnal</th><th>Laporan terakhir</th><th class="td-num">Artikel</th><th class="td-num">Pemasukan</th></tr></thead>
                   <tbody>
-                    <tr v-for="j in data.apc.topJurnal" :key="j.namaJurnal">
-                      <td>{{ j.namaJurnal }}</td>
+                    <tr v-for="j in data.apc.jurnalPakaiVa" :key="j.namaJurnal">
+                      <td>
+                        <div class="putus-kata">{{ j.namaJurnal }}</div>
+                        <!-- ada pemasukan tetapi kolom Nomor VA di data jurnal masih kosong -->
+                        <div v-if="!j.punyaVa" class="mt-8"><span class="badge badge-emas">Nomor VA belum tercatat</span></div>
+                      </td>
+                      <td class="teks-kecil teks-lembut">{{ tglIndo(j.terakhir) || '—' }}<span v-if="j.laporan > 1"> · {{ j.laporan }} laporan</span></td>
                       <td class="td-num tabular">{{ j.artikel }}</td>
                       <td class="td-num tabular">{{ rupiah(j.total) }}</td>
                     </tr>
@@ -1073,7 +1085,8 @@
 
         <!-- Form catat pencairan — selalu tampil, tidak bergantung ada/tidaknya laporan APC -->
         <div class="card">
-          <kartu-kepala judul="Catat Pengajuan Pencairan" catatan="10% otomatis ke UPI, 2% ke DPPM, sisanya tercatat sebagai dana terserap jurnal." />
+          <kartu-kepala judul="Catat Pengajuan Pencairan"
+            :catatan="'Kontribusi untuk Universitas ' + data.apc.persenUpi + '% dan pengelolaan APC di DPPM ' + data.apc.persenDppm + '% dihitung otomatis; sisanya tercatat sebagai dana terserap.'" />
 
           <div class="card-pad">
             <div v-if="pesanPencairan" class="alert mb-8" :class="pesanPencairanJenis === 'galat' ? 'alert-galat' : 'alert-ok'">
@@ -1095,8 +1108,8 @@
             </div>
 
             <div v-if="formPencairan.jumlahDiajukan > 0" class="alert alert-info mb-8">
-              Pratinjau alokasi: UPI {{ rupiah(previewAlokasi.upi) }} · DPPM {{ rupiah(previewAlokasi.dppm) }} ·
-              Dana terserap jurnal {{ rupiah(previewAlokasi.terserap) }}
+              Pratinjau alokasi: Kontribusi untuk Universitas {{ rupiah(previewAlokasi.upi) }} ·
+              Pengelolaan APC di DPPM {{ rupiah(previewAlokasi.dppm) }} · Dana terserap {{ rupiah(previewAlokasi.terserap) }}
             </div>
 
             <div class="field">
@@ -1106,8 +1119,8 @@
 
             <div v-if="konfirmasiPencairan" class="alert alert-info mb-8">
               Konfirmasi: catat pencairan <strong>{{ rupiah(formPencairan.jumlahDiajukan) }}</strong> untuk
-              <strong>{{ formPencairan.namaJurnal }}</strong> — UPI {{ rupiah(previewAlokasi.upi) }} ·
-              DPPM {{ rupiah(previewAlokasi.dppm) }} · Dana terserap jurnal {{ rupiah(previewAlokasi.terserap) }}.
+              <strong>{{ formPencairan.namaJurnal }}</strong> — Kontribusi untuk Universitas {{ rupiah(previewAlokasi.upi) }} ·
+              Pengelolaan APC di DPPM {{ rupiah(previewAlokasi.dppm) }} · Dana terserap {{ rupiah(previewAlokasi.terserap) }}.
               Data ini tidak dapat diedit/dihapus lewat dashboard setelah disimpan.
             </div>
 

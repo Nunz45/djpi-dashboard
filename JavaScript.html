@@ -41,9 +41,9 @@ var KELAS_STATUS_DOI={
   BERHASIL:'badge badge-ok',
   GAGAL:'badge badge-bahaya'
 };
-// baru: persentase alokasi pencairan APC, HANYA untuk pratinjau di sisi tampilan —
-// nilai yang sebenarnya dihitung ulang di server (catatPencairanApc di Code.gs),
-// sehingga menaruh angka ini di klien tidak membuka celah manipulasi.
+// Cadangan persentase alokasi pencairan APC untuk pratinjau, dipakai hanya bila payload
+// server belum memuat persenUpi/persenDppm. Nilai resmi selalu dihitung ulang di server
+// (catatPencairanApc di Code.gs), sehingga angka ini tidak membuka celah manipulasi.
 var PERSEN_ALOKASI_UPI=0.10, PERSEN_ALOKASI_DPPM=0.02;
 // baru: urutan tetap & label/kelas badge untuk TERBITAN_STATUS (harus sama persis dengan TERBITAN_STATUS di Code.gs)
 var TERBITAN_STATUS_LIST=['INITIAL_SCREENING','DESK_REVIEW','PEER_REVIEW','DECISION','COPYEDIT','PUBLISH'];
@@ -274,12 +274,15 @@ var appDjpi = Vue.createApp({
         return teks.indexOf(q)!==-1;
       });
     },
-    // baru: pratinjau alokasi pencairan APC (10% UPI, 2% DPPM, sisanya dana terserap
-    // jurnal). Murni tampilan — perhitungan resmi & final tetap dilakukan server.
+    // Pratinjau alokasi pencairan APC. Persentasenya diambil dari payload server supaya
+    // sama dengan label kartu; perhitungan resmi & final tetap dilakukan server.
     previewAlokasi:function(){
       var jumlah=Number(this.formPencairan.jumlahDiajukan)||0;
-      var upi=Math.round(jumlah*PERSEN_ALOKASI_UPI);
-      var dppm=Math.round(jumlah*PERSEN_ALOKASI_DPPM);
+      var apc=this.data&&this.data.apc;
+      var pUpi=(apc&&apc.persenUpi!=null)?apc.persenUpi/100:PERSEN_ALOKASI_UPI;
+      var pDppm=(apc&&apc.persenDppm!=null)?apc.persenDppm/100:PERSEN_ALOKASI_DPPM;
+      var upi=Math.round(jumlah*pUpi);
+      var dppm=Math.round(jumlah*pDppm);
       return{upi:upi,dppm:dppm,terserap:jumlah-upi-dppm};
     },
     // baru: daftar bulan, hasil saring, dan paginasi untuk tabel "Riwayat Laporan APC"
@@ -929,7 +932,7 @@ var appDjpi = Vue.createApp({
     },
 
     // ===== Pencairan APC (tab Pemasukan APC, admin-only) =====
-    // baru: mencatat pengajuan pencairan. Alokasi 10% UPI / 2% DPPM dihitung ULANG
+    // baru: mencatat pengajuan pencairan. Alokasi kontribusi universitas / pengelolaan DPPM dihitung ULANG
     // di server (catatPencairanApc di Code.gs) — previewAlokasi di sini murni
     // tampilan, bukan sumber kebenaran.
     kirimPencairan:function(){
