@@ -89,7 +89,7 @@ var appDjpi = Vue.createApp({
     pinTetapInput:'',pinTetapBaru:'',pinTetapUlang:'',pesanPinTetap:'',pesanPinTetapJenis:'info',menyimpanPinTetap:false,
     // baru: state form "Catat Pengajuan Pencairan" di tab Pemasukan APC (admin-only)
     // tabel Riwayat APC = tampilan live sheet Log_APC; baris bisa diubah & ditambah di tempat
-    logApc:{baris:[],memuat:false,galat:'',dimuatPada:''},
+    logApc:{baris:[],memuat:false,galat:'',dimuatPada:'',label:{}},
     barisEditApc:null,barisBaruApc:null,menyimpanBarisApc:false,gandaBarisApc:false,pesanLogApc:'',pesanLogApcJenis:'info',
     formPencairan:{namaJurnal:'',jumlahDiajukan:null,catatan:''},menyimpanPencairan:false,
     konfirmasiPencairan:false, // baru: gate konfirmasi sebelum menulis ke Log_Pencairan_APC (append-only, tanpa edit/hapus)
@@ -292,6 +292,12 @@ var appDjpi = Vue.createApp({
       return{upi:upi,dppm:dppm,terserap:jumlah-upi-dppm};
     },
     // daftar bulan, hasil saring, dan paginasi untuk tabel Riwayat APC (live Log_APC)
+    // Pilihan "Tambah baris": hanya jurnal yang belum punya baris di Log_APC (satu jurnal satu baris).
+    jurnalBelumAdaDiLogApc:function(){
+      var kunci=function(n){return String(n||'').replace(/\s+/g,' ').trim().toUpperCase();};
+      var ada={};this.logApc.baris.forEach(function(r){ada[kunci(r.namaDirektori||r.namaJurnal)]=true;});
+      return (this.data?this.data.journals:[]).filter(function(j){return !ada[kunci(j.namaJurnal)];});
+    },
     // Bulan dari tanggal pemasukan (entri admin) atau waktu laporan (laporan pengelola).
     daftarBulanApc:function(){
       var set={};
@@ -619,11 +625,12 @@ var appDjpi = Vue.createApp({
       var b=BULAN[parseInt(ym.substring(5,7),10)-1]||ym.substring(5,7);
       return b+' '+ym.substring(0,4);
     },
-    eksporRiwayatApc:function(){this.unduhExcel(this.riwayatApcTersaring.map(function(r){return{
-      Baris:r.baris,'Tanggal Pemasukan':r.tanggal||'',Timestamp:r.timestamp,Jurnal:r.namaJurnal,Kluster:r.kluster,Edisi:r.edisi,
-      'Artikel/Transaksi':r.jumlah,Total:r.total,Sumber:r.sumber||'PENGELOLA',Catatan:r.catatan||'',
-      'Diperbarui Pada':r.diperbaruiPada||'','Diperbarui Oleh':r.diperbaruiOleh||''
-    };}),'Log APC','DJPI-Log-APC');},
+    eksporRiwayatApc:function(){var L=this.logApc.label||{};this.unduhExcel(this.riwayatApcTersaring.map(function(r){var o={};
+      o.Baris=r.baris;o[L.tanggal||'Tanggal Rekap']=r.tanggal||'';o['Nama Jurnal']=r.namaJurnal;o['Nama di data jurnal']=r.namaDirektori||'';
+      o.Kluster=r.kluster;o[L.jumlah||'Jumlah transaksi']=r.jumlah;o[L.total||'Total Pemasukan APC']=r.total;
+      o[L.kontribusi||'Kontribusi untuk Universitas']=r.kontribusi;o[L.dppm||'Pengelolaan APC di DPPM']=r.dppm;
+      o[L.nominal||'Nominal yang bisa dicairkan']=r.nominal;o['Diperbarui Pada']=r.diperbaruiPada||'';o['Diperbarui Oleh']=r.diperbaruiOleh||'';
+      return o;}),'Log APC','DJPI-Log-APC');},
     // ===== Ekspor Usulan DOI — selalu mengikuti filter yang sedang aktif =====
     barisEksporDoi:function(untukCsv){
       var s=this;
@@ -941,7 +948,8 @@ var appDjpi = Vue.createApp({
     },
 
     // ===== Tabel live Log_APC (tab Pemasukan APC) =====
-    muatLogApc:function(){
+    // lalu: dipanggil setelah data termuat (mis. membuka baris tertentu)
+    muatLogApc:function(lalu){
       var s=this;s.logApc.memuat=true;s.logApc.galat='';
       gs('getLogApcLive',s.token)
         .then(function(r){
@@ -951,7 +959,9 @@ var appDjpi = Vue.createApp({
           }
           s.logApc.baris=Array.isArray(r.baris)?r.baris:[];
           s.logApc.dimuatPada=r.dimuatPada||'';
+          s.logApc.label=r.label||{};
           if(s.halamanApc>s.totalHalamanApc)s.halamanApc=s.totalHalamanApc;
+          if(typeof lalu==='function')lalu();
         })
         .catch(function(e){s.logApc.galat=e&&e.message?e.message:String(e);})
         .finally(function(){s.logApc.memuat=false;});
@@ -965,18 +975,17 @@ var appDjpi = Vue.createApp({
       var j=Number(b.jumlah),t=Number(b.total);
       if(b.jumlah===''||b.jumlah===null||!isFinite(j)||Math.round(j)!==j||j<(baru?1:0))return baru?'Jumlah transaksi minimal 1.':'Jumlah harus bilangan bulat 0 atau lebih.';
       if(b.total===''||b.total===null||!isFinite(t)||(baru?t<=0:t<0))return baru?'Total harus lebih dari nol.':'Total harus 0 atau lebih.';
-      if(baru&&!b.tanggal)return 'Isi tanggal pemasukan.';
-      if(b.tanggal&&(!/^\d{4}-\d{2}-\d{2}$/.test(b.tanggal)||b.tanggal>isoLokalHariIni()))return 'Tanggal pemasukan tidak valid atau di masa depan.';
+      if(b.tanggal&&(!/^\d{4}-\d{2}-\d{2}$/.test(b.tanggal)||b.tanggal>isoLokalHariIni()))return 'Tanggal tidak valid atau di masa depan.';
       return '';
     },
     mulaiUbahBarisApc:function(r){
       this.barisBaruApc=null;this.gandaBarisApc=false;this.pesanLogApc='';
-      this.barisEditApc={baris:r.baris,sidik:r.sidik,namaJurnal:r.namaJurnal,edisi:r.edisi,jumlah:r.jumlah,
-        total:r.total,tanggal:String(r.tanggal||'').substring(0,10),catatan:r.catatan};
+      this.barisEditApc={baris:r.baris,sidik:r.sidik,namaJurnal:r.namaJurnal,jumlah:r.jumlah,
+        total:r.total,tanggal:String(r.tanggal||'').substring(0,10)};
     },
     mulaiTambahBarisApc:function(){
       this.barisEditApc=null;this.pesanLogApc='';this.halamanApc=1;
-      this.barisBaruApc={namaJurnal:'',edisi:'',jumlah:null,total:null,tanggal:isoLokalHariIni(),catatan:''};
+      this.barisBaruApc={namaJurnal:'',jumlah:null,total:null,tanggal:isoLokalHariIni()};
       this.gandaBarisApc=false;
     },
     batalBarisApc:function(){this.barisEditApc=null;this.barisBaruApc=null;this.gandaBarisApc=false;},
@@ -984,8 +993,9 @@ var appDjpi = Vue.createApp({
       var s=this,e=this.barisEditApc;
       if(!e||this.galatBarisApc(e,false))return;
       s.menyimpanBarisApc=true;s.pesanLogApc='';
-      gs('perbaruiBarisLogApc',s.token,{baris:e.baris,sidik:e.sidik,namaJurnal:e.namaJurnal,edisi:e.edisi||'',
-        jumlah:Number(e.jumlah),total:Number(e.total),tanggal:e.tanggal||'',catatan:e.catatan||''})
+      // edisi/catatan tidak dikirim: server hanya menulis kolom yang disebut
+      gs('perbaruiBarisLogApc',s.token,{baris:e.baris,sidik:e.sidik,namaJurnal:e.namaJurnal,
+        jumlah:Number(e.jumlah),total:Number(e.total),tanggal:e.tanggal||''})
         .then(function(r){
           if(!r||!r.ok){
             if(r&&r.code==='SESSION_EXPIRED'){s.sesiBerakhir();return;}
@@ -994,7 +1004,9 @@ var appDjpi = Vue.createApp({
           }
           var i=s.logApc.baris.findIndex(function(x){return x.baris===r.baris.baris;});
           if(i!==-1)s.logApc.baris.splice(i,1,r.baris);
-          s.barisEditApc=null;s.pesanLogApc=r.message;s.pesanLogApcJenis='ok';
+          s.barisEditApc=null;
+          // peringatan: rumus 20%/2%/nominal di sheet tidak ikut berubah
+          s.pesanLogApc=r.message+(r.peringatan?' '+r.peringatan:'');s.pesanLogApcJenis=r.peringatan?'ganda':'ok';
           if(r.berubah)s.muatDashboard(); // kartu rekap ikut nilai terbaru
         })
         .catch(function(err){s.pesanLogApc=err&&err.message?err.message:'Gagal menyimpan.';s.pesanLogApcJenis='galat';})
@@ -1004,15 +1016,25 @@ var appDjpi = Vue.createApp({
       var s=this,b=this.barisBaruApc;
       if(!b||this.galatBarisApc(b,true))return;
       s.menyimpanBarisApc=true;s.pesanLogApc='';
-      gs('catatPemasukanApcAdmin',s.token,{namaJurnal:b.namaJurnal,edisi:b.edisi||'',tanggal:b.tanggal,
-        jumlahTransaksi:Number(b.jumlah),total:Number(b.total),catatan:b.catatan||'',paksa:s.gandaBarisApc===true})
+      gs('catatPemasukanApcAdmin',s.token,{namaJurnal:b.namaJurnal,tanggal:b.tanggal||'',
+        jumlahTransaksi:Number(b.jumlah),total:Number(b.total)})
         .then(function(r){
           if(!r||!r.ok){
             if(r&&r.code==='SESSION_EXPIRED'){s.sesiBerakhir();return;}
-            if(r&&r.code==='MUNGKIN_GANDA'){s.pesanLogApc=r.message;s.pesanLogApcJenis='ganda';s.gandaBarisApc=true;return;}
+            if(r&&r.code==='SUDAH_ADA'){
+              // satu jurnal satu baris: tutup form tambah, lalu buka form Ubah pada baris jurnal itu
+              s.barisBaruApc=null;
+              s.muatLogApc(function(){
+                var i=s.riwayatApcTersaring.findIndex(function(x){return x.baris===r.baris;});
+                if(i!==-1){s.halamanApc=Math.floor(i/10)+1;s.mulaiUbahBarisApc(s.riwayatApcTersaring[i]);}
+                s.pesanLogApc=r.message;s.pesanLogApcJenis='ganda';
+              });
+              return;
+            }
             throw new Error((r&&r.message)||'Baris gagal ditambahkan.');
           }
-          s.barisBaruApc=null;s.gandaBarisApc=false;s.pesanLogApc=r.message;s.pesanLogApcJenis='ok';
+          s.barisBaruApc=null;s.gandaBarisApc=false;
+          s.pesanLogApc=r.message+(r.peringatan?' '+r.peringatan:'');s.pesanLogApcJenis=r.peringatan?'ganda':'ok';
           s.muatLogApc();s.muatDashboard();
         })
         .catch(function(err){s.pesanLogApc=err&&err.message?err.message:'Gagal menambah baris.';s.pesanLogApcJenis='galat';})

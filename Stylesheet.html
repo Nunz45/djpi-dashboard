@@ -594,6 +594,11 @@ table.apc-live tr.apc-edit td:last-child{position:static;box-shadow:none;backgro
 .apc-f .label{margin:0}
 .apc-f-lebar{grid-column:span 2}
 .apc-f-aksi{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-end;gap:var(--space-3);flex-wrap:wrap}
+/* Header Log_APC panjang ("Kontribusi untuk Universitas 20%") boleh turun baris; angka tetap satu baris. */
+table.apc-live th{white-space:normal;vertical-align:bottom}
+/* 8 kolom Log_APC harus muat di 1280px: padding sel dirapatkan (spesifisitas mengalahkan .td-num) */
+table.tabel.apc-live td,table.tabel.apc-live th{padding-left:var(--space-2);padding-right:var(--space-2)}
+.apc-hitung{color:var(--muted);line-height:1.5}
 @media(max-width:680px){
   .apc-edit-form{grid-template-columns:minmax(0,1fr)}
   .apc-f-lebar{grid-column:auto}

@@ -14,7 +14,7 @@
 
   Modul yang AKTIF di draf ini (backend sudah lengkap):
     1. Sunting Data Jurnal      -> getJournalDetailForEditor, simpanPerubahanJurnal
-    2. Lapor APC                -> logApcEntry
+    2. APC (keterangan saja)    -> rekap dikelola DJPI; laporan pengelola dinonaktifkan
     3. Ajukan Aktivasi DOI      -> getUsulanDoiUntukPengelola, simpanUsulanDoi,
  *                                perbaruiUsulanDoi
     4. Lapor Progress Terbitan  -> getProgressTerbitanUntukPengelola, logProgressTerbitan
@@ -581,38 +581,19 @@
       </div>
     </section>
 
-    <!-- -------- Panel: Lapor APC -------- -->
+    <!-- -------- Panel: APC (laporan pengelola dinonaktifkan) --------
+         Rekap APC dikelola DJPI langsung di sheet Log_APC (satu baris per jurnal). Formulir laporan
+         lama menulis berdasarkan posisi kolom format lama dan akan merusak rekap itu. -->
     <section v-if="menuAktif === 'apc'">
       <div class="card">
-        <kartu-kepala judul="Lapor pemasukan APC" catatan="Laporkan pemasukan Article Processing Charge untuk satu edisi." />
-
-        <form class="card-pad" @submit.prevent="kirimLaporanApc">
-          <div class="field">
-            <label class="label" for="aEdisi">Edisi laporan</label>
-            <input id="aEdisi" v-model.trim="formApc.edisi" type="text" class="input" required>
+        <kartu-kepala judul="Pemasukan APC" catatan="Rekap pemasukan APC dikelola langsung oleh DJPI." />
+        <div class="card-pad">
+          <div class="alert alert-info">
+            Pemasukan APC jurnal Anda direkap DJPI berdasarkan transaksi Virtual Account UPI, jadi tidak perlu
+            dilaporkan lewat panel ini. Bila ada pemasukan yang belum tercatat atau angka yang perlu diperbaiki,
+            hubungi DJPI.
           </div>
-
-          <div class="grid grid-2">
-            <div class="field">
-              <label class="label" for="aJumlah">Jumlah artikel berbayar</label>
-              <input id="aJumlah" v-model.number="formApc.jumlahArtikel" type="number" min="0" class="input">
-            </div>
-            <div class="field">
-              <label class="label" for="aTotal">Total pemasukan APC</label>
-              <input id="aTotal" v-model.number="formApc.total" type="number" min="0" class="input">
-            </div>
-          </div>
-
-          <p class="hint">
-            Kontribusi untuk universitas, pengelolaan APC di DPPM, dan dana terserap dicatat
-            terpisah oleh admin DJPI saat pengajuan pencairan diproses.
-          </p>
-
-          <button type="submit" class="btn btn-primer" :disabled="mengirimApc">
-            <span v-if="mengirimApc" class="spinner" aria-hidden="true"></span>
-            {{ mengirimApc ? 'Mengirim…' : 'Catat laporan' }}
-          </button>
-        </form>
+        </div>
       </div>
     </section>
 
@@ -1788,7 +1769,7 @@ const appPengelola = createApp({
     menuGroups() {
       return [
         { k: 'sunting', label: 'Sunting Data Jurnal', ikon: 'fa-solid fa-pen-to-square' },
-        { k: 'apc', label: 'Lapor APC', ikon: 'fa-solid fa-wallet' },
+        { k: 'apc', label: 'APC', ikon: 'fa-solid fa-wallet' },
         { k: 'doi', label: 'Ajukan Aktivasi DOI', ikon: 'fa-solid fa-link' },
         { k: 'terbitan', label: 'Lapor Progress Terbitan', ikon: 'fa-solid fa-timeline' },
         { k: 'akreditasi', label: 'Persiapan Akreditasi', ikon: 'fa-solid fa-award' }
